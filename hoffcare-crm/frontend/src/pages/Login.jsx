@@ -5,6 +5,9 @@ import { useAuth } from '../context/AuthContext';
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -13,25 +16,32 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (password !== confirmPassword) {
+      setError('As senhas não coincidem. Verifique e tente novamente.');
+      return;
+    }
+
     setLoading(true);
     try {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.error || 'Erro ao fazer login');
+      setError(err.response?.data?.error || 'Erro ao fazer login. Verifique seu email e senha.');
     } finally {
       setLoading(false);
     }
   };
 
+  const passwordsMatch = confirmPassword && password === confirmPassword;
+  const passwordsMismatch = confirmPassword && password !== confirmPassword;
+
   return (
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
-          {/* Logo P. Soluções */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
             <svg width="52" height="52" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* Cruz médica estilizada */}
               <rect x="38" y="10" width="24" height="80" rx="8" fill="#4DB8E8"/>
               <rect x="10" y="38" width="80" height="24" rx="8" fill="#4DB8E8"/>
               <rect x="42" y="14" width="16" height="72" rx="6" fill="#E8841A" opacity="0.7"/>
@@ -62,19 +72,78 @@ export default function Login() {
               required
             />
           </div>
+
           <div className="form-group">
             <label className="form-label">Senha</label>
-            <input
-              className="form-control"
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                className="form-control"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                style={{ paddingRight: 44 }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                style={{
+                  position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: '#6c757d', fontSize: 15, padding: 4,
+                }}
+                tabIndex={-1}
+              >
+                <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`} />
+              </button>
+            </div>
           </div>
-          <button className="btn btn-primary btn-lg" type="submit" disabled={loading} style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}>
-            {loading ? <><span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> Entrando...</> : <><i className="fas fa-right-to-bracket" /> Entrar</>}
+
+          <div className="form-group">
+            <label className="form-label">
+              Confirme a Senha
+              {passwordsMatch && <span style={{ marginLeft: 8, color: '#28a745', fontSize: 11 }}><i className="fas fa-check-circle" /> Senhas iguais</span>}
+              {passwordsMismatch && <span style={{ marginLeft: 8, color: '#dc3545', fontSize: 11 }}><i className="fas fa-times-circle" /> Senhas diferentes</span>}
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                className="form-control"
+                type={showConfirm ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                style={{
+                  paddingRight: 44,
+                  borderColor: passwordsMismatch ? '#dc3545' : passwordsMatch ? '#28a745' : undefined,
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm(v => !v)}
+                style={{
+                  position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: '#6c757d', fontSize: 15, padding: 4,
+                }}
+                tabIndex={-1}
+              >
+                <i className={`fas ${showConfirm ? 'fa-eye-slash' : 'fa-eye'}`} />
+              </button>
+            </div>
+          </div>
+
+          <button
+            className="btn btn-primary btn-lg"
+            type="submit"
+            disabled={loading || passwordsMismatch}
+            style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}
+          >
+            {loading
+              ? <><span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> Entrando...</>
+              : <><i className="fas fa-right-to-bracket" /> Entrar</>
+            }
           </button>
         </form>
 
