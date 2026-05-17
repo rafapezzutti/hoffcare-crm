@@ -4,7 +4,7 @@ import Modal from '../components/Modal';
 
 const empty = { name: '', email: '', password: '', role: 'responsavel', clinic_id: '' };
 
-function PasswordField({ label, value, onChange, required, placeholder }) {
+function PasswordField({ label, value, onChange, required, placeholder, autoComplete }) {
   const [show, setShow] = useState(false);
   return (
     <div className="form-group">
@@ -17,6 +17,7 @@ function PasswordField({ label, value, onChange, required, placeholder }) {
           onChange={onChange}
           required={required}
           placeholder={placeholder || '••••••••'}
+          autoComplete={autoComplete || 'new-password'}
           style={{ paddingRight: 44 }}
         />
         <button
@@ -122,13 +123,14 @@ export default function Users() {
         {error && <div className="alert alert-error"><i className="fas fa-circle-exclamation" /> {error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group"><label className="form-label">Nome <span className="required">*</span></label><input className="form-control" {...f('name')} required /></div>
-          <div className="form-group"><label className="form-label">Email <span className="required">*</span></label><input className="form-control" type="email" {...f('email')} required /></div>
+          <div className="form-group"><label className="form-label">Email <span className="required">*</span></label><input className="form-control" type="email" {...f('email')} required autoComplete="off" /></div>
 
           <PasswordField
             label={editing ? 'Nova senha (deixe em branco para manter)' : 'Senha *'}
             value={form.password || ''}
             onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
             required={!editing}
+            autoComplete="new-password"
           />
 
           {/* Confirmação de senha — aparece quando há algo digitado */}
