@@ -8,13 +8,16 @@ api.interceptors.request.use((config) => {
   const token = localStorage.getItem('psaude_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
 
-  // Envia clínica selecionada para o backend (admin pode trocar de clínica)
+  // Envia clínica selecionada para o backend
   const clinic = localStorage.getItem('psaude_clinic');
   if (clinic) {
     try {
       const parsed = JSON.parse(clinic);
       if (parsed?.id) config.headers['X-Clinic-Id'] = parsed.id;
     } catch {}
+  } else {
+    // Sem clínica selecionada: envia 0 para backend retornar vazio
+    config.headers['X-Clinic-Id'] = '0';
   }
 
   return config;

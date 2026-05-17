@@ -155,7 +155,37 @@ export default function Layout() {
       </aside>
 
       <main className="main-content">
-        <Outlet />
+        {user?.role === 'admin' && !selectedClinic ? (
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            height: '80vh', gap: 20, textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 64, color: 'var(--gray-200)' }}>
+              <i className="fas fa-hospital" />
+            </div>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--gray-700)' }}>
+              Selecione uma clínica para começar
+            </h2>
+            <p style={{ color: 'var(--gray-500)', fontSize: 14, maxWidth: 340 }}>
+              Use o menu lateral para escolher a clínica que deseja gerenciar. Os dados serão carregados após a seleção.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8, width: 280 }}>
+              {clinics.map(c => (
+                <button
+                  key={c.id}
+                  className="btn btn-outline"
+                  style={{ justifyContent: 'flex-start', gap: 10, padding: '12px 16px' }}
+                  onClick={() => { setSelectedClinic(c); window.location.reload(); }}
+                >
+                  <i className="fas fa-hospital" style={{ color: 'var(--orange)' }} />
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <Outlet />
+        )}
       </main>
     </div>
   );

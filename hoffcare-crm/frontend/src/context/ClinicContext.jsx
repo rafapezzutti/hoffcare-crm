@@ -12,7 +12,6 @@ export function ClinicProvider({ children }) {
     return stored ? JSON.parse(stored) : null;
   });
 
-  // Carrega lista de clínicas (admin vê todas, responsável vê só a sua)
   useEffect(() => {
     if (!user) return;
 
@@ -22,12 +21,15 @@ export function ClinicProvider({ children }) {
         const list = res.data;
         setClinics(list);
 
-        // Se ainda não tem clínica selecionada, usa a do usuário logado
-        if (!selectedClinic && list.length > 0) {
-          const defaultClinic = list.find(c => c.id === user.clinic_id) || list[0];
-          setSelectedClinicState(defaultClinic);
-          localStorage.setItem('psaude_clinic', JSON.stringify(defaultClinic));
+        if (user.role !== 'admin') {
+          // Não-admin: seleciona automaticamente a clínica do usuário
+          const userClinic = list.find(c => c.id === user.clinic_id) || list[0];
+          if (userClinic) {
+            setSelectedClinicState(userClinic);
+            localStorage.setItem('psaude_clinic', JSON.stringify(userClinic));
+          }
         }
+        // Admin: não auto-seleciona — fica null até escolher
       } catch (err) {
         console.error('Erro ao carregar clínicas:', err);
       }
@@ -38,8 +40,20 @@ export function ClinicProvider({ children }) {
 
   const setSelectedClinic = (clinic) => {
     setSelectedClinicState(clinic);
-    localStorage.setItem('psaude_clinic', JSON.stringify(clinic));
+    if (clinic) {
+      localStorage.setItem('psaude_clinic', JSON.stringify(clinic));
+    } else {
+      localStorage.removeItem('psaude_clinic');
+    }
   };
+
+  // Limpa clínica selecionada ao trocar de usuário
+  useEffect(() => {
+    if (!user) {
+      setSelectedClinicState(null);
+      localStorage.removeItem('psaude_clinic');
+    }
+  }, [user]);
 
   return (
     <ClinicContext.Provider value={{ clinics, selectedClinic, setSelectedClinic }}>

@@ -8,8 +8,10 @@ const auth = (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     // Admin pode trocar de clínica via header X-Clinic-Id
-    if (decoded.role === 'admin' && req.headers['x-clinic-id']) {
-      req.user = { ...decoded, clinic_id: parseInt(req.headers['x-clinic-id']) };
+    if (decoded.role === 'admin' && req.headers['x-clinic-id'] !== undefined) {
+      const clinicId = parseInt(req.headers['x-clinic-id']);
+      // clinic_id 0 = sem clínica selecionada, retorna null para filtrar tudo
+      req.user = { ...decoded, clinic_id: clinicId === 0 ? null : clinicId };
     }
     next();
   } catch {
