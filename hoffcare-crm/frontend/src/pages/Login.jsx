@@ -28,20 +28,24 @@ export default function Login() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
+          {/* Logo P. Soluções */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
-            <svg width="48" height="48" viewBox="0 0 100 100" fill="none">
-              <path d="M50 15 C35 5, 10 20, 15 40 C20 55, 35 55, 50 70 C65 55, 80 55, 85 40 C90 20, 65 5, 50 15Z" stroke="#E8841A" strokeWidth="5" fill="none"/>
-              <path d="M30 50 C20 65, 20 85, 35 88 C42 90, 50 80, 50 70" stroke="#E8841A" strokeWidth="5" fill="none" strokeLinecap="round"/>
-              <path d="M70 50 C80 65, 80 85, 65 88 C58 90, 50 80, 50 70" stroke="#E8841A" strokeWidth="5" fill="none" strokeLinecap="round"/>
-              <circle cx="50" cy="50" r="6" fill="#E8841A"/>
+            <svg width="52" height="52" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Cruz médica estilizada */}
+              <rect x="38" y="10" width="24" height="80" rx="8" fill="#4DB8E8"/>
+              <rect x="10" y="38" width="80" height="24" rx="8" fill="#4DB8E8"/>
+              <rect x="42" y="14" width="16" height="72" rx="6" fill="#E8841A" opacity="0.7"/>
+              <rect x="14" y="42" width="72" height="16" rx="6" fill="#E8841A" opacity="0.7"/>
+              <circle cx="50" cy="50" r="10" fill="white"/>
+              <circle cx="50" cy="50" r="6" fill="#4DB8E8"/>
             </svg>
-            <div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: '#4DB8E8', lineHeight: 1, letterSpacing: 2 }}>HOFF</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: '#E8841A', lineHeight: 1, letterSpacing: 2 }}>CARE</div>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#4DB8E8', lineHeight: 1.1, letterSpacing: 0.5 }}>P. Soluções</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#E8841A', lineHeight: 1.2, letterSpacing: 1 }}>para Saúde</div>
             </div>
           </div>
-          <p style={{ marginTop: 8, fontSize: 11, color: '#adb5bd', letterSpacing: 3 }}>clínica & odonto</p>
-          <h1 style={{ marginTop: 20, fontSize: 16, fontWeight: 600, color: '#495057' }}>CRM — Sistema de Gestão</h1>
+          <p style={{ marginTop: 10, fontSize: 11, color: '#adb5bd', letterSpacing: 2 }}>sistema de gestão clínica</p>
+          <h1 style={{ marginTop: 16, fontSize: 15, fontWeight: 600, color: '#495057' }}>Acesse sua conta</h1>
         </div>
 
         {error && <div className="alert alert-error"><i className="fas fa-circle-exclamation" />{error}</div>}

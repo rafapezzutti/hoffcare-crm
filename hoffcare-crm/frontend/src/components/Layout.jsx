@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useClinic } from '../context/ClinicContext';
 
 const navItems = [
   { section: 'Principal' },
@@ -27,11 +29,20 @@ const adminItems = [
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const { clinics, selectedClinic, setSelectedClinic } = useClinic();
   const navigate = useNavigate();
+  const [clinicOpen, setClinicOpen] = useState(false);
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
   const initials = user?.name?.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+
+  const handleClinicChange = (clinic) => {
+    setSelectedClinic(clinic);
+    setClinicOpen(false);
+    // Recarrega a página para aplicar o novo filtro de clínica
+    window.location.reload();
+  };
 
   const renderNavItem = (item, i) => {
     if (item.section) return <div key={i} className="sidebar-section">{item.section}</div>;
@@ -51,29 +62,89 @@ export default function Layout() {
   return (
     <div className="layout">
       <aside className="sidebar">
-        <div className="sidebar-logo">
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: 20, fontWeight: 700, color: '#4DB8E8', letterSpacing: 1 }}>HOFF</span>
-            <span style={{ fontSize: 20, fontWeight: 700, color: '#E8841A', marginTop: -6, letterSpacing: 1 }}>CARE</span>
+        {/* Logo P. Soluções para Saúde */}
+        <div className="sidebar-logo" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 0, padding: '20px 16px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="38" y="10" width="24" height="80" rx="8" fill="#4DB8E8"/>
+              <rect x="10" y="38" width="80" height="24" rx="8" fill="#4DB8E8"/>
+              <rect x="42" y="14" width="16" height="72" rx="6" fill="#E8841A" opacity="0.7"/>
+              <rect x="14" y="42" width="72" height="16" rx="6" fill="#E8841A" opacity="0.7"/>
+              <circle cx="50" cy="50" r="10" fill="#1a2535"/>
+              <circle cx="50" cy="50" r="6" fill="#4DB8E8"/>
+            </svg>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#4DB8E8', lineHeight: 1.1, letterSpacing: 0.5 }}>P. Soluções</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#E8841A', letterSpacing: 0.5 }}>para Saúde</div>
+            </div>
           </div>
-          <div>
-            <span style={{ display: 'block', fontSize: 9, color: '#6c757d', letterSpacing: 2 }}>clínica & odonto</span>
+
+          {/* Seletor de clínica */}
+          <div style={{ marginTop: 12, marginBottom: 4, width: '100%', position: 'relative' }}>
+            <div style={{ fontSize: 9, color: '#6c757d', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Clínica ativa</div>
+            {user?.role === 'admin' && clinics.length > 1 ? (
+              <>
+                <button
+                  onClick={() => setClinicOpen(o => !o)}
+                  style={{
+                    width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 6, padding: '6px 10px', color: '#dee2e6', fontSize: 12, fontWeight: 600,
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 130 }}>
+                    <i className="fas fa-hospital" style={{ marginRight: 6, color: '#E8841A', fontSize: 10 }} />
+                    {selectedClinic?.name || 'Selecionar...'}
+                  </span>
+                  <i className={`fas fa-chevron-${clinicOpen ? 'up' : 'down'}`} style={{ fontSize: 9, opacity: 0.6, flexShrink: 0 }} />
+                </button>
+                {clinicOpen && (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                    background: '#1e2d3d', border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: 6, marginTop: 4, overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+                  }}>
+                    {clinics.map(c => (
+                      <button
+                        key={c.id}
+                        onClick={() => handleClinicChange(c)}
+                        style={{
+                          width: '100%', padding: '9px 12px', background: c.id === selectedClinic?.id ? 'rgba(77,184,232,0.15)' : 'transparent',
+                          border: 'none', color: c.id === selectedClinic?.id ? '#4DB8E8' : '#dee2e6',
+                          fontSize: 12, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+                          borderBottom: '1px solid rgba(255,255,255,0.05)',
+                        }}
+                      >
+                        {c.id === selectedClinic?.id && <i className="fas fa-check" style={{ fontSize: 10, color: '#4DB8E8' }} />}
+                        {c.id !== selectedClinic?.id && <span style={{ width: 14 }} />}
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#dee2e6', padding: '5px 0' }}>
+                <i className="fas fa-hospital" style={{ marginRight: 6, color: '#E8841A', fontSize: 10 }} />
+                {selectedClinic?.name || '—'}
+              </div>
+            )}
           </div>
         </div>
-        <div className="sidebar-powered">powered by P. Soluções</div>
 
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" style={{ marginTop: 8 }}>
           {navItems.map(renderNavItem)}
           {user?.role === 'admin' && adminItems.map(renderNavItem)}
         </nav>
 
         <div className="sidebar-bottom">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#E8841A', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#E8841A', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
               {initials}
             </div>
-            <div>
-              <div style={{ fontSize: 12, color: '#dee2e6', fontWeight: 500 }}>{user?.name}</div>
+            <div style={{ overflow: 'hidden' }}>
+              <div style={{ fontSize: 12, color: '#dee2e6', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</div>
               <div style={{ fontSize: 10, color: '#6c757d', textTransform: 'capitalize' }}>{user?.role}</div>
             </div>
           </div>
