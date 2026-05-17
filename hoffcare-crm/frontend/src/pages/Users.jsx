@@ -4,10 +4,42 @@ import Modal from '../components/Modal';
 
 const empty = { name: '', email: '', password: '', role: 'responsavel', clinic_id: '' };
 
+function PasswordField({ label, value, onChange, required, placeholder }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="form-group">
+      <label className="form-label">{label}</label>
+      <div style={{ position: 'relative' }}>
+        <input
+          className="form-control"
+          type={show ? 'text' : 'password'}
+          value={value}
+          onChange={onChange}
+          required={required}
+          placeholder={placeholder || '••••••••'}
+          style={{ paddingRight: 44 }}
+        />
+        <button
+          type="button"
+          onClick={() => setShow(v => !v)}
+          tabIndex={-1}
+          style={{
+            position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+            background: 'none', border: 'none', cursor: 'pointer', color: '#6c757d', fontSize: 15, padding: 4,
+          }}
+        >
+          <i className={`fas ${show ? 'fa-eye-slash' : 'fa-eye'}`} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Users() {
   const [items, setItems] = useState([]);
   const [clinics, setClinics] = useState([]);
   const [form, setForm] = useState(empty);
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [editing, setEditing] = useState(null);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState('');
@@ -21,11 +53,25 @@ export default function Users() {
   const handleOpen = (item = null) => {
     setEditing(item);
     setForm(item ? { ...item, password: '' } : empty);
+    setConfirmPassword('');
     setError(''); setOpen(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setError('');
+
+    // Validação de confirmação de senha
+    if (form.password || !editing) {
+      if (form.password !== confirmPassword) {
+        setError('As senhas não coincidem. Verifique e tente novamente.');
+        return;
+      }
+      if (!form.password && !editing) {
+        setError('A senha é obrigatória para novos usuários.');
+        return;
+      }
+    }
+
     try {
       if (editing) await api.put(`/users/${editing.id}`, form);
       else await api.post('/users', form);
@@ -39,6 +85,9 @@ export default function Users() {
   };
 
   const f = (field) => ({ value: form[field] || '', onChange: e => setForm(p => ({ ...p, [field]: e.target.value })) });
+
+  const passwordsMatch = confirmPassword && form.password === confirmPassword;
+  const passwordsMismatch = confirmPassword && form.password !== confirmPassword;
 
   return (
     <div className="page">
@@ -69,12 +118,44 @@ export default function Users() {
       </div>
 
       <Modal open={open} onClose={() => setOpen(false)} title={editing ? 'Editar Usuário' : 'Novo Usuário'}
-        footer={<><button className="btn btn-outline" onClick={() => setOpen(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleSubmit}>Salvar</button></>}>
-        {error && <div className="alert alert-error">{error}</div>}
+        footer={<><button className="btn btn-outline" onClick={() => setOpen(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleSubmit} disabled={passwordsMismatch}>Salvar</button></>}>
+        {error && <div className="alert alert-error"><i className="fas fa-circle-exclamation" /> {error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group"><label className="form-label">Nome <span className="required">*</span></label><input className="form-control" {...f('name')} required /></div>
           <div className="form-group"><label className="form-label">Email <span className="required">*</span></label><input className="form-control" type="email" {...f('email')} required /></div>
-          <div className="form-group"><label className="form-label">{editing ? 'Nova senha (deixe em branco para manter)' : 'Senha *'}</label><input className="form-control" type="password" {...f('password')} required={!editing} /></div>
+
+          <PasswordField
+            label={editing ? 'Nova senha (deixe em branco para manter)' : 'Senha *'}
+            value={form.password || ''}
+            onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+            required={!editing}
+          />
+
+          {/* Confirmação de senha — aparece quando há algo digitado */}
+          {(form.password || !editing) && (
+            <div className="form-group">
+              <label className="form-label">
+                Confirmar senha
+                {passwordsMatch && <span style={{ marginLeft: 8, color: '#28a745', fontSize: 11 }}><i className="fas fa-check-circle" /> Senhas iguais</span>}
+                {passwordsMismatch && <span style={{ marginLeft: 8, color: '#dc3545', fontSize: 11 }}><i className="fas fa-times-circle" /> Senhas diferentes</span>}
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  className="form-control"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required={!!form.password || !editing}
+                  style={{
+                    paddingRight: 44,
+                    borderColor: passwordsMismatch ? '#dc3545' : passwordsMatch ? '#28a745' : undefined,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
           <div className="form-grid form-grid-2">
             <div className="form-group"><label className="form-label">Perfil <span className="required">*</span></label>
               <select className="form-control" {...f('role')}>
