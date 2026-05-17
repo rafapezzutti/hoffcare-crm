@@ -13,6 +13,10 @@ export function AuthProvider({ children }) {
     const res = await api.post('/auth/login', { email, password });
     localStorage.setItem('psaude_token', res.data.token);
     localStorage.setItem('psaude_user', JSON.stringify(res.data.user));
+    // Admin sempre começa sem clínica selecionada
+    if (res.data.user.role === 'admin') {
+      localStorage.removeItem('psaude_clinic');
+    }
     setUser(res.data.user);
     return res.data.user;
   };
