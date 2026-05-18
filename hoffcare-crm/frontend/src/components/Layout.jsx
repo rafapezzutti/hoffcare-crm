@@ -16,8 +16,8 @@ const navItems = [
   { to: '/procedures', icon: 'fa-list-check', label: 'Procedimentos' },
 
   { section: 'Atendimento' },
-  { to: '/records/new', icon: 'fa-file-medical', label: 'Novo Registro' },
-  { to: '/records', icon: 'fa-clipboard-list', label: 'Registros' },
+  { to: '/records/new', icon: 'fa-file-medical', label: 'Novo Prontuário' },
+  { to: '/records', icon: 'fa-clipboard-list', label: 'Prontuários' },
   { to: '/history', icon: 'fa-clock-rotate-left', label: 'Histórico de Pacientes' },
 ];
 
