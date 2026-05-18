@@ -10,7 +10,7 @@ export default function RecordForm() {
   const isEdit = !!id;
 
   const [form, setForm] = useState({
-    type: 'dentista',
+    type: 'odontologico',
     patient_id: params.get('patient_id') || '',
     professional_id: '',
     consultation_date: dayjs().format('YYYY-MM-DD'),
@@ -132,7 +132,7 @@ export default function RecordForm() {
 
           <div className="form-group"><label className="form-label">Tipo <span className="required">*</span></label>
             <select className="form-control" value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value, procedures: [] }))}>
-              <option value="dentista">Odontológico</option>
+              <option value="odontologico">Odontológico</option>
               <option value="medico">Médico</option>
             </select>
           </div>
@@ -168,7 +168,7 @@ export default function RecordForm() {
                 setSelectedProfessional(prof || null);
               }}>
               <option value="">— Selecione —</option>
-              {professionals.filter(p => p.type === form.type).map(p => (
+              {professionals.filter(p => !p.type || p.type === form.type).map(p => (
                 <option key={p.id} value={p.id}>{p.name} ({p.crm_cro})</option>
               ))}
             </select>
