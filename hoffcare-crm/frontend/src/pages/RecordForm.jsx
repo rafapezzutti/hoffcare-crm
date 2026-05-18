@@ -168,7 +168,10 @@ export default function RecordForm() {
                 setSelectedProfessional(prof || null);
               }}>
               <option value="">— Selecione —</option>
-              {professionals.filter(p => !p.type || p.type === form.type).map(p => (
+              {professionals.filter(p => {
+                if (form.type === 'odontologico') return p.type === 'odontologico' || p.type === 'dentista';
+                return p.type === form.type;
+              }).map(p => (
                 <option key={p.id} value={p.id}>{p.name} ({p.crm_cro})</option>
               ))}
             </select>
