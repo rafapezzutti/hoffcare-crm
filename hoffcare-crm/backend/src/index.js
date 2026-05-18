@@ -5,8 +5,23 @@ const path = require('path');
 
 const app = express();
 
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:5173',
+  'http://localhost:5173',
+  'https://hoffcare-crm.onrender.com',
+  'https://psaude.ia.br',
+  'https://www.psaude.ia.br',
+];
+
 app.use(cors({
-  origin: [process.env.FRONTEND_URL || 'http://localhost:5173', 'https://*.onrender.com'],
+  origin: (origin, callback) => {
+    // Permite requisições sem origin (ex: Postman, Render Shell)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || /\.onrender\.com$/.test(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
 app.use(express.json());
