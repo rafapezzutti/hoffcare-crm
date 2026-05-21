@@ -9,9 +9,12 @@ router.get('/', auth, async (req, res) => {
     const { patient_id, cpf, patient_name } = req.query;
     const clinic_id = req.user.clinic_id;
     const params = [];
-    const conditions = ['1=1'];
+    const conditions = [];
 
+    // clinic_id é obrigatório — sem clínica, retorna vazio
     if (clinic_id) { conditions.push(`mr.clinic_id = $${params.length+1}`); params.push(clinic_id); }
+    else { return res.json([]); }
+
     if (patient_id) { conditions.push(`mr.patient_id = $${params.length+1}`); params.push(patient_id); }
     if (cpf) { conditions.push(`p.cpf ILIKE $${params.length+1}`); params.push(`%${cpf}%`); }
     if (patient_name) { conditions.push(`p.name ILIKE $${params.length+1}`); params.push(`%${patient_name}%`); }
@@ -35,6 +38,7 @@ router.get('/', auth, async (req, res) => {
 // Get single record with procedures
 router.get('/:id', auth, async (req, res) => {
   try {
+    const clinic_id = req.user.clinic_id;
     const record = await pool.query(
       `SELECT mr.*, p.name as patient_name, p.cpf as patient_cpf, p.birthdate as patient_birthdate,
               pr.name as professional_name, pr.crm_cro, pr.type as professional_type,
@@ -44,7 +48,7 @@ router.get('/:id', auth, async (req, res) => {
        LEFT JOIN patients p ON mr.patient_id = p.id
        LEFT JOIN professionals pr ON mr.professional_id = pr.id
        LEFT JOIN clinics c ON mr.clinic_id = c.id
-       WHERE mr.id = $1`, [req.params.id]
+       WHERE mr.id = $1 AND mr.clinic_id = $2`, [req.params.id, clinic_id]
     );
     if (!record.rows[0]) return res.status(404).json({ error: 'Registro não encontrado' });
 
@@ -65,7 +69,8 @@ router.post('/', auth, async (req, res) => {
   if (!type || !patient_id || !professional_id || !consultation_date)
     return res.status(400).json({ error: 'Tipo, paciente, profissional e data são obrigatórios' });
 
-  const clinic_id = req.user.clinic_id || req.body.clinic_id;
+  const clinic_id = req.user.clinic_id;
+  if (!clinic_id) return res.status(400).json({ error: 'Selecione uma clínica antes de cadastrar' });
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -100,6 +105,7 @@ router.post('/', auth, async (req, res) => {
 // Update record
 router.put('/:id', auth, async (req, res) => {
   const { type, patient_id, professional_id, consultation_date, procedures } = req.body;
+  const clinic_id = req.user.clinic_id;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -107,8 +113,8 @@ router.put('/:id', auth, async (req, res) => {
 
     const record = await client.query(
       `UPDATE medical_records SET type=$1, patient_id=$2, professional_id=$3, consultation_date=$4, total_value=$5
-       WHERE id=$6 RETURNING *`,
-      [type, patient_id, professional_id, consultation_date, total, req.params.id]
+       WHERE id=$6 AND clinic_id=$7 RETURNING *`,
+      [type, patient_id, professional_id, consultation_date, total, req.params.id, clinic_id]
     );
     if (!record.rows[0]) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Registro não encontrado' }); }
 
@@ -133,9 +139,16 @@ router.put('/:id', auth, async (req, res) => {
 
 // Delete record
 router.delete('/:id', auth, async (req, res) => {
+  const clinic_id = req.user.clinic_id;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    // Verifica se o registro pertence à clínica antes de apagar
+    const check = await client.query(
+      'SELECT id FROM medical_records WHERE id = $1 AND clinic_id = $2',
+      [req.params.id, clinic_id]
+    );
+    if (!check.rows[0]) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Registro não encontrado' }); }
     await client.query('DELETE FROM medical_record_procedures WHERE record_id = $1', [req.params.id]);
     await client.query('DELETE FROM medical_records WHERE id = $1', [req.params.id]);
     await client.query('COMMIT');

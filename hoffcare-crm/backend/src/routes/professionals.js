@@ -5,10 +5,12 @@ const router = express.Router();
 
 router.get('/', auth, async (req, res) => {
   try {
-    const clinic_id = req.user.role === 'admin' ? req.query.clinic_id : req.user.clinic_id;
+    // clinic_id já resolvido pelo middleware (header X-Clinic-Id para admin)
+    const clinic_id = req.user.clinic_id;
     let query = 'SELECT * FROM professionals';
     const params = [];
     if (clinic_id) { query += ' WHERE clinic_id = $1'; params.push(clinic_id); }
+    else { query += ' WHERE 1=0'; } // sem clínica selecionada = retorna vazio
     query += ' ORDER BY name';
     const result = await pool.query(query, params);
     res.json(result.rows);
@@ -19,7 +21,11 @@ router.get('/', auth, async (req, res) => {
 
 router.get('/:id', auth, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM professionals WHERE id = $1', [req.params.id]);
+    const clinic_id = req.user.clinic_id;
+    const result = await pool.query(
+      'SELECT * FROM professionals WHERE id = $1 AND clinic_id = $2',
+      [req.params.id, clinic_id]
+    );
     if (!result.rows[0]) return res.status(404).json({ error: 'Profissional não encontrado' });
     res.json(result.rows[0]);
   } catch (err) {
@@ -32,7 +38,8 @@ router.post('/', auth, async (req, res) => {
   if (!type || !name || !cpf || !crm_cro)
     return res.status(400).json({ error: 'Tipo, nome, CPF e CRM/CRO são obrigatórios' });
 
-  const clinic_id = req.user.clinic_id || req.body.clinic_id;
+  const clinic_id = req.user.clinic_id;
+  if (!clinic_id) return res.status(400).json({ error: 'Selecione uma clínica antes de cadastrar' });
 
   try {
     const result = await pool.query(
@@ -49,11 +56,12 @@ router.post('/', auth, async (req, res) => {
 
 router.put('/:id', auth, async (req, res) => {
   const { type, name, cpf, crm_cro, birthdate, email, phone } = req.body;
+  const clinic_id = req.user.clinic_id;
   try {
     const result = await pool.query(
       `UPDATE professionals SET type=$1, name=$2, cpf=$3, crm_cro=$4, birthdate=$5, email=$6, phone=$7
-       WHERE id=$8 RETURNING *`,
-      [type, name, cpf, crm_cro, birthdate || null, email, phone, req.params.id]
+       WHERE id=$8 AND clinic_id=$9 RETURNING *`,
+      [type, name, cpf, crm_cro, birthdate || null, email, phone, req.params.id, clinic_id]
     );
     if (!result.rows[0]) return res.status(404).json({ error: 'Profissional não encontrado' });
     res.json(result.rows[0]);
@@ -63,8 +71,13 @@ router.put('/:id', auth, async (req, res) => {
 });
 
 router.delete('/:id', auth, async (req, res) => {
+  const clinic_id = req.user.clinic_id;
   try {
-    await pool.query('DELETE FROM professionals WHERE id = $1', [req.params.id]);
+    const result = await pool.query(
+      'DELETE FROM professionals WHERE id = $1 AND clinic_id = $2 RETURNING id',
+      [req.params.id, clinic_id]
+    );
+    if (!result.rows[0]) return res.status(404).json({ error: 'Profissional não encontrado' });
     res.json({ message: 'Profissional removido' });
   } catch (err) {
     res.status(500).json({ error: err.message });

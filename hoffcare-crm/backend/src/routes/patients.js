@@ -39,7 +39,11 @@ router.get('/', auth, async (req, res) => {
 // Get patient detail
 router.get('/:id', auth, async (req, res) => {
   try {
-    const patient = await pool.query('SELECT * FROM patients WHERE id = $1', [req.params.id]);
+    const clinic_id = req.user.clinic_id;
+    const patient = await pool.query(
+      'SELECT * FROM patients WHERE id = $1 AND clinic_id = $2',
+      [req.params.id, clinic_id]
+    );
     if (!patient.rows[0]) return res.status(404).json({ error: 'Paciente não encontrado' });
 
     const declaration = await pool.query(
@@ -102,12 +106,13 @@ router.post('/', auth, async (req, res) => {
 // Update patient
 router.put('/:id', auth, async (req, res) => {
   const { name, cpf, birthdate, phone, email, health_declaration } = req.body;
+  const clinic_id = req.user.clinic_id;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const result = await client.query(
-      'UPDATE patients SET name=$1, cpf=$2, birthdate=$3, phone=$4, email=$5 WHERE id=$6 RETURNING *',
-      [name, cpf, birthdate, phone, email, req.params.id]
+      'UPDATE patients SET name=$1, cpf=$2, birthdate=$3, phone=$4, email=$5 WHERE id=$6 AND clinic_id=$7 RETURNING *',
+      [name, cpf, birthdate, phone, email, req.params.id, clinic_id]
     );
     if (!result.rows[0]) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Paciente não encontrado' }); }
 

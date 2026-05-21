@@ -5,10 +5,12 @@ const router = express.Router();
 
 router.get('/', auth, async (req, res) => {
   try {
-    const clinic_id = req.user.role === 'admin' ? req.query.clinic_id : req.user.clinic_id;
+    // clinic_id já resolvido pelo middleware (header X-Clinic-Id para admin)
+    const clinic_id = req.user.clinic_id;
     let query = 'SELECT * FROM rooms';
     const params = [];
     if (clinic_id) { query += ' WHERE clinic_id = $1'; params.push(clinic_id); }
+    else { query += ' WHERE 1=0'; } // sem clínica selecionada = retorna vazio
     query += ' ORDER BY name';
     const result = await pool.query(query, params);
     res.json(result.rows);
@@ -20,7 +22,8 @@ router.get('/', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
   const { type, name } = req.body;
   if (!type || !name) return res.status(400).json({ error: 'Tipo e nome são obrigatórios' });
-  const clinic_id = req.user.clinic_id || req.body.clinic_id;
+  const clinic_id = req.user.clinic_id;
+  if (!clinic_id) return res.status(400).json({ error: 'Selecione uma clínica antes de cadastrar' });
   try {
     const result = await pool.query(
       'INSERT INTO rooms (type, name, clinic_id) VALUES ($1,$2,$3) RETURNING *',
@@ -34,10 +37,11 @@ router.post('/', auth, async (req, res) => {
 
 router.put('/:id', auth, async (req, res) => {
   const { type, name } = req.body;
+  const clinic_id = req.user.clinic_id;
   try {
     const result = await pool.query(
-      'UPDATE rooms SET type=$1, name=$2 WHERE id=$3 RETURNING *',
-      [type, name, req.params.id]
+      'UPDATE rooms SET type=$1, name=$2 WHERE id=$3 AND clinic_id=$4 RETURNING *',
+      [type, name, req.params.id, clinic_id]
     );
     if (!result.rows[0]) return res.status(404).json({ error: 'Sala não encontrada' });
     res.json(result.rows[0]);
@@ -47,8 +51,13 @@ router.put('/:id', auth, async (req, res) => {
 });
 
 router.delete('/:id', auth, async (req, res) => {
+  const clinic_id = req.user.clinic_id;
   try {
-    await pool.query('DELETE FROM rooms WHERE id = $1', [req.params.id]);
+    const result = await pool.query(
+      'DELETE FROM rooms WHERE id = $1 AND clinic_id = $2 RETURNING id',
+      [req.params.id, clinic_id]
+    );
+    if (!result.rows[0]) return res.status(404).json({ error: 'Sala não encontrada' });
     res.json({ message: 'Sala removida' });
   } catch (err) {
     res.status(500).json({ error: err.message });
