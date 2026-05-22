@@ -14,7 +14,7 @@ router.get('/', auth, adminOnly, async (req, res) => {
         c.phone as clinic_phone,
         c.email_confirmations, c.email_reminders, c.email_recall,
         pr.id as professional_id,
-        pr.type, pr.name, pr.cpf, pr.crm_cro,
+        pr.type, pr.name, pr.cpf, pr.crm_cro, pr.nationality,
         pr.birthdate, pr.email, pr.phone,
         u.id as user_id, u.email as login_email
       FROM clinics c
@@ -31,11 +31,18 @@ router.get('/', auth, adminOnly, async (req, res) => {
 
 // Cria autônomo: clínica + usuário + profissional em uma transação
 router.post('/', auth, adminOnly, async (req, res) => {
-  const { type, name, cpf, crm_cro, birthdate, email, phone, password,
+  const { type, name, cpf, crm_cro, nationality, birthdate, email, phone, password,
           email_confirmations, email_reminders, email_recall } = req.body;
 
-  if (!type || !name || !cpf || !crm_cro || !email || !password)
-    return res.status(400).json({ error: 'Tipo, nome, CPF, CRM/CRO, e-mail e senha são obrigatórios' });
+  // Normaliza nacionalidade (padrão: brasileiro)
+  const nat = (nationality === 'estrangeiro') ? 'estrangeiro' : 'brasileiro';
+  const isForeign = nat === 'estrangeiro';
+
+  // Validações básicas (CPF e CRM/CRO só são obrigatórios para brasileiros)
+  if (!type || !name || !email || !password)
+    return res.status(400).json({ error: 'Tipo, nome, e-mail e senha são obrigatórios' });
+  if (!isForeign && (!cpf || !crm_cro))
+    return res.status(400).json({ error: 'CPF e CRM/CRO são obrigatórios para profissionais brasileiros' });
   if (password.length < 6)
     return res.status(400).json({ error: 'A senha deve ter pelo menos 6 caracteres' });
 
@@ -60,10 +67,11 @@ router.post('/', auth, adminOnly, async (req, res) => {
     );
 
     // 3. Cria o profissional vinculado à mini-clínica
+    //    Para estrangeiros, CPF e CRM/CRO podem vir vazios (gravados como NULL)
     const profRes = await client.query(
-      `INSERT INTO professionals (type, name, cpf, crm_cro, birthdate, email, phone, clinic_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [type, name, cpf, crm_cro, birthdate || null, email, phone || null, clinic.id]
+      `INSERT INTO professionals (type, name, cpf, crm_cro, nationality, birthdate, email, phone, clinic_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [type, name, cpf || null, crm_cro || null, nat, birthdate || null, email, phone || null, clinic.id]
     );
 
     await client.query('COMMIT');
@@ -87,9 +95,17 @@ router.post('/', auth, adminOnly, async (req, res) => {
 
 // Atualiza dados do autônomo
 router.put('/:clinicId', auth, adminOnly, async (req, res) => {
-  const { type, name, cpf, crm_cro, birthdate, email, phone, password,
+  const { type, name, cpf, crm_cro, nationality, birthdate, email, phone, password,
           email_confirmations, email_reminders, email_recall } = req.body;
   const { clinicId } = req.params;
+
+  // Normaliza nacionalidade (padrão: brasileiro)
+  const nat = (nationality === 'estrangeiro') ? 'estrangeiro' : 'brasileiro';
+  const isForeign = nat === 'estrangeiro';
+
+  // Para brasileiros, CPF e CRM/CRO continuam obrigatórios
+  if (!isForeign && (!cpf || !crm_cro))
+    return res.status(400).json({ error: 'CPF e CRM/CRO são obrigatórios para profissionais brasileiros' });
 
   const client = await pool.connect();
   try {
@@ -114,10 +130,12 @@ router.put('/:clinicId', auth, adminOnly, async (req, res) => {
     );
 
     // Atualiza profissional
+    //    Para estrangeiros, CPF e CRM/CRO podem vir vazios (gravados como NULL)
     await client.query(
-      `UPDATE professionals SET type=$1, name=$2, cpf=$3, crm_cro=$4, birthdate=$5, email=$6, phone=$7
-       WHERE clinic_id=$8`,
-      [type, name, cpf, crm_cro, birthdate || null, email, phone || null, clinicId]
+      `UPDATE professionals SET type=$1, name=$2, cpf=$3, crm_cro=$4, nationality=$5,
+       birthdate=$6, email=$7, phone=$8
+       WHERE clinic_id=$9`,
+      [type, name, cpf || null, crm_cro || null, nat, birthdate || null, email, phone || null, clinicId]
     );
 
     // Atualiza usuário

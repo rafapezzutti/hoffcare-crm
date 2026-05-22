@@ -3,7 +3,8 @@ import api from '../services/api';
 import Modal from '../components/Modal';
 
 const empty = {
-  type: 'odontologico', name: '', cpf: '', crm_cro: '',
+  type: 'odontologico', nationality: 'brasileiro',
+  name: '', cpf: '', crm_cro: '',
   birthdate: '', email: '', phone: '', password: '',
   email_confirmations: false, email_reminders: false, email_recall: false
 };
@@ -83,6 +84,7 @@ export default function Autonomous() {
     setForm(item
       ? {
           ...item,
+          nationality: item.nationality || 'brasileiro',
           email: item.login_email,
           birthdate: item.birthdate?.slice(0, 10) || '',
           password: '',
@@ -209,9 +211,22 @@ export default function Autonomous() {
                       {typeLabel[p.type] || p.type}
                     </span>
                   </td>
-                  <td><strong>{p.name}</strong></td>
-                  <td>{p.cpf}</td>
-                  <td><span style={{ fontFamily: 'monospace', fontSize: 12 }}>{p.crm_cro}</span></td>
+                  <td>
+                    <strong>{p.name}</strong>
+                    {p.nationality === 'estrangeiro' && (
+                      <span title="Profissional estrangeiro" style={{
+                        marginLeft: 6, fontSize: 10, padding: '2px 6px', borderRadius: 4,
+                        background: '#fffbea', color: '#744210', border: '1px solid #f6e05e',
+                        verticalAlign: 'middle'
+                      }}>🌎 Estrangeiro</span>
+                    )}
+                  </td>
+                  <td>{p.cpf || <span style={{ color: 'var(--gray-300)' }}>—</span>}</td>
+                  <td>
+                    {p.crm_cro
+                      ? <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{p.crm_cro}</span>
+                      : <span style={{ color: 'var(--gray-300)' }}>—</span>}
+                  </td>
                   <td>
                     <span style={{ fontSize: 12, color: 'var(--gray-600)' }}>
                       <i className="fas fa-envelope" style={{ marginRight: 5, color: '#4DB8E8' }} />
@@ -252,12 +267,21 @@ export default function Autonomous() {
         {error && <div className="alert alert-error"><i className="fas fa-circle-exclamation" /> {error}</div>}
 
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label className="form-label">Especialidade <span className="required">*</span></label>
-            <select className="form-control" {...f('type')}>
-              <option value="odontologico">🦷 Dentista</option>
-              <option value="medico">🩺 Médico</option>
-            </select>
+          <div className="form-grid form-grid-2">
+            <div className="form-group">
+              <label className="form-label">Especialidade <span className="required">*</span></label>
+              <select className="form-control" {...f('type')}>
+                <option value="odontologico">🦷 Dentista</option>
+                <option value="medico">🩺 Médico</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Nacionalidade <span className="required">*</span></label>
+              <select className="form-control" {...f('nationality')}>
+                <option value="brasileiro">🇧🇷 Brasileiro</option>
+                <option value="estrangeiro">🌎 Estrangeiro</option>
+              </select>
+            </div>
           </div>
 
           <div className="form-group">
@@ -265,17 +289,32 @@ export default function Autonomous() {
             <input className="form-control" {...f('name')} required placeholder="Dr. João Silva" />
           </div>
 
+          {form.nationality === 'estrangeiro' && (
+            <div style={{
+              background: '#fffbea', border: '1px solid #f6e05e', borderRadius: 6,
+              padding: '8px 12px', marginBottom: 12, fontSize: 12, color: '#744210'
+            }}>
+              <i className="fas fa-circle-info" style={{ marginRight: 6 }} />
+              Para profissionais estrangeiros, CPF e CRM/CRO são opcionais.
+            </div>
+          )}
+
           <div className="form-grid form-grid-2">
             <div className="form-group">
-              <label className="form-label">CPF <span className="required">*</span></label>
-              <input className="form-control" {...f('cpf')} placeholder="000.000.000-00" required />
+              <label className="form-label">
+                CPF {form.nationality === 'brasileiro' && <span className="required">*</span>}
+              </label>
+              <input className="form-control" {...f('cpf')} placeholder="000.000.000-00"
+                required={form.nationality === 'brasileiro'} />
             </div>
             <div className="form-group">
               <label className="form-label">
-                {form.type === 'medico' ? 'CRM' : 'CRO'} <span className="required">*</span>
+                {form.type === 'medico' ? 'CRM' : 'CRO'}
+                {form.nationality === 'brasileiro' && <span className="required">*</span>}
               </label>
               <input className="form-control" {...f('crm_cro')}
-                placeholder={form.type === 'medico' ? 'CRM-SP 000000' : 'CRO-SP 000000'} required />
+                placeholder={form.type === 'medico' ? 'CRM-SP 000000' : 'CRO-SP 000000'}
+                required={form.nationality === 'brasileiro'} />
             </div>
           </div>
 
