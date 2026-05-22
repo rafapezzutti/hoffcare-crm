@@ -7,7 +7,7 @@ dayjs.locale('pt-br');
 
 const emptyForm = {
   type: 'dentista', patient_id: '', professional_id: '', room_id: '',
-  appointment_date: '', duration_minutes: 30, notes: '', status: 'scheduled'
+  appointment_date: '', duration_minutes: 30, notes: '', status: 'pending_confirmation'
 };
 
 const hours = Array.from({ length: 14 }, (_, i) => i + 7); // 7h to 20h
@@ -71,8 +71,20 @@ export default function CalendarDaily() {
 
   const getAptAtHour = (h) => appointments.filter(a => dayjs(a.appointment_date).hour() === h);
 
-  const statusColor = { scheduled: 'badge-blue', completed: 'badge-green', cancelled: 'badge-red' };
-  const statusLabel = { scheduled: 'Agendado', completed: 'Realizado', cancelled: 'Cancelado' };
+  const statusColor = {
+    scheduled: 'badge-blue',
+    pending_confirmation: 'badge-yellow',
+    confirmed: 'badge-green',
+    completed: 'badge-green',
+    cancelled: 'badge-red'
+  };
+  const statusLabel = {
+    scheduled: 'Agendado',
+    pending_confirmation: 'Aguard. confirmação',
+    confirmed: 'Confirmado',
+    completed: 'Realizado',
+    cancelled: 'Cancelado'
+  };
 
   return (
     <div className="page">

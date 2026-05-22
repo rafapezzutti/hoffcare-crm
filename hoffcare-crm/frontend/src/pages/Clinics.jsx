@@ -2,7 +2,26 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import Modal from '../components/Modal';
 
-const empty = { name: '', responsible_name: '', responsible_cpf: '', cep: '', street: '', number: '', complement: '', phone: '', email: '' };
+const empty = { name: '', responsible_name: '', responsible_cpf: '', cep: '', street: '', number: '', complement: '', phone: '', email: '', email_confirmations: false, email_reminders: false, email_recall: false };
+
+const Toggle = ({ label, hint, checked, onChange }) => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--gray-100)' }}>
+    <div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--gray-700)' }}>{label}</div>
+      <div style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 2 }}>{hint}</div>
+    </div>
+    <button type="button" onClick={() => onChange(!checked)} style={{
+      width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
+      background: checked ? '#28a745' : '#dee2e6', position: 'relative', flexShrink: 0, transition: 'background 0.2s'
+    }}>
+      <span style={{
+        position: 'absolute', top: 3, left: checked ? 22 : 3,
+        width: 18, height: 18, borderRadius: '50%', background: 'white',
+        transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+      }} />
+    </button>
+  </div>
+);
 
 export default function Clinics() {
   const [items, setItems] = useState([]);
@@ -93,7 +112,32 @@ export default function Clinics() {
           <div className="form-group"><label className="form-label">Complemento</label><input className="form-control" {...f('complement')} /></div>
           <div className="form-grid form-grid-2">
             <div className="form-group"><label className="form-label">Telefone</label><input className="form-control" {...f('phone')} placeholder="(00) 00000-0000" /></div>
-            <div className="form-group"><label className="form-label">Email</label><input className="form-control" type="email" {...f('email')} /></div>
+            <div className="form-group"><label className="form-label">Email <span style={{fontSize:11,color:'var(--gray-400)'}}>— usado para notificações</span></label><input className="form-control" type="email" {...f('email')} /></div>
+          </div>
+
+          <div className="form-group" style={{ marginTop: 8 }}>
+            <label className="form-label" style={{ marginBottom: 8 }}>
+              <i className="fas fa-envelope" style={{ marginRight: 6, color: '#4DB8E8' }} />
+              Notificações por E-mail
+            </label>
+            <Toggle
+              label="Confirmação de agendamento"
+              hint="Paciente recebe e-mail ao ser agendado com links de confirmar/cancelar"
+              checked={!!form.email_confirmations}
+              onChange={v => setForm(p => ({ ...p, email_confirmations: v }))}
+            />
+            <Toggle
+              label="Lembrete 24h antes"
+              hint="Paciente recebe lembrete no dia anterior com opção de confirmar ou cancelar"
+              checked={!!form.email_reminders}
+              onChange={v => setForm(p => ({ ...p, email_reminders: v }))}
+            />
+            <Toggle
+              label="Recall de 6 meses"
+              hint="Paciente recebe e-mail após 6 meses sem consulta para remarcar"
+              checked={!!form.email_recall}
+              onChange={v => setForm(p => ({ ...p, email_recall: v }))}
+            />
           </div>
         </form>
       </Modal>

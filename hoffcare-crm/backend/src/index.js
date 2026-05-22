@@ -37,6 +37,7 @@ app.use('/api/procedures', require('./routes/procedures'));
 app.use('/api/patients', require('./routes/patients'));
 app.use('/api/appointments', require('./routes/appointments'));
 app.use('/api/records', require('./routes/records'));
+app.use('/api/cron', require('./routes/cron'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));
 
