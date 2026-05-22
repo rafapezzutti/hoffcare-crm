@@ -17,6 +17,8 @@ import RecordForm from './pages/RecordForm';
 import RecordView from './pages/RecordView';
 import History from './pages/History';
 import Users from './pages/Users';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 function ProtectedRoute({ children, adminOnly }) {
   const { user } = useAuth();
@@ -32,6 +34,8 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route index element={<Dashboard />} />
             <Route path="clinics" element={<ProtectedRoute adminOnly><Clinics /></ProtectedRoute>} />

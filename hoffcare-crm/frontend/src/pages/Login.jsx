@@ -102,6 +102,15 @@ export default function Login() {
           </button>
         </form>
 
+        <div style={{ textAlign: 'center', marginTop: 16 }}>
+          <button
+            onClick={() => navigate('/forgot-password')}
+            style={{ background: 'none', border: 'none', color: '#4DB8E8', cursor: 'pointer', fontSize: 13 }}
+          >
+            Esqueceu sua senha?
+          </button>
+        </div>
+
         <div className="login-powered">powered by P. Soluções</div>
       </div>
     </div>
