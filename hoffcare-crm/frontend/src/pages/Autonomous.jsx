@@ -4,7 +4,8 @@ import Modal from '../components/Modal';
 
 const empty = {
   type: 'odontologico', name: '', cpf: '', crm_cro: '',
-  birthdate: '', email: '', phone: '', password: ''
+  birthdate: '', email: '', phone: '', password: '',
+  email_confirmations: false, email_reminders: false, email_recall: false
 };
 
 function PasswordField({ label, value, onChange, required, placeholder }) {
@@ -32,6 +33,25 @@ function PasswordField({ label, value, onChange, required, placeholder }) {
     </div>
   );
 }
+
+const Toggle = ({ label, hint, checked, onChange }) => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--gray-100)' }}>
+    <div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--gray-700)' }}>{label}</div>
+      {hint && <div style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 2 }}>{hint}</div>}
+    </div>
+    <button type="button" onClick={() => onChange(!checked)} style={{
+      width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
+      background: checked ? '#28a745' : '#dee2e6', position: 'relative', flexShrink: 0, transition: 'background 0.2s'
+    }}>
+      <span style={{
+        position: 'absolute', top: 3, left: checked ? 22 : 3,
+        width: 18, height: 18, borderRadius: '50%', background: 'white',
+        transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+      }} />
+    </button>
+  </div>
+);
 
 export default function Autonomous() {
   const [items, setItems] = useState([]);
@@ -61,7 +81,15 @@ export default function Autonomous() {
   const handleOpen = (item = null) => {
     setEditing(item);
     setForm(item
-      ? { ...item, email: item.login_email, birthdate: item.birthdate?.slice(0, 10) || '', password: '' }
+      ? {
+          ...item,
+          email: item.login_email,
+          birthdate: item.birthdate?.slice(0, 10) || '',
+          password: '',
+          email_confirmations: item.email_confirmations ?? false,
+          email_reminders: item.email_reminders ?? false,
+          email_recall: item.email_recall ?? false,
+        }
       : empty
     );
     setError('');
@@ -99,8 +127,24 @@ export default function Autonomous() {
     onChange: e => setForm(p => ({ ...p, [field]: e.target.value }))
   });
 
+  const tog = (field) => ({
+    checked: !!form[field],
+    onChange: val => setForm(p => ({ ...p, [field]: val }))
+  });
+
   const typeLabel = { odontologico: '🦷 Dentista', medico: '🩺 Médico' };
   const typeBadge = { odontologico: 'badge-blue', medico: 'badge-orange' };
+
+  // Notif badges for table
+  const notifIcons = (item) => {
+    const icons = [];
+    if (item.email_confirmations) icons.push(<i key="c" className="fas fa-envelope-circle-check" title="Confirmação" style={{ color: '#4DB8E8', fontSize: 11 }} />);
+    if (item.email_reminders) icons.push(<i key="r" className="fas fa-bell" title="Lembrete 24h" style={{ color: '#E8841A', fontSize: 11 }} />);
+    if (item.email_recall) icons.push(<i key="rc" className="fas fa-rotate-right" title="Recall 6 meses" style={{ color: '#28a745', fontSize: 11 }} />);
+    return icons.length > 0
+      ? <div style={{ display: 'flex', gap: 6, marginTop: 3 }}>{icons}</div>
+      : <span style={{ fontSize: 11, color: 'var(--gray-300)' }}>—</span>;
+  };
 
   return (
     <div className="page">
@@ -124,6 +168,7 @@ export default function Autonomous() {
         <div style={{ fontSize: 13, color: '#2d6a9f', lineHeight: 1.6 }}>
           Cada autônomo recebe <strong>login próprio</strong> e acessa o sistema de forma independente,
           com seus próprios pacientes, agenda e prontuários — sem interferência entre consultórios.
+          As notificações por e-mail funcionam da mesma forma que nos consultórios convencionais.
         </div>
       </div>
 
@@ -144,7 +189,7 @@ export default function Autonomous() {
                 <th>CPF</th>
                 <th>CRM/CRO</th>
                 <th>E-mail / Login</th>
-                <th>Telefone</th>
+                <th>Notificações</th>
                 <th>Ações</th>
               </tr>
             </thead>
@@ -173,7 +218,7 @@ export default function Autonomous() {
                       {p.login_email}
                     </span>
                   </td>
-                  <td>{p.phone || '—'}</td>
+                  <td>{notifIcons(p)}</td>
                   <td>
                     <div className="table-actions">
                       <button className="btn btn-outline btn-sm" title="Editar" onClick={() => handleOpen(p)}>
@@ -245,6 +290,33 @@ export default function Autonomous() {
             </div>
           </div>
 
+          {/* Notificações */}
+          <div style={{ borderTop: '1px solid var(--gray-100)', paddingTop: 16, marginTop: 4 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+              <i className="fas fa-bell" style={{ marginRight: 6, color: '#E8841A' }} />
+              Notificações por E-mail
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--gray-400)', marginBottom: 12 }}>
+              O e-mail do profissional receberá os avisos de cancelamento quando ativado.
+            </div>
+            <Toggle
+              label="Confirmação de consulta"
+              hint="E-mail enviado ao paciente no momento do agendamento"
+              {...tog('email_confirmations')}
+            />
+            <Toggle
+              label="Lembrete 24h antes"
+              hint="E-mail com link para confirmar ou cancelar a consulta"
+              {...tog('email_reminders')}
+            />
+            <Toggle
+              label="Recall após 6 meses"
+              hint="Lembrete automático para agendar nova consulta"
+              {...tog('email_recall')}
+            />
+          </div>
+
+          {/* Acesso ao Sistema */}
           <div style={{ borderTop: '1px solid var(--gray-100)', paddingTop: 16, marginTop: 4 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
               <i className="fas fa-key" style={{ marginRight: 6, color: '#4DB8E8' }} />
@@ -255,6 +327,9 @@ export default function Autonomous() {
               <label className="form-label">E-mail de Login <span className="required">*</span></label>
               <input className="form-control" type="email" {...f('email')}
                 placeholder="profissional@email.com" required autoComplete="off" />
+              <div style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 4 }}>
+                Usado para login e para receber avisos de cancelamento
+              </div>
             </div>
 
             <PasswordField

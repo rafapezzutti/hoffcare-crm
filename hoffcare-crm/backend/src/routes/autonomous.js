@@ -12,6 +12,7 @@ router.get('/', auth, adminOnly, async (req, res) => {
         c.id as clinic_id,
         c.name as clinic_name,
         c.phone as clinic_phone,
+        c.email_confirmations, c.email_reminders, c.email_recall,
         pr.id as professional_id,
         pr.type, pr.name, pr.cpf, pr.crm_cro,
         pr.birthdate, pr.email, pr.phone,
@@ -30,7 +31,8 @@ router.get('/', auth, adminOnly, async (req, res) => {
 
 // Cria autônomo: clínica + usuário + profissional em uma transação
 router.post('/', auth, adminOnly, async (req, res) => {
-  const { type, name, cpf, crm_cro, birthdate, email, phone, password } = req.body;
+  const { type, name, cpf, crm_cro, birthdate, email, phone, password,
+          email_confirmations, email_reminders, email_recall } = req.body;
 
   if (!type || !name || !cpf || !crm_cro || !email || !password)
     return res.status(400).json({ error: 'Tipo, nome, CPF, CRM/CRO, e-mail e senha são obrigatórios' });
@@ -43,9 +45,9 @@ router.post('/', auth, adminOnly, async (req, res) => {
 
     // 1. Cria a mini-clínica
     const clinicRes = await client.query(
-      `INSERT INTO clinics (name, phone, email, is_autonomous)
-       VALUES ($1, $2, $3, true) RETURNING *`,
-      [name, phone || null, email]
+      `INSERT INTO clinics (name, phone, email, is_autonomous, email_confirmations, email_reminders, email_recall)
+       VALUES ($1, $2, $3, true, $4, $5, $6) RETURNING *`,
+      [name, phone || null, email, !!email_confirmations, !!email_reminders, !!email_recall]
     );
     const clinic = clinicRes.rows[0];
 
@@ -85,7 +87,8 @@ router.post('/', auth, adminOnly, async (req, res) => {
 
 // Atualiza dados do autônomo
 router.put('/:clinicId', auth, adminOnly, async (req, res) => {
-  const { type, name, cpf, crm_cro, birthdate, email, phone, password } = req.body;
+  const { type, name, cpf, crm_cro, birthdate, email, phone, password,
+          email_confirmations, email_reminders, email_recall } = req.body;
   const { clinicId } = req.params;
 
   const client = await pool.connect();
@@ -102,10 +105,12 @@ router.put('/:clinicId', auth, adminOnly, async (req, res) => {
       return res.status(404).json({ error: 'Autônomo não encontrado' });
     }
 
-    // Atualiza clínica
+    // Atualiza clínica (inclui flags de notificação)
     await client.query(
-      `UPDATE clinics SET name=$1, phone=$2, email=$3 WHERE id=$4`,
-      [name, phone || null, email, clinicId]
+      `UPDATE clinics SET name=$1, phone=$2, email=$3,
+       email_confirmations=$4, email_reminders=$5, email_recall=$6
+       WHERE id=$7`,
+      [name, phone || null, email, !!email_confirmations, !!email_reminders, !!email_recall, clinicId]
     );
 
     // Atualiza profissional
