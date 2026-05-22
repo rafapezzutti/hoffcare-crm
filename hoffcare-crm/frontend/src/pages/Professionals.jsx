@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import Modal from '../components/Modal';
 
-const empty = { type: 'odontologico', name: '', cpf: '', crm_cro: '', birthdate: '', email: '', phone: '' };
+const empty = { type: 'dentista', name: '', cpf: '', crm_cro: '', birthdate: '', email: '', phone: '' };
 
 export default function Professionals() {
   const [items, setItems] = useState([]);
@@ -90,7 +90,7 @@ export default function Professionals() {
         <form onSubmit={handleSubmit}>
           <div className="form-group"><label className="form-label">Tipo <span className="required">*</span></label>
             <select className="form-control" {...f('type')}>
-              <option value="odontologico">Dentista</option>
+              <option value="dentista">Dentista</option>
               <option value="medico">Médico</option>
             </select>
           </div>
