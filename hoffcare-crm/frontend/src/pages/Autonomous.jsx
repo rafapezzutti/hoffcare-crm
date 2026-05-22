@@ -3,7 +3,7 @@ import api from '../services/api';
 import Modal from '../components/Modal';
 
 const empty = {
-  type: 'odontologico', nationality: 'brasileiro',
+  type: 'dentista', nationality: 'brasileiro',
   name: '', cpf: '', crm_cro: '',
   birthdate: '', email: '', phone: '', password: '',
   email_confirmations: false, email_reminders: false, email_recall: false
@@ -134,8 +134,8 @@ export default function Autonomous() {
     onChange: val => setForm(p => ({ ...p, [field]: val }))
   });
 
-  const typeLabel = { odontologico: '🦷 Dentista', medico: '🩺 Médico' };
-  const typeBadge = { odontologico: 'badge-blue', medico: 'badge-orange' };
+  const typeLabel = { dentista: '🦷 Dentista', odontologico: '🦷 Dentista', medico: '🩺 Médico' };
+  const typeBadge = { dentista: 'badge-blue', odontologico: 'badge-blue', medico: 'badge-orange' };
 
   // Notif badges for table
   const notifIcons = (item) => {
@@ -271,7 +271,7 @@ export default function Autonomous() {
             <div className="form-group">
               <label className="form-label">Especialidade <span className="required">*</span></label>
               <select className="form-control" {...f('type')}>
-                <option value="odontologico">🦷 Dentista</option>
+                <option value="dentista">🦷 Dentista</option>
                 <option value="medico">🩺 Médico</option>
               </select>
             </div>
