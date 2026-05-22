@@ -25,6 +25,7 @@ const adminItems = [
   { section: 'Administração' },
   { to: '/clinics', icon: 'fa-hospital', label: 'Consultórios' },
   { to: '/users', icon: 'fa-users-gear', label: 'Usuários' },
+  { to: '/autonomous', icon: 'fa-user-doctor', label: 'Autônomos' },
 ];
 
 export default function Layout() {

@@ -20,6 +20,7 @@ import Users from './pages/Users';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import AppointmentRespond from './pages/AppointmentRespond';
+import Autonomous from './pages/Autonomous';
 
 function ProtectedRoute({ children, adminOnly }) {
   const { user } = useAuth();
@@ -42,6 +43,7 @@ export default function App() {
             <Route index element={<Dashboard />} />
             <Route path="clinics" element={<ProtectedRoute adminOnly><Clinics /></ProtectedRoute>} />
             <Route path="users" element={<ProtectedRoute adminOnly><Users /></ProtectedRoute>} />
+            <Route path="autonomous" element={<ProtectedRoute adminOnly><Autonomous /></ProtectedRoute>} />
             <Route path="professionals" element={<Professionals />} />
             <Route path="rooms" element={<Rooms />} />
             <Route path="procedures" element={<Procedures />} />

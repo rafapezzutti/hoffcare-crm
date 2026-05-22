@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P. Soluções para Saúde — Diagrama do Sistema v1.1</title>
+<style>
+  h2.sr-only { position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f8f9fa; color: #1a1a2e; padding: 20px; font-size: 13px;
+  }
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px; flex-wrap: wrap; gap: 8px;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo-wrap { display: flex; align-items: center; gap: 8px; }
+  .logo-text-top { font-size: 14px; font-weight: 800; color: #4DB8E8; line-height: 1.1; letter-spacing: 0.5px; }
+  .logo-text-bot { font-size: 10px; font-weight: 700; color: #E8841A; letter-spacing: 0.5px; }
+  .header h1 { font-size: 15px; font-weight: 700; color: #1a1a2e; border-left: 1px solid #ddd; padding-left: 12px; }
+  .header-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge { font-size: 10px; border-radius: 4px; padding: 2px 8px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; }
+  .badge-blue  { background: #e8f4fd; color: #0077cc; }
+  .badge-green { background: #eaf6ee; color: #1a7a3a; }
+  .badge-date  { background: #f0f0f0; color: #666; }
+  .badge-orange { background: #fff3e0; color: #e65100; }
+
+  .meta-bar {
+    background: #fff; border: 1px solid #e5e5e5; border-radius: 8px;
+    padding: 10px 16px; margin-bottom: 14px; display: flex;
+    gap: 20px; flex-wrap: wrap; font-size: 11px; color: #555;
+  }
+  .meta-item strong { color: #1a1a2e; font-weight: 700; }
+  .meta-ok { color: #1a7a3a; font-weight: 600; }
+  .meta-warn { color: #e65100; font-weight: 600; }
+
+  .legend { display: flex; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #555; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+  .diagram { display: flex; flex-direction: column; gap: 10px; }
+
+  .layer { display: flex; flex-direction: column; gap: 4px; }
+  .layer-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .8px; color: #999; padding-left: 4px; margin-bottom: 2px;
+  }
+  .layer-row { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+
+  .card {
+    flex: 1; min-width: 120px; border-radius: 8px; padding: 11px 13px;
+    cursor: pointer; border: 1.5px solid transparent;
+    transition: box-shadow .15s, border-color .15s, transform .1s; position: relative;
+  }
+  .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.13); border-color: #0077cc66; transform: translateY(-1px); }
+  .card.active { border-color: #0077cc; box-shadow: 0 0 0 3px #0077cc22; }
+  .card-icon { font-size: 17px; margin-bottom: 3px; }
+  .card-title { font-weight: 700; font-size: 11.5px; margin-bottom: 2px; }
+  .card-sub { font-size: 10px; color: #777; line-height: 1.4; }
+  .card-badge {
+    position: absolute; top: 7px; right: 8px;
+    font-size: 9px; font-weight: 700; padding: 1px 5px;
+    border-radius: 3px; text-transform: uppercase;
+  }
+  .cb-ok { background: #eaf6ee; color: #1a7a3a; }
+  .cb-new { background: #fff3e0; color: #e65100; }
+  .cb-fix { background: #e8f0fe; color: #1a56db; }
+
+  .c-ui    { background: #e8f4fd; border-color: #c3ddf9; }
+  .c-api   { background: #eaf6ee; border-color: #b8e3c4; }
+  .c-mod   { background: #fff8e1; border-color: #ffe082; }
+  .c-data  { background: #f3e8ff; border-color: #d7b6f9; }
+  .c-ext   { background: #fce8e8; border-color: #f5b8b8; }
+  .c-infra { background: #f0f0f0; border-color: #d0d0d0; }
+
+  .v-connector { display: flex; justify-content: center; align-items: center; gap: 24px; height: 28px; }
+  .v-arrow { display: flex; flex-direction: column; align-items: center; font-size: 11px; color: #bbb; }
+  .v-arrow span { font-size: 14px; line-height: 1; }
+  .v-arrow small { font-size: 9px; letter-spacing: .3px; }
+
+  .detail-panel {
+    margin-top: 14px; background: #fff; border: 1.5px solid #e0e0e0;
+    border-radius: 10px; padding: 16px; transition: opacity .2s; min-height: 80px;
+  }
+  .detail-panel.hidden { display: none; }
+  .detail-title { font-weight: 700; font-size: 13px; color: #1a1a2e; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
+  @media (max-width: 600px) { .detail-grid { grid-template-columns: 1fr; } }
+  .detail-section h4 {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .6px; color: #888; margin-bottom: 4px;
+  }
+  .detail-section ul { list-style: none; display: flex; flex-direction: column; gap: 3px; }
+  .detail-section li { font-size: 11px; color: #333; display: flex; align-items: flex-start; gap: 5px; }
+  .detail-section li::before { content: '·'; color: #0077cc; font-weight: 700; flex-shrink: 0; }
+  .detail-section li.ok::before { content: '✓'; color: #1a7a3a; }
+  .detail-section li.fix::before { content: '↻'; color: #1a56db; }
+  .detail-hint { font-size: 10px; color: #aaa; margin-top: 10px; }
+
+  .changelog {
+    margin-top: 16px; background: #fff; border: 1.5px solid #e0e0e0;
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .changelog h3 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #888; margin-bottom: 10px; }
+  .changelog-list { display: flex; flex-direction: column; gap: 5px; }
+  .cl-item { display: flex; align-items: flex-start; gap: 8px; font-size: 11px; color: #333; }
+  .cl-tag { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; text-transform: uppercase; flex-shrink: 0; margin-top: 1px; }
+  .cl-fix  { background: #e8f0fe; color: #1a56db; }
+  .cl-feat { background: #eaf6ee; color: #1a7a3a; }
+  .cl-infra { background: #f3e8ff; color: #6b21a8; }
+
+  .footer {
+    margin-top: 16px; padding-top: 12px; border-top: 1px solid #e5e5e5;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 8px; font-size: 10px; color: #aaa;
+  }
+</style>
+</head>
+<body>
+<h2 class="sr-only">Diagrama de arquitetura v1.1 do sistema P. Soluções para Saúde / HoffCare CRM.</h2>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo-wrap">
+      <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="38" y="10" width="24" height="80" rx="8" fill="#4DB8E8"/>
+        <rect x="10" y="38" width="80" height="24" rx="8" fill="#4DB8E8"/>
+        <rect x="42" y="14" width="16" height="72" rx="6" fill="#E8841A" opacity="0.7"/>
+        <rect x="14" y="42" width="72" height="16" rx="6" fill="#E8841A" opacity="0.7"/>
+        <circle cx="50" cy="50" r="10" fill="#1a2535"/>
+        <circle cx="50" cy="50" r="6" fill="#4DB8E8"/>
+      </svg>
+      <div>
+        <div class="logo-text-top">P. Soluções</div>
+        <div class="logo-text-bot">para Saúde</div>
+      </div>
+    </div>
+    <h1>Diagrama do Sistema — CRM HoffCare</h1>
+  </div>
+  <div class="header-badges">
+    <span class="badge badge-blue">v1.1</span>
+    <span class="badge badge-orange">Atualizado</span>
+    <span class="badge badge-green">Auditoria</span>
+    <span class="badge badge-date">Mai 2026</span>
+  </div>
+</div>
+
+<!-- META -->
+<div class="meta-bar">
+  <div class="meta-item"><strong>Repositório:</strong> github.com/rafapezzutti/hoffcare-crm</div>
+  <div class="meta-item"><strong>Frontend:</strong> hoffcare-crm.onrender.com · <span class="meta-ok">psaude.ia.br ✓</span> · <span class="meta-ok">www.psaude.ia.br ✓</span></div>
+  <div class="meta-item"><strong>Backend:</strong> hoffcare-api.onrender.com</div>
+  <div class="meta-item"><strong>DNS:</strong> Cloudflare (joan/merlin.ns.cloudflare.com)</div>
+  <div class="meta-item"><strong>Banco:</strong> PostgreSQL — Neon.tech (sa-east-1)</div>
+  <div class="meta-item"><strong>Responsável:</strong> rafael.pezzutti@gmail.com</div>
+</div>
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#c3ddf9"></div>Interface / Usuário</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#b8e3c4"></div>API / Backend</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#ffe082"></div>Módulos de Negócio</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#d7b6f9"></div>Dados / Persistência</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f5b8b8"></div>Integrações / Deploy</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#d0d0d0"></div>Infraestrutura / DevOps</div>
+</div>
+
+<!-- DIAGRAM -->
+<div class="diagram">
+
+  <!-- LAYER 1: UI -->
+  <div class="layer">
+    <div class="layer-label">Camada 1 — Interface do Usuário (React + Vite SPA)</div>
+    <div class="layer-row">
+      <div class="card c-ui" onclick="showDetail('spa')" id="card-spa">
+        <div class="card-icon">🌐</div>
+        <div class="card-title">SPA React + Vite</div>
+        <div class="card-sub">hoffcare-crm.onrender.com · psaude.ia.br · www.psaude.ia.br</div>
+      </div>
+      <div class="card c-ui" onclick="showDetail('login')" id="card-login">
+        <span class="card-badge cb-fix">fix</span>
+        <div class="card-icon">🔑</div>
+        <div class="card-title">Login & Sessão</div>
+        <div class="card-sub">JWT · localStorage · eye toggle · sem autocomplete</div>
+      </div>
+      <div class="card c-ui" onclick="showDetail('layout')" id="card-layout">
+        <span class="card-badge cb-fix">fix</span>
+        <div class="card-icon">🗂️</div>
+        <div class="card-title">Layout & Roteamento</div>
+        <div class="card-sub">Sidebar · seletor de clínica · Prontuários</div>
+      </div>
+      <div class="card c-ui" onclick="showDetail('contextos')" id="card-contextos">
+        <div class="card-icon">⚛️</div>
+        <div class="card-title">Contextos React</div>
+        <div class="card-sub">AuthContext · ClinicContext · api.js</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="v-connector">
+    <div class="v-arrow"><span>↕</span><small>HTTPS / REST</small></div>
+    <div class="v-arrow"><span>↕</span><small>Bearer Token + X-Clinic-Id</small></div>
+  </div>
+
+  <!-- LAYER 2: API -->
+  <div class="layer">
+    <div class="layer-label">Camada 2 — API Backend (Node.js + Express)</div>
+    <div class="layer-row">
+      <div class="card c-api" onclick="showDetail('express')" id="card-express">
+        <div class="card-icon">⚡</div>
+        <div class="card-title">Express Server</div>
+        <div class="card-sub">hoffcare-api.onrender.com · REST API</div>
+      </div>
+      <div class="card c-api" onclick="showDetail('auth')" id="card-auth">
+        <span class="card-badge cb-fix">fix</span>
+        <div class="card-icon">🔐</div>
+        <div class="card-title">Auth & Middleware</div>
+        <div class="card-sub">JWT · bcryptjs · CORS multi-origem · X-Clinic-Id</div>
+      </div>
+      <div class="card c-api" onclick="showDetail('rotas')" id="card-rotas">
+        <div class="card-icon">🔀</div>
+        <div class="card-title">Rotas da API</div>
+        <div class="card-sub">/auth · /patients · /appointments · /records…</div>
+      </div>
+      <div class="card c-api" onclick="showDetail('upload')" id="card-upload">
+        <div class="card-icon">📎</div>
+        <div class="card-title">Upload de Arquivos</div>
+        <div class="card-sub">Multer · armazenamento local</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="v-connector">
+    <div class="v-arrow"><span>↕</span><small>Lógica de Negócio · Filtro por Clínica</small></div>
+  </div>
+
+  <!-- LAYER 3: Business Modules -->
+  <div class="layer">
+    <div class="layer-label">Camada 3 — Módulos de Negócio</div>
+    <div class="layer-row">
+      <div class="card c-mod" onclick="showDetail('dashboard')" id="card-dashboard">
+        <div class="card-icon">📊</div>
+        <div class="card-title">Dashboard</div>
+        <div class="card-sub">KPIs · resumo do dia</div>
+      </div>
+      <div class="card c-mod" onclick="showDetail('agenda')" id="card-agenda">
+        <div class="card-icon">📅</div>
+        <div class="card-title">Agenda</div>
+        <div class="card-sub">Diária · Mensal customizado (dayjs)</div>
+      </div>
+      <div class="card c-mod" onclick="showDetail('pacientes')" id="card-pacientes">
+        <div class="card-icon">🧑‍⚕️</div>
+        <div class="card-title">Pacientes</div>
+        <div class="card-sub">Cadastro · busca · ficha</div>
+      </div>
+      <div class="card c-mod" onclick="showDetail('profissionais')" id="card-profissionais">
+        <span class="card-badge cb-fix">fix</span>
+        <div class="card-icon">👨‍⚕️</div>
+        <div class="card-title">Profissionais</div>
+        <div class="card-sub">Tipo: odontologico · medico</div>
+      </div>
+      <div class="card c-mod" onclick="showDetail('prontuarios')" id="card-prontuarios">
+        <span class="card-badge cb-fix">fix</span>
+        <div class="card-icon">📋</div>
+        <div class="card-title">Prontuários</div>
+        <div class="card-sub">Registros clínicos · histórico · mapeamento de tipos</div>
+      </div>
+      <div class="card c-mod" onclick="showDetail('cadastros')" id="card-cadastros">
+        <span class="card-badge cb-fix">fix</span>
+        <div class="card-icon">🏥</div>
+        <div class="card-title">Salas, Procedimentos & Admin</div>
+        <div class="card-sub">Tipo: odontologico · medico · Usuários sem autocomplete</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="v-connector">
+    <div class="v-arrow"><span>↕</span><small>pg (node-postgres) · SQL</small></div>
+  </div>
+
+  <!-- LAYER 4: Data -->
+  <div class="layer">
+    <div class="layer-label">Camada 4 — Persistência de Dados</div>
+    <div class="layer-row">
+      <div class="card c-data" onclick="showDetail('postgres')" id="card-postgres">
+        <div class="card-icon">🗄️</div>
+        <div class="card-title">PostgreSQL — Neon.tech</div>
+        <div class="card-sub">Serverless · sa-east-1 · multi-tenant por clinic_id</div>
+      </div>
+      <div class="card c-data" onclick="showDetail('tabelas')" id="card-tabelas">
+        <div class="card-icon">📑</div>
+        <div class="card-title">Esquema de Tabelas</div>
+        <div class="card-sub">clinics · users · patients · appointments · records…</div>
+      </div>
+      <div class="card c-data" onclick="showDetail('constraints')" id="card-constraints">
+        <div class="card-icon">🔒</div>
+        <div class="card-title">Constraints & Tipos</div>
+        <div class="card-sub">CHECK medical_records_type_check: dentista · medico</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="v-connector">
+    <div class="v-arrow"><span>↔</span><small>Deploy · DNS · CI/CD</small></div>
+  </div>
+
+  <!-- LAYER 5: Infra / DevOps -->
+  <div class="layer">
+    <div class="layer-label">Camada 5 — Infraestrutura & DevOps</div>
+    <div class="layer-row">
+      <div class="card c-ext" onclick="showDetail('render')" id="card-render">
+        <div class="card-icon">🚀</div>
+        <div class="card-title">Render.com</div>
+        <div class="card-sub">Static Site (frontend) · Web Service (backend)</div>
+      </div>
+      <div class="card c-ext" onclick="showDetail('github')" id="card-github">
+        <div class="card-icon">🐙</div>
+        <div class="card-title">GitHub</div>
+        <div class="card-sub">rafapezzutti/hoffcare-crm · deploy automático</div>
+      </div>
+      <div class="card c-ext" onclick="showDetail('dominio')" id="card-dominio">
+        <span class="card-badge cb-new">novo</span>
+        <div class="card-icon">☁️</div>
+        <div class="card-title">Cloudflare + psaude.ia.br</div>
+        <div class="card-sub">DNS ativo · A 216.24.57.1 · CNAME www · SSL ✓</div>
+      </div>
+      <div class="card c-infra" onclick="showDetail('envvars')" id="card-envvars">
+        <div class="card-icon">🔧</div>
+        <div class="card-title">Configuração & Segurança</div>
+        <div class="card-sub">Env vars · JWT_SECRET · DATABASE_URL · CORS multi-origem</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="detail-panel hidden" id="detail-panel">
+  <div class="detail-title" id="detail-title"></div>
+  <div class="detail-grid" id="detail-grid"></div>
+  <div class="detail-hint">Clique em outro componente para explorar · Clique novamente para fechar</div>
+</div>
+
+<!-- CHANGELOG -->
+<div class="changelog">
+  <h3>📋 Histórico de Alterações — v1.0 → v1.1 (Mai/2026)</h3>
+  <div class="changelog-list">
+    <div class="cl-item"><span class="cl-tag cl-infra">infra</span>Configuração do Cloudflare como provedor DNS para psaude.ia.br (nameservers joan/merlin.ns.cloudflare.com)</div>
+    <div class="cl-item"><span class="cl-tag cl-infra">infra</span>Registro A psaude.ia.br → 216.24.57.1 e CNAME www → hoffcare-crm.onrender.com adicionados no Cloudflare</div>
+    <div class="cl-item"><span class="cl-tag cl-infra">infra</span>Domínio www.psaude.ia.br verificado e certificado SSL emitido pelo Render</div>
+    <div class="cl-item"><span class="cl-tag cl-fix">fix</span>CORS do backend atualizado para aceitar psaude.ia.br, www.psaude.ia.br e *.onrender.com com função de origem dinâmica</div>
+    <div class="cl-item"><span class="cl-tag cl-fix">fix</span>Mapeamento de tipos: formulário de prontuário usa 'dentista' (compatível com CHECK constraint do banco), mas busca procedimentos por 'odontologico'</div>
+    <div class="cl-item"><span class="cl-tag cl-fix">fix</span>Profissionais padronizados para tipo 'odontologico'; filtro no formulário aceita 'dentista' (dados legados) e 'odontologico'</div>
+    <div class="cl-item"><span class="cl-tag cl-fix">fix</span>Campo de e-mail com autoComplete="off" e senhas com autoComplete="new-password" na tela de Usuários</div>
+    <div class="cl-item"><span class="cl-tag cl-feat">feat</span>Menu lateral renomeado: "Novo Registro" → "Novo Prontuário" e "Registros" → "Prontuários"</div>
+    <div class="cl-item"><span class="cl-tag cl-feat">feat</span>Diagrama de sistema criado para fins de auditoria (este documento)</div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <span>P. Soluções para Saúde · CRM HoffCare · Documento de Auditoria de Arquitetura · v1.1</span>
+  <span>Atualizado em Mai/2026 · rafael.pezzutti@gmail.com</span>
+</div>
+
+<script>
+const details = {
+  spa: {
+    icon: '🌐', title: 'SPA React + Vite — Frontend',
+    sections: [
+      { h: 'Tecnologia', items: ['React 18 (SPA — Single Page Application)', 'Vite como bundler e dev-server', 'React Router v6 para navegação client-side', 'Axios para chamadas HTTP (api.js com interceptors)'] },
+      { h: 'URLs de Acesso', items: ['hoffcare-crm.onrender.com (URL primária Render)', 'psaude.ia.br (domínio apex via A record Cloudflare)', 'www.psaude.ia.br (CNAME Cloudflare → Render) ✓ SSL', 'Todos os domínios com HTTPS/TLS automático'] },
+      { h: 'Roteamento SPA', items: ['Regra Rewrite /* → /index.html no Render', 'Todas as rotas servidas pelo index.html', 'React Router cuida da navegação client-side', 'Sem 404 em refresh de página'] },
+      { h: 'Auditoria', items: ['Código-fonte público no GitHub', 'Build reproduzível via variáveis de ambiente', 'VITE_API_URL = https://hoffcare-api.onrender.com/api', 'Deploy automático a cada push na branch main'] }
+    ]
+  },
+  login: {
+    icon: '🔑', title: 'Login & Gerenciamento de Sessão [fix v1.1]',
+    sections: [
+      { h: 'Fluxo de Autenticação', items: ['Usuário envia e-mail + senha via POST /auth/login', 'Backend valida com bcryptjs e retorna JWT', 'Token salvo em localStorage (chave: psaude_token)', 'Dados do usuário salvos (chave: psaude_user)'] },
+      { h: 'Melhorias v1.1', items: ['Botão de olho para mostrar/ocultar senha no login', 'autoComplete="off" no campo de e-mail (Usuários)', 'autoComplete="new-password" nos campos de senha', 'Sem preenchimento automático do browser em formulários'] },
+      { h: 'Controle de Sessão', items: ['Interceptor Axios adiciona Bearer Token em toda requisição', 'Resposta 401 → logout automático + redirect /login', 'Admin: psaude_clinic removida no login (sem clínica padrão)', 'Logout limpa token, usuário e clínica do localStorage'] },
+      { h: 'Auditoria', items: ['Token JWT stateless com expiração configurável', 'Admin sempre inicia sem clínica pré-selecionada', 'Logout remove completamente os dados de sessão', 'Nenhuma credencial persistida além do JWT'] }
+    ]
+  },
+  layout: {
+    icon: '🗂️', title: 'Layout, Sidebar & Roteamento [fix v1.1]',
+    sections: [
+      { h: 'Estrutura Visual', items: ['Sidebar fixa com logo P. Soluções para Saúde (SVG azul/laranja)', 'Seletor de clínica dropdown no topo da sidebar', 'Avatar do usuário com iniciais + role na base', 'Navegação responsiva com React Router NavLink'] },
+      { h: 'Menu — v1.1', items: ['Principal: Dashboard, Agenda do Dia, Calendário Mensal', 'Cadastros: Pacientes, Profissionais, Salas, Procedimentos', 'Atendimento: Novo Prontuário, Prontuários, Histórico', 'Administração (admin): Consultórios, Usuários'] },
+      { h: 'Seletor de Clínica', items: ['Admin inicia sem clínica selecionada (tela em branco)', 'Dropdown para trocar de clínica ativa', 'Ao selecionar: recarrega a página (window.location.reload)', 'Não-admins: clínica exibida como texto fixo'] },
+      { h: 'Auditoria', items: ['Role do usuário visível permanentemente na sidebar', 'Menus de admin restritos (role === admin)', 'Clínica ativa exibida no topo da navegação', 'Nenhum dado carregado sem clínica selecionada (admin)'] }
+    ]
+  },
+  contextos: {
+    icon: '⚛️', title: 'Contextos React & Serviço de API',
+    sections: [
+      { h: 'AuthContext', items: ['Gerencia estado global do usuário logado', 'Inicializa de localStorage (psaude_user)', 'login(): salva token + user, remove psaude_clinic se admin', 'logout(): remove psaude_token, psaude_user, psaude_clinic'] },
+      { h: 'ClinicContext', items: ['Busca lista de clínicas do backend (GET /clinics)', 'Não-admin: auto-seleciona a clínica vinculada ao usuário', 'Admin: permanece null até seleção manual', 'Persiste seleção em localStorage (psaude_clinic)'] },
+      { h: 'api.js (Axios)', items: ['baseURL: VITE_API_URL (baked em build time)', 'Interceptor request: adiciona Bearer Token em todo header', 'Envia X-Clinic-Id com id da clínica ativa', 'Sem clínica: X-Clinic-Id: 0 → backend retorna vazio'] },
+      { h: 'Auditoria', items: ['Chaves localStorage padronizadas: prefixo psaude_*', 'Falha de autenticação (401) → logout automático', 'Clínica ativa rastreável pelo header em toda requisição', 'Estado de sessão nunca persiste no servidor (stateless)'] }
+    ]
+  },
+  express: {
+    icon: '⚡', title: 'Express Server — API Backend',
+    sections: [
+      { h: 'Tecnologia', items: ['Node.js + Express', 'Hospedado no Render.com (Web Service)', 'URL pública: hoffcare-api.onrender.com', 'Variáveis de ambiente gerenciadas no painel Render'] },
+      { h: 'Estrutura', items: ['src/routes/ — rotas separadas por domínio', 'src/middleware/ — auth.js e adminOnly', 'src/config/db.js — pool de conexão PostgreSQL (pg)', 'reset-password.js — utilitário de recuperação de senha'] },
+      { h: 'Endpoint de Saúde', items: ['GET /api/health → { status: "ok", timestamp }', 'Usado para monitorar disponibilidade do backend', 'Sem autenticação (público)'] },
+      { h: 'Auditoria', items: ['Deploy automático via push no GitHub (branch main)', 'Logs de runtime disponíveis no painel Render', 'DATABASE_URL e JWT_SECRET apenas em env vars', 'Nenhuma credencial no código-fonte (GitHub)'] }
+    ]
+  },
+  auth: {
+    icon: '🔐', title: 'Auth & Middleware CORS [fix v1.1]',
+    sections: [
+      { h: 'JWT (auth.js)', items: ['Verifica token Bearer no header Authorization', 'Decodifica com jwt.verify(token, JWT_SECRET)', 'Popula req.user com {id, name, role, clinic_id}', 'Token inválido ou expirado → 401 Unauthorized'] },
+      { h: 'Filtro Multi-Clínica', items: ['Header X-Clinic-Id sobrescreve clinic_id do admin', 'X-Clinic-Id: <id> → filtra dados por clínica específica', 'X-Clinic-Id: 0 → clinic_id = null → retorna vazio', 'Não-admin: clinic_id fixo do JWT (sem override)'] },
+      { h: 'CORS — v1.1', items: ['Função de origem dinâmica (não array literal)', 'Origens permitidas: hoffcare-crm.onrender.com', 'Também permite: psaude.ia.br e www.psaude.ia.br', 'Wildcard *.onrender.com via regex /\\.onrender\\.com$/'] },
+      { h: 'Auditoria', items: ['adminOnly middleware: bloqueia role !== admin', 'Senhas hasheadas com bcryptjs (custo 10)', 'CORS restringe origens não autorizadas com 403', 'Cada requisição carrega identidade completa do usuário'] }
+    ]
+  },
+  rotas: {
+    icon: '🔀', title: 'Rotas da API REST',
+    sections: [
+      { h: 'Autenticação', items: ['POST /api/auth/login — e-mail + senha → JWT + user', 'GET /api/health — status do servidor (público)'] },
+      { h: 'Entidades Principais', items: ['CRUD /api/clinics — consultórios (admin)', 'CRUD /api/patients — pacientes (filtro por clinic_id)', 'CRUD /api/professionals — profissionais de saúde', 'CRUD /api/appointments — agendamentos'] },
+      { h: 'Módulos Clínicos', items: ['CRUD /api/records — prontuários clínicos', 'GET /api/history/:patientId — histórico do paciente', 'CRUD /api/rooms — salas por clínica', 'CRUD /api/procedures — tabela TUSS e odontológica'] },
+      { h: 'Administração', items: ['CRUD /api/users — usuários do sistema (admin)', 'PUT /api/users/:id/password — troca de senha com confirmação', 'Todas as rotas protegidas por middleware auth', 'Rotas admin protegidas adicionalmente por adminOnly'] }
+    ]
+  },
+  upload: {
+    icon: '📎', title: 'Upload de Arquivos — Multer',
+    sections: [
+      { h: 'Tecnologia', items: ['Multer (middleware Node.js para multipart/form-data)', 'Armazenamento: disco local no servidor Render', 'Acesso via /uploads/ (rota estática do Express)'] },
+      { h: 'Limitação Conhecida', items: ['Render Web Service tem sistema de arquivos efêmero', 'Reinicializações do serviço apagam uploads anteriores', 'Não recomendado para produção com volume alto de arquivos'] },
+      { h: 'Evolução Recomendada', items: ['Migrar para Cloudflare R2 ou AWS S3', 'URLs assinadas (signed URLs) para acesso temporário', 'Separação completa entre aplicação e storage'] },
+      { h: 'Auditoria', items: ['Upload associado ao registro do paciente no banco', 'Controle de acesso via middleware auth', 'Monitorar uso de disco no painel Render'] }
+    ]
+  },
+  dashboard: {
+    icon: '📊', title: 'Módulo: Dashboard',
+    sections: [
+      { h: 'Funcionalidades', items: ['Resumo do dia: consultas agendadas', 'KPIs da clínica ativa selecionada', 'Atalhos para ações frequentes', 'Atualização automática ao trocar de clínica'] },
+      { h: 'Filtro por Clínica', items: ['Todos os dados filtrados por clinic_id via X-Clinic-Id', 'Admin sem clínica: dashboard exibe tela de seleção', 'Dados carregados somente após selecionar clínica', 'Nenhum dado cross-clínica exibido simultaneamente'] },
+      { h: 'Auditoria', items: ['Dados sempre do contexto da clínica ativa', 'Admin nunca vê dados de todas as clínicas misturados'] }
+    ]
+  },
+  agenda: {
+    icon: '📅', title: 'Módulo: Agenda (Diária & Mensal)',
+    sections: [
+      { h: 'Agenda Diária', items: ['Listagem de consultas do dia', 'Filtro por profissional e sala', 'Status: agendado, confirmado, realizado, cancelado', 'Criação e edição de agendamentos'] },
+      { h: 'Calendário Mensal', items: ['Componente React 100% customizado (sem biblioteca externa)', 'Construído com dayjs: padding inicial + daysInMonth', 'Clique no dia → painel lateral com consultas', 'Corrigido em v1.0 (react-big-calendar removido)'] },
+      { h: 'Auditoria', items: ['Histórico completo de agendamentos mantido no banco', 'Cancelamentos registrados com data e hora', 'Todos os eventos vinculados à clínica ativa'] }
+    ]
+  },
+  pacientes: {
+    icon: '🧑‍⚕️', title: 'Módulo: Pacientes',
+    sections: [
+      { h: 'Cadastro', items: ['Nome completo, CPF (identificador único), data de nascimento', 'Telefone, e-mail, endereço completo', 'Convênio e número da carteirinha', 'Observações clínicas gerais'] },
+      { h: 'Funcionalidades', items: ['Busca por nome ou CPF com filtro em tempo real', 'Listagem com paginação por clínica ativa', 'Edição e remoção de pacientes', 'Acesso rápido ao histórico completo'] },
+      { h: 'Auditoria', items: ['Paciente sempre associado à clínica (clinic_id)', 'CPF como identificador único no sistema', 'Alterações rastreáveis por data de modificação (updated_at)'] }
+    ]
+  },
+  profissionais: {
+    icon: '👨‍⚕️', title: 'Módulo: Profissionais [fix v1.1]',
+    sections: [
+      { h: 'Cadastro', items: ['Nome completo, CPF, data de nascimento', 'CRM (médico) ou CRO (dentista)', 'Telefone e e-mail de contato'] },
+      { h: 'Tipo — v1.1', items: ['Tipo "odontologico" para dentistas (padronizado)', 'Tipo "medico" para médicos', 'Dados legados com tipo "dentista" aceitos pelo filtro', 'Novos cadastros sempre com "odontologico"'] },
+      { h: 'Vinculação', items: ['Profissional filtrado por tipo no formulário de prontuário', 'Agenda diária filtrada por profissional', 'Vinculado a consultas e registros clínicos'] },
+      { h: 'Auditoria', items: ['Registro isolado por clínica (clinic_id)', 'Número de registro profissional (CRM/CRO) armazenado', 'Compatibilidade retroativa com tipo "dentista" legado'] }
+    ]
+  },
+  prontuarios: {
+    icon: '📋', title: 'Módulo: Prontuários (Registros) [fix v1.1]',
+    sections: [
+      { h: 'Formulário', items: ['Vinculado a paciente + profissional + clínica', 'Data, tipo (Odontológico/Médico), descrição clínica', 'Procedimentos realizados com busca e valor individual', 'Cálculo automático do total dos procedimentos'] },
+      { h: 'Mapeamento de Tipos — v1.1', items: ['Tipo do registro salvo como "dentista" ou "medico" no banco', 'CHECK constraint: medical_records_type_check', 'Busca de procedimentos: "dentista" → filtra "odontologico"', 'Profissionais: aceita "dentista" (legado) e "odontologico"'] },
+      { h: 'Listagem & Histórico', items: ['Prontuários filtrados por clínica ativa', 'Busca por paciente, profissional, data', 'Histórico completo de atendimentos por paciente'] },
+      { h: 'Auditoria', items: ['Cada prontuário vinculado ao usuário que criou', 'Data e hora de criação registradas (created_at)', 'Procedimentos com código TUSS ou odontológico'] }
+    ]
+  },
+  cadastros: {
+    icon: '🏥', title: 'Salas, Procedimentos, Consultórios & Usuários [fix v1.1]',
+    sections: [
+      { h: 'Salas', items: ['Cadastro de salas por clínica ativa', 'Nome, tipo e capacidade da sala', 'Associação a agendamentos e consultas'] },
+      { h: 'Procedimentos — v1.1', items: ['Tipo "odontologico" (padrão) ou "medico"', 'Código TUSS (médico) ou código odontológico', 'Nome, código e CHO (Complexidade)', 'Ativação/desativação sem exclusão (soft delete)'] },
+      { h: 'Usuários — v1.1', items: ['Cadastro com nome, e-mail, role, consultório', 'autoComplete="off" para e-mail (sem preenchimento automático)', 'autoComplete="new-password" para senha', 'Confirmação de senha com indicador visual (✅/✗)'] },
+      { h: 'Consultórios (Admin)', items: ['Gerenciamento de múltiplas clínicas', 'Admin seleciona clínica ativa via dropdown na sidebar', 'Cada clínica isolada por clinic_id em todas as tabelas'] }
+    ]
+  },
+  postgres: {
+    icon: '🗄️', title: 'Banco de Dados — PostgreSQL no Neon.tech',
+    sections: [
+      { h: 'Provedor', items: ['Neon.tech — PostgreSQL serverless', 'Região: sa-east-1 (São Paulo)', 'Conexão via DATABASE_URL com pool SSL obrigatório', 'Pool de conexões: node-postgres (pg)'] },
+      { h: 'Características', items: ['Banco serverless com auto-scaling', 'Branching para ambientes de dev/prod', 'Backups automáticos pela plataforma Neon', 'Sem custo de instância ociosa (serverless)'] },
+      { h: 'Segurança', items: ['Credenciais apenas em variáveis de ambiente Render', 'Conexão criptografada (TLS/SSL obrigatório)', 'Sem exposição de credenciais no código-fonte'] },
+      { h: 'Auditoria', items: ['Query logging disponível no painel Neon', 'Backups automáticos com retenção pela plataforma', 'DATABASE_URL gerenciada exclusivamente no Render'] }
+    ]
+  },
+  tabelas: {
+    icon: '📑', title: 'Esquema do Banco de Dados',
+    sections: [
+      { h: 'Tabelas Principais', items: ['clinics — consultórios (multi-tenant root)', 'users — usuários (role: admin / responsavel)', 'patients — pacientes vinculados por clinic_id', 'professionals — profissionais de saúde'] },
+      { h: 'Módulos Clínicos', items: ['appointments — agendamentos (paciente + profissional + sala)', 'rooms — salas por clínica', 'procedures — tabela TUSS e odontológica (tipo: odontologico/medico)', 'medical_records — prontuários clínicos (tipo: dentista/medico)'] },
+      { h: 'Multi-Tenant', items: ['clinic_id em todas as tabelas de domínio', 'Filtro aplicado em todas as queries pelo auth middleware', 'Isolamento garantido em SQL (não só na aplicação)'] },
+      { h: 'Auditoria', items: ['created_at / updated_at em todas as tabelas', 'Soft delete (active = false) em procedures', 'Senhas hasheadas (bcryptjs) — nunca texto plano'] }
+    ]
+  },
+  constraints: {
+    icon: '🔒', title: 'Constraints & Mapeamento de Tipos [fix v1.1]',
+    sections: [
+      { h: 'medical_records_type_check', items: ['Constraint CHECK na tabela medical_records', 'Valores aceitos: "dentista" e "medico"', 'Origem: schema inicial da v1.0', 'NÃO aceita "odontologico" (requer migration para mudar)'] },
+      { h: 'Mapeamento Aplicado (v1.1)', items: ['Formulário salva tipo "dentista" → compatível com constraint', 'Busca de procedimentos: "dentista" → filtra type = "odontologico"', 'Profissionais: filtro aceita "dentista" OU "odontologico"', 'Sem migration necessária — compatibilidade por mapeamento'] },
+      { h: 'Procedures', items: ['Tipo "odontologico" para procedimentos dentários', 'Tipo "medico" para procedimentos médicos/TUSS', 'Sem constraint CHECK — flexível para novos tipos'] },
+      { h: 'Ação Futura Recomendada', items: ['ALTER TABLE medical_records DROP CONSTRAINT medical_records_type_check', 'ADD CONSTRAINT CHECK (type IN (\'odontologico\', \'medico\'))', 'UPDATE professionals SET type = \'odontologico\' WHERE type = \'dentista\'', 'Eliminar mapeamento no frontend após migration'] }
+    ]
+  },
+  render: {
+    icon: '🚀', title: 'Render.com — Hospedagem',
+    sections: [
+      { h: 'Frontend (Static Site)', items: ['Serviço: hoffcare-crm (Static Site)', 'Root Directory: hoffcare-crm/frontend', 'Build Command: npm install && npm run build', 'Publish Directory: dist · Regra SPA: /* → /index.html'] },
+      { h: 'Backend (Web Service)', items: ['Serviço: hoffcare-api (Web Service — Node.js)', 'Root Directory: hoffcare-crm/backend', 'Start Command: node src/index.js', 'URL pública: hoffcare-api.onrender.com'] },
+      { h: 'Env Vars Críticas', items: ['Frontend: VITE_API_URL = https://hoffcare-api.onrender.com/api', 'Backend: DATABASE_URL (Neon.tech)', 'Backend: JWT_SECRET (chave de assinatura)', 'Backend: FRONTEND_URL = https://hoffcare-crm.onrender.com'] },
+      { h: 'Auditoria', items: ['Logs de deploy e runtime no painel Render', 'Auto-deploy vinculado à branch main do GitHub', 'Rollback manual via deploy anterior disponível'] }
+    ]
+  },
+  github: {
+    icon: '🐙', title: 'GitHub — Repositório & CI/CD',
+    sections: [
+      { h: 'Repositório', items: ['github.com/rafapezzutti/hoffcare-crm', 'Monorepo: hoffcare-crm/frontend + hoffcare-crm/backend', 'Branch principal: main (deploy automático)', 'Git root: um nível acima da pasta hoffcare-crm'] },
+      { h: 'Estrutura', items: ['frontend/ — SPA React + Vite', 'backend/ — API Node.js + Express', 'backend/reset-password.js — utilitário de admin', 'diagrama_sistema_psaude.html — este documento'] },
+      { h: 'Fluxo CI/CD', items: ['git add + git commit + git push → GitHub', 'Render detecta push na main automaticamente', 'Frontend: rebuild completo (VITE_API_URL baked in)', 'Backend: restart do Web Service'] },
+      { h: 'Auditoria', items: ['Histórico completo de commits com autoria', 'Nenhuma credencial sensível no repositório', 'Código-fonte rastreável e versionado'] }
+    ]
+  },
+  dominio: {
+    icon: '☁️', title: 'Cloudflare + Domínio psaude.ia.br [novo v1.1]',
+    sections: [
+      { h: 'Cloudflare (DNS Ativo)', items: ['Nameserver 1: joan.ns.cloudflare.com', 'Nameserver 2: merlin.ns.cloudflare.com', 'Configurados no Registro.br em substituição a auto.dns.br', 'Status: Active — "Your domain is now protected by Cloudflare"'] },
+      { h: 'Registros DNS', items: ['A @ → 216.24.57.1 (Render IP, DNS only)', 'CNAME www → hoffcare-crm.onrender.com (DNS only)', 'MX, TXT SPF e DMARC mantidos do Registro.br', 'DNS only (nuvem cinza) — sem proxy Cloudflare'] },
+      { h: 'Status no Render', items: ['www.psaude.ia.br: Verified ✓ + Certificate Issued ✓', 'psaude.ia.br: verificação em andamento (A record adicionado)', 'SSL automático via Let\'s Encrypt (Render)', 'Fallback: hoffcare-crm.onrender.com sempre disponível'] },
+      { h: 'Auditoria', items: ['Domínio registrado no Registro.br (Proprietário: rafael.pezzutti@gmail.com)', 'TLD: .ia.br (Internet do Brasil)', 'Histórico de configuração DNS documentado', 'Cloudflare free tier — sem custo adicional'] }
+    ]
+  },
+  envvars: {
+    icon: '🔧', title: 'Configuração, Env Vars & Segurança [fix v1.1]',
+    sections: [
+      { h: 'Backend — Render Env Vars', items: ['DATABASE_URL — string de conexão PostgreSQL Neon', 'JWT_SECRET — chave secreta de assinatura JWT', 'FRONTEND_URL — hoffcare-crm.onrender.com (CORS base)', 'PORT — porta do servidor Express (automática no Render)'] },
+      { h: 'CORS v1.1 — Origens Permitidas', items: ['https://hoffcare-crm.onrender.com (produção)', 'https://psaude.ia.br (domínio apex customizado)', 'https://www.psaude.ia.br (subdomínio www)', 'http://localhost:5173 (desenvolvimento local)', 'Regex *.onrender.com para deploy previews'] },
+      { h: 'Frontend — Build Vars', items: ['VITE_API_URL = https://hoffcare-api.onrender.com/api', 'Definida no Render antes do build (baked no bundle)', 'Mudança requer novo build do frontend'] },
+      { h: 'Segurança Geral', items: ['Nenhuma credencial no código-fonte (GitHub)', 'Senhas hasheadas com bcryptjs (salt 10 rounds)', 'JWT stateless com expiração configurável', 'autoComplete desabilitado em formulários sensíveis'] }
+    ]
+  }
+};
+
+let activeCard = null;
+
+function showDetail(id) {
+  const panel = document.getElementById('detail-panel');
+  const titleEl = document.getElementById('detail-title');
+  const gridEl = document.getElementById('detail-grid');
+  const cardEl = document.getElementById('card-' + id);
+
+  if (activeCard) {
+    document.getElementById('card-' + activeCard)?.classList.remove('active');
+    if (activeCard === id) {
+      panel.classList.add('hidden');
+      activeCard = null;
+      return;
+    }
+  }
+
+  activeCard = id;
+  cardEl.classList.add('active');
+
+  const d = details[id];
+  if (!d) return;
+
+  titleEl.innerHTML = d.icon + ' ' + d.title;
+  gridEl.innerHTML = d.sections.map(s => `
+    <div class="detail-section">
+      <h4>${s.h}</h4>
+      <ul>${s.items.map(i => `<li>${i}</li>`).join('')}</ul>
+    </div>
+  `).join('');
+
+  panel.classList.remove('hidden');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+</script>
+</body>
+</html>

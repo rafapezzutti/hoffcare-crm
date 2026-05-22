@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P. Soluções para Saúde — Tutorial Interativo</title>
+<style>
+/* ============================================================
+   DESIGN TOKEN — idêntico ao index.css do sistema real
+   ============================================================ */
+:root {
+  --orange:       #E8841A;
+  --orange-light: #F5A84A;
+  --orange-dark:  #C46A10;
+  --blue:         #4DB8E8;
+  --blue-light:   #7DCEF2;
+  --blue-dark:    #2A9FD4;
+  --white:        #FFFFFF;
+  --gray-50:      #F8F9FA;
+  --gray-100:     #F1F3F5;
+  --gray-200:     #E9ECEF;
+  --gray-300:     #DEE2E6;
+  --gray-400:     #CED4DA;
+  --gray-500:     #ADB5BD;
+  --gray-600:     #6C757D;
+  --gray-700:     #495057;
+  --gray-800:     #343A40;
+  --gray-900:     #212529;
+  --success:      #28A745;
+  --danger:       #DC3545;
+  --warning:      #FFC107;
+  --shadow-sm:    0 1px 3px rgba(0,0,0,0.10);
+  --shadow:       0 2px 10px rgba(0,0,0,0.12);
+  --shadow-lg:    0 8px 24px rgba(0,0,0,0.15);
+  --radius:       10px;
+  --radius-sm:    6px;
+  --radius-lg:    16px;
+  --sidebar-bg1:  #1a2a3a;
+  --sidebar-bg2:  #0d1b2a;
+}
+
+/* ============================================================
+   TUTORIAL SHELL (não faz parte do sistema)
+   ============================================================ */
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #0a0f1a;
+  color: var(--gray-800);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+}
+
+/* ---- Tutorial topbar ---- */
+.t-topbar {
+  background: linear-gradient(90deg, #0d1b2a 0%, #1a2a3a 100%);
+  color: white;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(77,184,232,0.2);
+}
+.t-brand { display:flex; align-items:center; gap:10px; }
+.t-brand-text { line-height:1.1; }
+.t-brand-text b { font-size:14px; color:var(--blue); font-weight:800; }
+.t-brand-text small { font-size:11px; color:var(--orange); font-weight:600; display:block; }
+.t-label { font-size:12px; color:rgba(255,255,255,0.45); font-weight:400; }
+.t-prog-wrap { flex:1; max-width:380px; margin:0 auto; }
+.t-prog-meta { display:flex; justify-content:space-between; font-size:11px; color:rgba(255,255,255,0.5); margin-bottom:4px; }
+.t-prog-bar { height:4px; background:rgba(255,255,255,0.12); border-radius:2px; overflow:hidden; }
+.t-prog-fill { height:100%; background:var(--orange); border-radius:2px; transition:width .5s ease; }
+.t-step-info { font-size:12px; color:rgba(255,255,255,0.5); min-width:110px; text-align:right; }
+
+/* ---- Tutorial nav sidebar ---- */
+.t-main { display:flex; flex:1; overflow:hidden; }
+
+.t-nav {
+  width: 200px;
+  background: #111b27;
+  overflow-y: auto;
+  flex-shrink: 0;
+  padding: 12px 0;
+  border-right: 1px solid rgba(255,255,255,0.05);
+}
+.t-nav::-webkit-scrollbar { width:3px; }
+.t-nav::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:2px; }
+.t-nav-section {
+  font-size:9px; font-weight:700; text-transform:uppercase;
+  letter-spacing:1.2px; color:rgba(255,255,255,0.25);
+  padding:10px 14px 3px;
+}
+.t-nav-item {
+  display:flex; align-items:center; gap:8px;
+  padding:9px 14px; cursor:pointer;
+  font-size:12px; color:rgba(255,255,255,0.45);
+  border-left:3px solid transparent;
+  transition:all .15s;
+}
+.t-nav-item:hover { background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.75); }
+.t-nav-item.active { background:rgba(77,184,232,0.12); color:var(--blue); border-left-color:var(--blue); }
+.t-nav-item.done { color:rgba(255,255,255,0.3); }
+.t-nav-item.done .t-num { background:var(--success); color:white; }
+.t-num {
+  width:19px; height:19px; border-radius:50%;
+  background:rgba(255,255,255,0.1);
+  display:flex; align-items:center; justify-content:center;
+  font-size:10px; font-weight:700; flex-shrink:0;
+}
+.t-nav-item.active .t-num { background:var(--blue); color:white; }
+
+/* ---- Content area ---- */
+.t-content { flex:1; display:flex; overflow:hidden; }
+
+/* ---- Screen panel ---- */
+.t-screen { flex:1; background:#131c28; display:flex; align-items:center; justify-content:center; padding:16px; overflow:hidden; }
+
+.browser-wrap {
+  width:100%; max-width:780px;
+  background:var(--gray-50);
+  border-radius:var(--radius);
+  overflow:hidden;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.5);
+}
+.browser-bar {
+  background:#e0e3e7; padding:7px 10px;
+  display:flex; align-items:center; gap:8px;
+  border-bottom:1px solid #ccc;
+}
+.b-dots { display:flex; gap:5px; }
+.b-dot { width:10px; height:10px; border-radius:50%; }
+.b-dot:nth-child(1){background:#ff5f57}
+.b-dot:nth-child(2){background:#febc2e}
+.b-dot:nth-child(3){background:#28c840}
+.b-url {
+  flex:1; background:white; border-radius:5px;
+  padding:3px 10px; font-size:11px; color:#555;
+  border:1px solid #ccc;
+}
+
+/* ---- Instruction panel ---- */
+.t-instr {
+  width:290px; background:white;
+  border-left:1px solid var(--gray-200);
+  display:flex; flex-direction:column; overflow:hidden; flex-shrink:0;
+}
+.t-instr-head {
+  padding:18px 20px;
+  background:linear-gradient(135deg, var(--sidebar-bg1), var(--sidebar-bg2));
+  color:white; border-bottom:3px solid var(--orange);
+}
+.t-instr-badge {
+  font-size:9px; font-weight:700; text-transform:uppercase;
+  letter-spacing:1.2px; color:var(--orange);
+  background:rgba(232,132,26,0.15); padding:2px 8px;
+  border-radius:20px; display:inline-block; margin-bottom:7px;
+}
+.t-instr-title { font-size:16px; font-weight:700; margin-bottom:4px; }
+.t-instr-sub { font-size:11px; color:rgba(255,255,255,0.6); line-height:1.4; }
+.t-instr-body { flex:1; overflow-y:auto; padding:18px; }
+.t-instr-body::-webkit-scrollbar{width:3px}
+.t-instr-body::-webkit-scrollbar-thumb{background:var(--gray-200);border-radius:2px}
+.t-instr-foot {
+  padding:12px 16px; border-top:1px solid var(--gray-200);
+  display:flex; gap:8px;
+}
+.t-btn {
+  flex:1; padding:9px; border-radius:var(--radius-sm);
+  border:none; cursor:pointer; font-size:12px; font-weight:600;
+  transition:all .2s;
+}
+.t-btn-prev { background:var(--gray-100); color:var(--gray-600); border:1px solid var(--gray-300); }
+.t-btn-prev:hover { background:var(--gray-200); }
+.t-btn-next { background:var(--orange); color:white; }
+.t-btn-next:hover { background:var(--orange-dark); }
+.t-btn:disabled { opacity:.4; cursor:not-allowed; }
+
+/* Instruction list items */
+.i-section { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--blue-dark); margin-bottom:10px; }
+.i-item { display:flex; gap:10px; margin-bottom:12px; align-items:flex-start; }
+.i-icon {
+  width:26px; height:26px; border-radius:7px;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; font-size:13px;
+}
+.i-icon.or { background:rgba(232,132,26,0.12); color:var(--orange); }
+.i-icon.bl { background:rgba(77,184,232,0.12); color:var(--blue-dark); }
+.i-icon.gr { background:rgba(40,167,69,0.12); color:var(--success); }
+.i-text strong { display:block; font-size:12px; color:var(--gray-800); margin-bottom:1px; }
+.i-text span { font-size:11px; color:var(--gray-600); line-height:1.45; }
+.i-tip {
+  background:#fffbeb; border:1px solid #fde68a;
+  border-radius:7px; padding:10px 12px; margin-top:14px;
+  font-size:11px; color:#92400e; line-height:1.5;
+  display:flex; gap:7px; align-items:flex-start;
+}
+.i-tip .ti { flex-shrink:0; }
+
+/* Slide-in animation */
+@keyframes sIn { from{opacity:0;transform:translateX(14px)} to{opacity:1;transform:translateX(0)} }
+.anim { animation:sIn .3s ease; }
+
+/* ============================================================
+   SISTEMA — componentes idênticos ao código real
+   ============================================================ */
+
+/* ---- App layout mockup ---- */
+.app { display:flex; height:440px; background:var(--gray-50); }
+
+/* ---- Sidebar real ---- */
+.s-bar {
+  width:195px;
+  background:linear-gradient(180deg, var(--sidebar-bg1) 0%, var(--sidebar-bg2) 100%);
+  color:white; display:flex; flex-direction:column;
+  flex-shrink:0; overflow:hidden;
+}
+.s-logo {
+  padding:14px 14px 10px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+}
+.s-logo-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.s-brand-p { font-size:13px; font-weight:800; color:var(--blue); line-height:1.1; letter-spacing:.3px; }
+.s-brand-s { font-size:10px; font-weight:600; color:var(--orange); letter-spacing:.3px; }
+.s-clinic-label { font-size:8px; color:var(--gray-600); letter-spacing:1px; text-transform:uppercase; margin-bottom:3px; }
+.s-clinic-btn {
+  width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);
+  border-radius:5px; padding:5px 8px; color:var(--gray-300); font-size:11px; font-weight:600;
+  display:flex; align-items:center; gap:6px; cursor:pointer;
+}
+.s-clinic-icon { color:var(--orange); font-size:9px; }
+
+.s-nav { flex:1; padding:6px 0; overflow:hidden; }
+.s-section {
+  font-size:9px; font-weight:600; text-transform:uppercase;
+  letter-spacing:.9px; color:var(--gray-600); padding:8px 14px 2px;
+}
+.s-link {
+  display:flex; align-items:center; gap:8px;
+  padding:8px 14px; color:var(--gray-400);
+  font-size:11px; cursor:pointer;
+  border-left:3px solid transparent;
+  transition:all .15s;
+}
+.s-link:hover { background:rgba(255,255,255,0.06); color:white; }
+.s-link.active { background:rgba(77,184,232,0.15); color:var(--blue); border-left-color:var(--blue); }
+.s-link i { width:14px; font-size:12px; }
+
+.s-bottom {
+  padding:10px 14px; border-top:1px solid rgba(255,255,255,0.08);
+  display:flex; align-items:center; gap:8px;
+}
+.s-avatar {
+  width:28px; height:28px; border-radius:50%;
+  background:var(--orange); color:white;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700; flex-shrink:0;
+}
+.s-user-name { font-size:11px; color:var(--gray-300); font-weight:500; }
+.s-user-role { font-size:9px; color:var(--gray-600); }
+
+/* ---- Main content real ---- */
+.s-main { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+
+.s-topbar {
+  background:white; padding:10px 18px;
+  display:flex; align-items:center; justify-content:space-between;
+  border-bottom:1px solid var(--gray-200);
+  box-shadow:var(--shadow-sm); flex-shrink:0;
+}
+.s-topbar-title { font-size:15px; font-weight:600; color:var(--gray-800); }
+.s-topbar-right { display:flex; align-items:center; gap:8px; }
+.s-t-avatar {
+  width:30px; height:30px; border-radius:50%;
+  background:var(--blue); color:white;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700;
+}
+
+.s-page { flex:1; overflow-y:auto; padding:16px 18px; }
+.s-page::-webkit-scrollbar{width:4px}
+.s-page::-webkit-scrollbar-thumb{background:var(--gray-300);border-radius:2px}
+
+.s-page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.s-page-title { font-size:17px; font-weight:700; color:var(--gray-800); }
+.s-page-sub { font-size:11px; color:var(--gray-500); margin-top:1px; }
+
+/* Real card */
+.s-card {
+  background:white; border-radius:var(--radius);
+  padding:16px; border:1px solid var(--gray-200);
+  box-shadow:var(--shadow-sm); margin-bottom:12px;
+}
+.s-card-header {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--gray-100);
+}
+.s-card-title { font-size:13px; font-weight:600; color:var(--gray-800); }
+
+/* Stats grid */
+.s-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px; }
+.s-stat {
+  background:white; border-radius:var(--radius);
+  padding:14px; border:1px solid var(--gray-200);
+  display:flex; align-items:center; gap:12px;
+  box-shadow:var(--shadow-sm); cursor:pointer;
+}
+.s-stat-icon {
+  width:40px; height:40px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:17px; flex-shrink:0;
+}
+.s-stat-icon.or { background:rgba(232,132,26,0.12); color:var(--orange); }
+.s-stat-icon.bl { background:rgba(77,184,232,0.12); color:var(--blue); }
+.s-stat-icon.gr { background:rgba(40,167,69,0.12); color:var(--success); }
+.s-stat-icon.pu { background:rgba(108,117,255,0.12); color:#6c75ff; }
+.s-stat-val { font-size:22px; font-weight:700; color:var(--gray-800); }
+.s-stat-lbl { font-size:10px; color:var(--gray-500); }
+
+/* Real table */
+.s-table { width:100%; border-collapse:collapse; font-size:12px; }
+.s-table th {
+  padding:7px 12px; text-align:left; font-size:10px; font-weight:600;
+  text-transform:uppercase; letter-spacing:.5px;
+  color:var(--gray-500); border-bottom:2px solid var(--gray-200);
+  background:var(--gray-50);
+}
+.s-table td {
+  padding:10px 12px; border-bottom:1px solid var(--gray-100);
+  color:var(--gray-700); vertical-align:middle;
+}
+.s-table tbody tr:hover td { background:var(--gray-50); }
+
+/* Real badges */
+.badge { display:inline-flex; align-items:center; padding:2px 9px; border-radius:20px; font-size:10px; font-weight:600; }
+.badge-blue  { background:rgba(77,184,232,0.15);  color:var(--blue-dark); }
+.badge-orange{ background:rgba(232,132,26,0.15);  color:var(--orange-dark); }
+.badge-green { background:rgba(40,167,69,0.15);   color:var(--success); }
+.badge-red   { background:rgba(220,53,69,0.15);   color:var(--danger); }
+.badge-gray  { background:var(--gray-100);         color:var(--gray-600); }
+
+/* Real buttons */
+.btn { display:inline-flex; align-items:center; gap:5px; padding:7px 14px;
+  border-radius:var(--radius-sm); font-size:12px; font-weight:500;
+  cursor:pointer; border:none; transition:all .2s; }
+.btn-primary { background:var(--orange); color:white; }
+.btn-primary:hover { background:var(--orange-dark); }
+.btn-secondary { background:var(--blue); color:white; }
+.btn-secondary:hover { background:var(--blue-dark); }
+.btn-outline { background:transparent; border:1.5px solid var(--gray-300); color:var(--gray-700); }
+.btn-outline:hover { border-color:var(--orange); color:var(--orange); }
+.btn-success { background:var(--success); color:white; }
+.btn-danger { background:var(--danger); color:white; }
+.btn-sm { padding:5px 10px; font-size:11px; }
+
+/* Real form controls */
+.fc {
+  width:100%; padding:7px 10px; border:1.5px solid var(--gray-300);
+  border-radius:var(--radius-sm); font-size:12px; color:var(--gray-800);
+  background:white; font-family:inherit;
+}
+.fc:focus { outline:none; border-color:var(--blue); box-shadow:0 0 0 3px rgba(77,184,232,0.12); }
+.fc.filled { border-color:var(--blue); background:#f7fcff; }
+.fc.typing { border-color:var(--blue); box-shadow:0 0 0 3px rgba(77,184,232,0.12); }
+.form-label { display:block; font-size:11px; font-weight:500; color:var(--gray-700); margin-bottom:4px; }
+.form-label .req { color:var(--danger); margin-left:2px; }
+.fg { margin-bottom:12px; }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+
+/* ---- Login page real ---- */
+.login-bg {
+  min-height:440px; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg, var(--sidebar-bg1) 0%, var(--sidebar-bg2) 50%, #162236 100%);
+}
+.login-card {
+  background:white; border-radius:var(--radius-lg);
+  padding:36px 32px; width:100%; max-width:360px;
+  box-shadow:var(--shadow-lg);
+}
+.login-logo { text-align:center; margin-bottom:24px; }
+.login-logo-row { display:flex; align-items:center; justify-content:center; gap:12px; }
+.login-brand-p { font-size:20px; font-weight:800; color:var(--blue); line-height:1.1; letter-spacing:.3px; }
+.login-brand-s { font-size:13px; font-weight:600; color:var(--orange); letter-spacing:1px; }
+.login-sub { font-size:10px; color:var(--gray-400); letter-spacing:2px; margin-top:8px; }
+.login-title { font-size:13px; font-weight:600; color:var(--gray-700); margin-top:14px; }
+.login-powered { text-align:center; font-size:10px; color:var(--gray-400); margin-top:18px; }
+
+/* ---- Timeline (agenda do dia) ---- */
+.timeline-row {
+  display:flex; border-bottom:1px solid var(--gray-100); min-height:52px;
+}
+.timeline-hour {
+  width:52px; padding:6px 10px; color:var(--gray-400);
+  font-size:11px; font-weight:500; flex-shrink:0; padding-top:8px;
+}
+.timeline-slot {
+  flex:1; padding:5px 8px; display:flex; flex-wrap:wrap; gap:6px;
+}
+.apt-card {
+  border-radius:7px; padding:5px 10px; min-width:180px; cursor:pointer;
+  border-width:1.5px; border-style:solid;
+}
+.apt-card.medico {
+  background:rgba(232,132,26,0.10); border-color:var(--orange);
+}
+.apt-card.dentista {
+  background:rgba(77,184,232,0.10); border-color:var(--blue);
+}
+.apt-name { font-weight:600; font-size:12px; color:var(--gray-800); }
+.apt-meta { font-size:10px; color:var(--gray-500); }
+.apt-badges { display:flex; gap:5px; margin-top:3px; align-items:center; }
+
+/* Procedure row */
+.proc-row {
+  display:flex; gap:8px; align-items:center;
+  padding:8px 10px; background:var(--gray-50);
+  border-radius:var(--radius-sm); margin-bottom:7px;
+}
+.proc-name-col { flex:1; }
+.proc-code { font-size:10px; color:var(--gray-400); font-family:monospace; }
+.proc-name { font-size:12px; }
+.proc-val { width:100px; }
+.total-box {
+  background:var(--gray-800); color:white;
+  padding:11px 16px; border-radius:var(--radius-sm);
+  display:flex; justify-content:space-between; align-items:center;
+  font-weight:600; margin-top:10px;
+}
+.total-val { font-size:17px; }
+
+/* Blinking cursor */
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.cursor { animation:blink 1s infinite; }
+
+/* Welcome screen */
+.welcome-bg {
+  height:440px; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; text-align:center;
+  padding:28px;
+  background:linear-gradient(145deg, var(--sidebar-bg2) 0%, var(--sidebar-bg1) 60%, #1e3050 100%);
+  color:white; position:relative; overflow:hidden;
+}
+.welcome-bg::before {
+  content:''; position:absolute; top:-80px; right:-60px;
+  width:220px; height:220px; border-radius:50%;
+  background:radial-gradient(circle, rgba(77,184,232,0.12), transparent 70%);
+}
+.welcome-badge {
+  background:rgba(232,132,26,0.2); border:1px solid rgba(232,132,26,0.4);
+  color:var(--orange); padding:4px 14px; border-radius:20px;
+  font-size:10px; font-weight:700; letter-spacing:1.5px;
+  text-transform:uppercase; margin-bottom:14px;
+}
+.welcome-features { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; max-width:460px; margin-top:20px; }
+.wf { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:10px; font-size:11px; opacity:.85; }
+.wf .wi { font-size:18px; margin-bottom:3px; }
+
+/* Tabs real */
+.s-tabs { display:flex; gap:3px; border-bottom:2px solid var(--gray-200); margin-bottom:14px; }
+.s-tab {
+  padding:8px 14px; font-size:12px; font-weight:500;
+  cursor:pointer; border:none; background:none; color:var(--gray-600);
+  border-bottom:2px solid transparent; margin-bottom:-2px; transition:all .2s;
+}
+.s-tab:hover { color:var(--blue); }
+.s-tab.active { color:var(--blue); border-bottom-color:var(--blue); }
+
+/* Empty state */
+.empty { text-align:center; padding:30px 20px; color:var(--gray-400); }
+.empty .ei { font-size:32px; margin-bottom:8px; }
+.empty p { font-size:12px; }
+
+/* Pulse highlight */
+@keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(232,132,26,.5)} 70%{box-shadow:0 0 0 7px rgba(232,132,26,0)} 100%{box-shadow:0 0 0 0 rgba(232,132,26,0)} }
+.highlight { animation:pulse 1.8s ease infinite; }
+
+/* Info panel items */
+.anim { animation:sIn .35s ease; }
+</style>
+</head>
+<body>
+
+<!-- ===== TUTORIAL TOP BAR ===== -->
+<div class="t-topbar">
+  <div class="t-brand">
+    <!-- Logo SVG idêntico ao sistema real -->
+    <svg width="30" height="30" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="38" y="10" width="24" height="80" rx="8" fill="#4DB8E8"/>
+      <rect x="10" y="38" width="80" height="24" rx="8" fill="#4DB8E8"/>
+      <rect x="42" y="14" width="16" height="72" rx="6" fill="#E8841A" opacity="0.7"/>
+      <rect x="14" y="42" width="72" height="16" rx="6" fill="#E8841A" opacity="0.7"/>
+      <circle cx="50" cy="50" r="10" fill="#0d1b2a"/>
+      <circle cx="50" cy="50" r="6" fill="#4DB8E8"/>
+    </svg>
+    <div class="t-brand-text">
+      <b>P. Soluções</b>
+      <small>para Saúde</small>
+    </div>
+  </div>
+  <span class="t-label">Tutorial Interativo</span>
+
+  <div class="t-prog-wrap">
+    <div class="t-prog-meta">
+      <span id="prog-label">Introdução</span>
+      <span id="prog-pct">0%</span>
+    </div>
+    <div class="t-prog-bar">
+      <div class="t-prog-fill" id="prog-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="t-step-info">
+    Módulo <span id="step-cur">1</span> de <span id="step-total">9</span>
+  </div>
+</div>
+
+<!-- ===== MAIN ===== -->
+<div class="t-main">
+
+  <!-- Tutorial nav -->
+  <div class="t-nav">
+    <div class="t-nav-section">Módulos</div>
+    <div class="t-nav-item active" onclick="goTo(0)" id="nav-0"><div class="t-num">✦</div>Boas-vindas</div>
+    <div class="t-nav-item" onclick="goTo(1)" id="nav-1"><div class="t-num">1</div>Login</div>
+    <div class="t-nav-item" onclick="goTo(2)" id="nav-2"><div class="t-num">2</div>Consultório</div>
+    <div class="t-nav-item" onclick="goTo(3)" id="nav-3"><div class="t-num">3</div>Profissionais</div>
+    <div class="t-nav-item" onclick="goTo(4)" id="nav-4"><div class="t-num">4</div>Pacientes</div>
+    <div class="t-nav-item" onclick="goTo(5)" id="nav-5"><div class="t-num">5</div>Prontuário</div>
+    <div class="t-nav-item" onclick="goTo(6)" id="nav-6"><div class="t-num">6</div>Salas</div>
+    <div class="t-nav-item" onclick="goTo(7)" id="nav-7"><div class="t-num">7</div>Agenda do Dia</div>
+    <div class="t-nav-item" onclick="goTo(8)" id="nav-8"><div class="t-num">8</div>Dashboard</div>
+  </div>
+
+  <!-- Content -->
+  <div class="t-content">
+
+    <!-- Screen mockup -->
+    <div class="t-screen">
+      <div class="browser-wrap">
+        <div class="browser-bar">
+          <div class="b-dots">
+            <div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div>
+          </div>
+          <div class="b-url" id="url-bar">psaude.ia.br</div>
+        </div>
+        <div id="screen"></div>
+      </div>
+    </div>
+
+    <!-- Instruction panel -->
+    <div class="t-instr">
+      <div class="t-instr-head">
+        <div class="t-instr-badge" id="instr-badge">Introdução</div>
+        <div class="t-instr-title" id="instr-title">Bem-vindo</div>
+        <div class="t-instr-sub" id="instr-sub">Tutorial completo do sistema</div>
+      </div>
+      <div class="t-instr-body" id="instr-body"></div>
+      <div class="t-instr-foot">
+        <button class="t-btn t-btn-prev" id="btn-prev" onclick="prev()">← Anterior</button>
+        <button class="t-btn t-btn-next" id="btn-next" onclick="next()">Próximo →</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ============================================================
+// Helper: Logo SVG (idêntico ao sistema)
+// ============================================================
+const LOGO_SVG = `<svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="38" y="10" width="24" height="80" rx="8" fill="#4DB8E8"/>
+  <rect x="10" y="38" width="80" height="24" rx="8" fill="#4DB8E8"/>
+  <rect x="42" y="14" width="16" height="72" rx="6" fill="#E8841A" opacity="0.7"/>
+  <rect x="14" y="42" width="72" height="16" rx="6" fill="#E8841A" opacity="0.7"/>
+  <circle cx="50" cy="50" r="10" fill="#1a2535"/>
+  <circle cx="50" cy="50" r="6" fill="#4DB8E8"/>
+</svg>`;
+
+// ============================================================
+// Helper: Sidebar real (reutilizado em todas as telas)
+// ============================================================
+function sidebar(activeLink) {
+  const links = [
+    { section:'Principal' },
+    { to:'/', icon:'🏠', label:'Dashboard', key:'dashboard' },
+    { to:'/calendar/daily', icon:'📅', label:'Agenda do Dia', key:'agenda' },
+    { to:'/calendar/monthly', icon:'🗓️', label:'Calendário Mensal', key:'calendar' },
+    { section:'Cadastros' },
+    { to:'/patients', icon:'🧑‍⚕️', label:'Pacientes', key:'patients' },
+    { to:'/professionals', icon:'👨‍⚕️', label:'Profissionais', key:'professionals' },
+    { to:'/rooms', icon:'🚪', label:'Salas', key:'rooms' },
+    { to:'/procedures', icon:'✅', label:'Procedimentos', key:'procedures' },
+    { section:'Atendimento' },
+    { to:'/records/new', icon:'📄', label:'Novo Prontuário', key:'record-new' },
+    { to:'/records', icon:'📋', label:'Prontuários', key:'records' },
+    { to:'/history', icon:'🕐', label:'Histórico de Pacientes', key:'history' },
+    { section:'Administração' },
+    { to:'/clinics', icon:'🏥', label:'Consultórios', key:'clinics' },
+    { to:'/users', icon:'👥', label:'Usuários', key:'users' },
+  ];
+
+  const items = links.map(l => {
+    if (l.section) return `<div class="s-section">${l.section}</div>`;
+    const active = l.key === activeLink ? 'active' : '';
+    return `<div class="s-link ${active}"><span style="width:14px;font-size:12px">${l.icon}</span>${l.label}</div>`;
+  }).join('');
+
+  return `
+    <div class="s-bar">
+      <div class="s-logo">
+        <div class="s-logo-row">
+          ${LOGO_SVG}
+          <div>
+            <div class="s-brand-p">P. Soluções</div>
+            <div class="s-brand-s">para Saúde</div>
+          </div>
+        </div>
+        <div class="s-clinic-label">Clínica ativa</div>
+        <div class="s-clinic-btn">
+          <span class="s-clinic-icon">🏥</span>
+          <span style="font-size:11px;font-weight:600;color:#dee2e6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px">Clínica Saúde &amp; Vida</span>
+          <span style="margin-left:auto;font-size:8px;opacity:.5">▾</span>
+        </div>
+      </div>
+      <nav class="s-nav">${items}</nav>
+      <div class="s-bottom">
+        <div class="s-avatar">AD</div>
+        <div>
+          <div class="s-user-name">Administrador</div>
+          <div class="s-user-role">admin</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ============================================================
+// STEPS
+// ============================================================
+const STEPS = [
+  // 0 — BOAS-VINDAS
+  {
+    badge:'Introdução', title:'Bem-vindo ao Sistema', sub:'P. Soluções para Saúde — Gestão Clínica',
+    url:'psaude.ia.br',
+    screen() {
+      return `<div class="welcome-bg anim">
+        <div class="welcome-badge">Tutorial Interativo</div>
+        <div style="margin-bottom:12px">${LOGO_SVG.replace('width="28" height="28"','width="56" height="56"')}</div>
+        <div style="font-size:24px;font-weight:800;margin-bottom:4px">P. Soluções <span style="color:var(--orange)">para Saúde</span></div>
+        <div style="font-size:13px;opacity:.6;margin-bottom:6px">sistema de gestão clínica · psaude.ia.br</div>
+        <div style="font-size:12px;opacity:.5;max-width:360px;line-height:1.5">Aprenda a usar todas as funcionalidades: do cadastro da clínica ao agendamento e prontuário eletrônico.</div>
+        <div class="welcome-features">
+          <div class="wf"><div class="wi">🏥</div>Consultórios</div>
+          <div class="wf"><div class="wi">👨‍⚕️</div>Profissionais</div>
+          <div class="wf"><div class="wi">🧑‍⚕️</div>Pacientes</div>
+          <div class="wf"><div class="wi">📋</div>Prontuários</div>
+          <div class="wf"><div class="wi">📅</div>Agendamento</div>
+          <div class="wf"><div class="wi">📊</div>Dashboard</div>
+        </div>
+      </div>`;
+    },
+    instr() { return `<div class="anim">
+      <div class="i-section">Sobre este Tutorial</div>
+      <div class="i-item"><div class="i-icon bl">📚</div><div class="i-text"><strong>9 módulos completos</strong><span>Cobre todo o fluxo do sistema, do primeiro login até a consulta registrada.</span></div></div>
+      <div class="i-item"><div class="i-icon or">🎯</div><div class="i-text"><strong>Para todos os perfis</strong><span>Recepcionistas, médicos, dentistas e administradores da clínica.</span></div></div>
+      <div class="i-item"><div class="i-icon gr">🖥️</div><div class="i-text"><strong>Telas reais do sistema</strong><span>Cada módulo mostra a interface exata do P. Soluções para Saúde.</span></div></div>
+      <div class="i-tip"><span class="ti">💡</span>Use os botões ou clique nos módulos na barra lateral para navegar livremente.</div>
+    </div>`; }
+  },
+
+  // 1 — LOGIN
+  {
+    badge:'Módulo 1', title:'Acesso ao Sistema', sub:'Como fazer login no P. Soluções para Saúde',
+    url:'psaude.ia.br/login',
+    screen() {
+      return `<div class="login-bg anim">
+        <div class="login-card">
+          <div class="login-logo">
+            <div class="login-logo-row">
+              ${LOGO_SVG.replace('width="28" height="28"','width="46" height="46"')}
+              <div style="text-align:left">
+                <div class="login-brand-p">P. Soluções</div>
+                <div class="login-brand-s">para Saúde</div>
+              </div>
+            </div>
+            <div class="login-sub">sistema de gestão clínica</div>
+            <div class="login-title">Acesse sua conta</div>
+          </div>
+          <div class="fg">
+            <label class="form-label">Email</label>
+            <input class="fc filled" type="email" value="admin@clinica.com.br" readonly style="font-size:12px">
+          </div>
+          <div class="fg">
+            <label class="form-label">Senha</label>
+            <div style="position:relative">
+              <input class="fc filled" type="password" value="senha123" readonly style="font-size:12px;padding-right:36px;letter-spacing:3px">
+              <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--gray-500);font-size:13px">👁</span>
+            </div>
+          </div>
+          <button class="btn btn-primary highlight" style="width:100%;justify-content:center;padding:10px;font-size:13px;border-radius:var(--radius-sm);margin-top:4px">
+            Entrar
+          </button>
+          <div class="login-powered">powered by P. Soluções</div>
+        </div>
+      </div>`;
+    },
+    instr() { return `<div class="anim">
+      <div class="i-section">Fazendo Login</div>
+      <div class="i-item"><div class="i-icon bl">🌐</div><div class="i-text"><strong>Acesse o sistema</strong><span>Abra o navegador e vá para <strong>psaude.ia.br</strong>. A tela de login será exibida.</span></div></div>
+      <div class="i-item"><div class="i-icon bl">✉️</div><div class="i-text"><strong>Informe seu e-mail</strong><span>Use o e-mail cadastrado pelo administrador da clínica.</span></div></div>
+      <div class="i-item"><div class="i-icon bl">🔑</div><div class="i-text"><strong>Digite a senha</strong><span>Clique no olho (👁) para exibir a senha enquanto digita. Depois clique em <strong>Entrar</strong>.</span></div></div>
+      <div class="i-item"><div class="i-icon or">🏥</div><div class="i-text"><strong>Selecione o consultório</strong><span>Administradores com acesso a mais de uma clínica verão o seletor no menu lateral após o login.</span></div></div>
+      <div class="i-tip"><span class="ti">💡</span>Primeiro acesso? Peça ao admin criar seu usuário em <strong>Administração → Usuários</strong>.</div>
+    </div>`; }
+  },
+
+  // 2 — CONSULTÓRIO
+  {
+    badge:'Módulo 2', title:'Cadastro do Consultório', sub:'Configure os dados da sua clínica',
+    url:'psaude.ia.br/clinics',
+    screen() {
+      return `<div class="app anim">
+        ${sidebar('clinics')}
+        <div class="s-main">
+          <div class="s-topbar">
+            <div class="s-topbar-title">🏥 Consultórios</div>
+            <div class="s-topbar-right">
+              <button class="btn btn-primary btn-sm highlight"><span>+</span> Novo Consultório</button>
+              <div class="s-t-avatar">AD</div>
+            </div>
+          </div>
+          <div class="s-page">
+            <div class="s-page-header">
+              <div><div class="s-page-title">Consultórios</div><div class="s-page-sub">1 cadastrado</div></div>
+            </div>
+            <div class="s-card" style="padding:14px">
+              <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;font-size:12px;color:#92400e;display:flex;gap:8px">
+                <span>⚠️</span> Preencha os dados abaixo para configurar seu consultório. Estas informações aparecerão nos documentos gerados.
+              </div>
+              <div class="grid2" style="margin-bottom:10px">
+                <div class="fg" style="margin-bottom:0"><label class="form-label">Nome do Consultório <span class="req">*</span></label>
+                  <input class="fc filled" value="Clínica Saúde &amp; Vida" readonly style="font-size:12px"></div>
+                <div class="fg" style="margin-bottom:0"><label class="form-label">CNPJ</label>
+                  <input class="fc filled" value="12.345.678/0001-99" readonly style="font-size:12px"></div>
+              </div>
+              <div class="grid2" style="margin-bottom:10px">
+                <div class="fg" style="margin-bottom:0"><label class="form-label">Telefone</label>
+                  <input class="fc filled" value="(11) 3456-7890" readonly style="font-size:12px"></div>
+                <div class="fg" style="margin-bottom:0"><label class="form-label">E-mail</label>
+                  <input class="fc typing" value="contato@clinica.com.br<span class='cursor'>|</span>" readonly style="font-size:12px"></div>
+              </div>
+              <div class="fg" style="margin-bottom:10px"><label class="form-label">Endereço</label>
+                <input class="fc filled" value="Av. Paulista, 1000 — São Paulo / SP" readonly style="font-size:12px"></div>
+              <div style="display:flex;justify-content:flex-end;gap:8px">
+                <button class="btn btn-outline btn-sm">Cancelar</button>
+                <button class="btn btn-primary btn-sm highlight">💾 Salvar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    },
+    instr() { return `<div class="anim">
+      <div class="i-section">Cadastrando o Consultório</div>
+      <div class="i-item"><div class="i-icon bl">🏥</div><div class="i-text"><strong>Acesse Consultórios</strong><span>Menu lateral → Administração → <strong>Consultórios</strong>.</span></div></div>
+      <div class="i-item"><div class="i-icon or">➕</div><div class="i-text"><strong>Novo Consultório</strong><span>Clique em "+ Novo Consultório" e preencha o nome, CNPJ e endereço.</span></div></div>
+      <div class="i-item"><div class="i-icon bl">📋</div><div class="i-text"><strong>Dados obrigatórios</strong><span>O <strong>Nome do Consultório</strong> é obrigatório. CNPJ, telefone e endereço completam o cadastro.</span></div></div>
+      <div class="i-item"><div class="i-icon gr">💾</div><div class="i-text"><strong>Salvar</strong><span>Clique em Salvar. O nome aparece no seletor do menu lateral.</span></div></div>
+      <div class="i-tip"><span class="ti">💡</span>Uma conta pode ter múltiplos consultórios. Use o seletor no topo da sidebar para alternar entre eles.</div>
+    </div>`; }
+  },
+
+  // 3 — PROFISSIONAIS
+  {
+    badge:'Módulo 3', title:'Cadastro de Profissionais', sub:'Médicos, dentistas e outros profissionais da clínica',
+    url:'psaude.ia.br/professionals',
+    screen() {
+      return `<div class="app anim">
+        ${sidebar('professionals')}
+        <div class="s-main">
+          <div class="s-topbar">
+            <div class="s-topbar-title">👨‍⚕️ Profissionais</div>
+            <div class="s-topbar-right">
+              <button class="btn btn-primary btn-sm highlight">+ Novo Profissional</button>
+              <div class="s-t-avatar">AD</div>
+            </div>
+          </div>
+          <div class="s-page">
+            <div class="s-page-header">
+              <div><div class="s-page-title">Profissionais</div><div class="s-page-sub">3 cadastrados</div></div>
+            </div>
+            <div class="s-card" style="padding:0 0 0 0">
+              <table class="s-table">
+                <thead>
+                  <tr><th>Nome</th><th>Tipo</th><th>CRM / CRO</th><th>Especialidade</th><th>Ações</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong style="color:var(--blue-dark);cursor:pointer">Dr. Rafael Silva</strong></td>
+                    <td><span class="badge" style="background:rgba(232,132,26,0.12);color:var(--orange-dark)">Médico</span></td>
+                    <td style="font-family:monospace;font-size:11px">CRM 12345/SP</td>
+                    <td>Cardiologia</td>
+                    <td><div style="display:flex;gap:6px">
+                      <button class="btn btn-outline btn-sm">✏️</button>
+                      <button class="btn btn-danger btn-sm">🗑</button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td><strong style="color:var(--blue-dark);cursor:pointer">Dra. Maria Costa</strong></td>
+                    <td><span class="badge" style="background:rgba(232,132,26,0.12);color:var(--orange-dark)">Médico</span></td>
+                    <td style="font-family:monospace;font-size:11px">CRM 54321/SP</td>
+                    <td>Pediatria</td>
+                    <td><div style="display:flex;gap:6px">
+                      <button class="btn btn-outline btn-sm">✏️</button>
+                      <button class="btn btn-danger btn-sm">🗑</button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td><strong style="color:var(--blue-dark);cursor:pointer">Dr. João Pereira</strong></td>
+                    <td><span class="badge badge-blue">Dentista</span></td>
+                    <td style="font-family:monospace;font-size:11px">CRO 11223/SP</td>
+                    <td>Odontologia Geral</td>
+                    <td><div style="display:flex;gap:6px">
+                      <button class="btn btn-outline btn-sm">✏️</button>
+                      <button class="btn btn-danger btn-sm">🗑</button>
+                    </div></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    },
+    instr() { return `<div class="anim">
+      <div class="i-section">Cadastrando Profissionais</div>
+      <div class="i-item"><div class="i-icon bl">👨‍⚕️</div><div class="i-text"><strong>Acesse Profissionais</strong><span>Menu lateral → Cadastros → <strong>Profissionais</strong>.</span></div></div>
+      <div class="i-item"><div class="i-icon or">➕</div><div class="i-text"><strong>Novo Profissional</strong><span>Clique em "+ Novo Profissional" para abrir o formulário de cadastro.</span></div></div>
+      <div class="i-item"><div class="i-icon bl">📝</div><div class="i-text"><strong>Preencha os dados</strong><span>Informe <strong>nome</strong>, selecione o tipo (<strong>Médico</strong> ou <strong>Dentista</strong>) e informe o <strong>CRM</strong> ou <strong>CRO</strong>.</span></div></div>
+      <div class="i-item"><div class="i-icon or">🏷️</div><div class="i-text"><strong>Tipo importa!</strong><span>O sistema usa o tipo para filtrar profissionais nos formulários de prontuário e agendamento.</span></div></div>
+      <div class="i-tip"><span class="ti">💡</span>Clique no nome de um profissional para editar os dados. Use o 🗑 para remover (somente se não tiver registros vinculados).</div>
+    </div>`; }
+  },
+
+  // 4 — PACIENTES
+  {
+    badge:'Módulo 4', title:'Cadastro de Pacientes', sub:'Registre e gerencie a ficha de cada paciente',
+    url:'psaude.ia.br/patients',
+    screen() {
+      return `<div class="app anim">
+        ${sidebar('patients')}
+        <div class="s-main">
+          <div class="s-topbar">
+            <div class="s-topbar-title">🧑‍⚕️ Pacientes</div>
+            <div class="s-topbar-right">
+              <button class="btn btn-primary btn-sm highlight">+ Novo Paciente</button>
+              <div class="s-t-avatar">AD</div>
+            </div>
+          </div>
+          <div class="s-page">
+            <div class="s-page-header">
+              <div><div class="s-page-title">Pacientes</div><div class="s-page-sub">248 cadastrados</div></div>
+            </div>
+            <div class="s-card">
+              <div style="margin-bottom:14px;position:relative;max-width:360px">
+                <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--gray-400);font-size:12px">🔍</span>
+                <input class="fc" placeholder="Buscar por nome ou CPF..." style="font-size:12px;padding-left:30px">
+              </div>
+              <table class="s-table">
+                <thead><tr><th>Nome</th><th>CPF</th><th>Idade</th><th>Telefone</th><th>Email</th><th>Ações</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><strong style="color:var(--blue-dark);cursor:pointer">Ana Paula Ferreira</strong></td>
+                    <td style="font-family:monospace;font-size:11px">123.456.789-00</td>
+                    <td>37 anos</td>
+                    <td>(11) 99876-5432</td>
+                    <td style="font-size:11px">ana@email.com</td>
+                    <td><div style="display:flex;gap:5px">
+                      <button class="btn btn-outline btn-sm">👁</button>
+                      <button class="btn btn-secondary btn-sm">📄</button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td><strong style="color:var(--blue-dark);cursor:pointer">Carlos Eduardo Santos</strong></td>
+                    <td style="font-family:monospace;font-size:11px">987.654.321-00</td>
+                    <td>52 anos</td>
+                    <td>(11) 98765-4321</td>
+                    <td style="font-size:11px">carlos@email.com</td>
+                    <td><div style="display:flex;gap:5px">
+                      <button class="btn btn-outline btn-sm">👁</button>
+                      <button class="btn btn-secondary btn-sm">📄</button>
+                    </div></td>
+                  </tr>
+                  <tr style="background:#f7fcff">
+                    <td colspan="6" style="padding:10px 14px">
+                      <div style="display:flex;align-items:center;gap:10px">
+                        <span style="font-size:11px;font-weight:600;color:var(--blue-dark)">➕ Novo cadastro:</span>
+                        <input class="fc typing" value="Maria Luísa Gomes" style="width:180px;font-size:11px">
+                        <input class="fc" placeholder="CPF" style="width:130px;font-size:11px">
+                        <button class="btn btn-primary btn-sm">Salvar</button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    },
+    instr() { return `<div class="anim">
+      <div class="i-section">Gerenciando Pacientes</div>
+      <div class="i-item"><div class="i-icon bl">🧑‍⚕️</div><div class="i-text"><strong>Acesse Pacientes</strong><span>Menu → Cadastros → <strong>Pacientes</strong>. A lista mostra todos os pacientes da clínica.</span></div></div>
+      <div class="i-item"><div class="i-icon bl">🔍</div><div class="i-text"><strong>Busca rápida</strong><span>Busque por <strong>nome</strong> ou <strong>CPF</strong> na barra de pesquisa. Resultado aparece em tempo real.</span></div></div>
+      <div class="i-item"><div class="i-icon or">➕</div><div class="i-text"><strong>Novo Paciente</strong><span>Clique em "+ Novo Paciente" e preencha: nome completo, CPF, data de nascimento, telefone e e-mail.</span></div></div>
+      <div class="i-item"><div class="i-icon bl">📄</div><div class="i-text"><strong>Acessar prontuário</strong><span>Clique no botão 📄 na linha do paciente para ir diretamente ao formulário de novo prontuário.</span></div></div>
+      <div class="i-tip"><span class="ti">💡</span>Verifique sempre se o paciente já existe antes de cadastrar. Busque por CPF para evitar duplicatas.</div>
+    </div>`; }
+  },
+
+  // 5 — PRONTUÁRIO
+  {
+    badge:'Módulo 5', title:'Novo Prontuário', sub:'Registre procedimentos realizados na consulta',
+    url:'psaude.ia.br/records/new',
+    screen() {
+      return `<div class="app anim">
+        ${sidebar('record-new')}
+        <div class="s-main">
+          <div class="s-topbar">
+            <div class="s-topbar-title">📄 Novo Registro de Procedimento</div>
+            <div class="s-topbar-right">
+              <button class="btn btn-outline btn-sm">Cancelar</button>
+              <button class="btn btn-primary btn-sm highlight">💾 Salvar</button>
+              <div class="s-t-avatar">AD</div>
+            </div>
+          </div>
+          <div class="s-page">
+            <div class="grid2">
+              <!-- Coluna 1 -->
+              <div class="s-card" style="padding:14px">
+                <div class="s-card-header" style="margin-bottom:12px;padding-bottom:8px">
+                  <div class="s-card-title">Informações da Consulta</div>
+                </div>
+                <div class="fg"><label class="form-label">Tipo <span class="req">*</span></label>
+                  <select class="fc" style="font-size:12px"><option selected>Médico</option><option>Odontológico</option></select></div>
+                <div class="fg"><label class="form-label">Paciente <span class="req">*</span></label>
+                  <input class="fc typing" value="Ana Paula Ferreira" style="font-size:12px">
+                  <div style="font-size:10px;color:var(--gray-400);margin-top:3px">CPF: 123.456.789-00</div>
+                </div>
+                <div class="fg"><label class="form-label">Profissional <span class="req">*</span></label>
+                  <select class="fc" style="font-size:12px"><option>Dr. Rafael Silva (CRM 12345/SP)</option></select></div>
+                <div class="fg" style="margin-bottom:0"><label class="form-label">Data da Consulta</label>
+                  <input class="fc filled" type="date" value="2026-05-22" style="font-size:12px"></div>
+              </div>
+              <!-- Coluna 2 -->
+              <div class="s-card" style="padding:14px">
+                <div class="s-card-header" style="margin-bottom:12px;padding-bottom:8px">
+                  <div class="s-card-title">Procedimentos Realizados</div>
+                </div>
+                <div style="position:relative;margin-bottom:12px">
+                  <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--gray-400);font-size:12px">🔍</span>
+                  <input class="fc" placeholder="Buscar procedimento para adicionar..." style="font-size:12px;padding-left:30px">
+                </div>
+                <div class="proc-row">
+                  <div class="proc-name-col">
+                    <div class="proc-code">30101012</div>
+                    <div class="proc-name">Consulta em cardiologia</div>
+                  </div>
+                  <div class="proc-val"><input class="fc" value="250.00" style="font-size:12px"></div>
+                  <button class="btn btn-danger btn-sm" style="padding:4px 8px">✕</button>
+                </div>
+                <div class="proc-row">
+                  <div class="proc-name-col">
+                    <div class="proc-code">40301010</div>
+                    <div class="proc-name">Eletrocardiograma</div>
+                  </div>
+                  <div class="proc-val"><input class="fc" value="80.00" style="font-size:12px"></div>
+                  <button class="btn btn-danger btn-sm" style="padding:4px 8px">✕</button>
+                </div>
+                <div class="total-box">
+                  <span style="font-size:12px">Total dos Procedimentos</span>
+                  <span class="total-val">R$ 330,00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    },
+    instr() { return `<div class="anim">
+      <div class="i-section">Registrando Procedimentos</div>
+      <div class="i-item"><div class="i-icon bl">📄</div><div class="i-text"><strong>Acesse Novo Prontuário</strong><span>Menu → Atendimento → <strong>Novo Prontuário</strong>, ou clique no 📄 na lista de pacientes.</span></div></div>
+      <div class="i-item"><div class="i-icon or">🏷️</div><div class="i-text"><strong>Selecione o Tipo</strong><span>Escolha <strong>Médico</strong> ou <strong>Odontológico</strong> — isso filtra os procedimentos disponíveis.</span></div></div>
+      <div class="i-item"><div class="i-icon bl">🧑‍⚕️</div><div class="i-text"><strong>Busque o paciente</strong><span>Digite o nome ou CPF no campo Paciente. Selecione na lista que aparece.</span></div></div>
+      <div class="i-item"><div class="i-icon bl">✅</div><div class="i-text"><strong>Adicione procedimentos</strong><span>Busque os procedimentos pelo nome ou código (TUSS). Informe o valor de cada um.</span></div></div>
+      <div class="i-item"><div class="i-icon gr">💾</div><div class="i-text"><strong>Salvar</strong><span>Clique em Salvar. Você será redirecionado para a visualização do registro com o total calculado.</span></div></div>
+      <div class="i-tip"><span class="ti">💡</span>Prontuários ficam vinculados ao paciente e ao consultório. Acesse em <strong>Atendimento → Prontuários</strong>.</div>
+    </div>`; }
+  },
+
+  // 6 — SALAS
+  {
+    badge:'Módulo 6', title:'Cadastro de Salas', sub:'Configure as salas de atendimento da clínica',
+    url:'psaude.ia.br/rooms',
+    screen() {
+      return `<div class="app anim">
+        ${sidebar('rooms')}
+        <div class="s-main">
+          <div class="s-topbar">
+            <div class="s-topbar-title">🚪 Salas</div>
+            <div class="s-topbar-right">
+              <button class="btn btn-primary btn-sm highlight">+ Nova Sala</button>
+              <div class="s-t-avatar">AD</div>
+            </div>
+          </div>
+          <div class="s-page">
+            <div class="s-page-header">
+              <div><div class="s-page-title">Salas de Atendimento</div><div class="s-page-sub">3 cadastradas</div></div>
+            </div>
+            <div class="s-card" style="padding:0">
+              <table class="s-table">
+                <thead><tr><th>Nome da Sala</th><th>Tipo</th><th>Ações</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Consultório 1</strong></td>
+                    <td><span class="badge" style="background:rgba(232,132,26,0.12);color:var(--orange-dark)">Médico</span></td>
+                    <td><div style="display:flex;gap:6px">
+                      <button class="btn btn-outline btn-sm">✏️</button>
+                      <button class="btn btn-danger btn-sm">🗑</button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Consultório 2</strong></td>
+                    <td><span class="badge" style="background:rgba(232,132,26,0.12);color:var(--orange-dark)">Médico</span></td>
+                    <td><div style="display:flex;gap:6px">
+                      <button class="btn btn-outline btn-sm">✏️</button>
+                      <button class="btn btn-danger btn-sm">🗑</button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Sala Odonto 1</strong></td>
+                    <td><span class="badge badge-blue">Dentista</span></td>
+                    <td><div style="display:flex;gap:6px">
+                      <button class="btn btn-outline btn-sm">✏️</button>
+                      <button class="btn btn-danger btn-sm">🗑</button>
+                    </div></td>
+                  </tr>
+                  <tr style="background:#f7fcff">
+                    <td colspan="3" style="padding:10px 14px">
+                      <div style="display:flex;align-items:center;gap:10px">
+                        <input class="fc typing" value="Sala Odonto 2<span class='cursor'>|</span>" style="width:200px;font-size:12px">
+                        <select class="fc" style="width:120px;font-size:12px"><option>Dentista</option><option>Médico</option></select>
+                        <button class="btn btn-primary btn-sm highlight">Salvar Sala</button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    },
+    instr() { return `<div class="anim">
+      <div class="i-section">Gerenciando Salas</div>
+      <div class="i-item"><div class="i-icon bl">🚪</div><div class="i-text"><strong>Acesse Salas</strong><span>Menu → Cadastros → <strong>Salas</strong>.</span></div></div>
+      <div class="i-item"><div class="i-icon or">➕</div><div class="i-text"><strong>Nova Sala</strong><span>Clique em "+ Nova Sala", informe o <strong>nome</strong> e selecione o <strong>tipo</strong> (Médico ou Dentista).</span></div></div>
+      <div class="i-item"><div class="i-icon bl">🏷️</div><div class="i-text"><strong>Tipo da sala</strong><span>O tipo filtra a sala no agendamento — salas médicas aparecem para consultas médicas e vice-versa.</span></div></div>
+      <div class="i-item"><div class="i-icon gr">💾</div><div class="i-text"><strong>Salvar</strong><span>Clique em Salvar Sala. A nova sala já estará disponível no formulário de agendamento.</span></div></div>
+      <div class="i-tip"><span class="ti">💡</span>Crie uma sala para cada consultório físico da clínica. Nomes como "Consultório 1" ou "Sala Odonto 2" ajudam a identificar rapidamente.</div>
+    </div>`; }
+  },
+
+  // 7 — AGENDA DO DIA
+  {
+    badge:'Módulo 7', title:'Agenda do Dia', sub:'Visualize e gerencie os agendamentos do dia',
+    url:'psaude.ia.br/calendar/daily',
+    screen() {
+      const hours = [
+        { h:'07:00', apts:[] },
+        { h:'08:00', apts:[{name:'Carlos Eduardo Santos', meta:'Dr. Rafael Silva • Consultório 1', type:'medico', status:'completed'}] },
+        { h:'09:00', apts:[] },
+        { h:'10:00', apts:[{name:'Maria Luísa Gomes', meta:'Dra. Maria Costa • Consultório 2', type:'medico', status:'scheduled'}] },
+        { h:'11:00', apts:[] },
+        { h:'14:00', apts:[{name:'Ana Paula Ferreira', meta:'Dr. Rafael Silva • Consultório 1', type:'medico', status:'scheduled'}] },
+        { h:'15:00', apts:[{name:'Roberto Lima', meta:'Dr. João Pereira • Sala Odonto 1', type:'dentista', status:'scheduled'}] },
+      ];
+      const statusBadge = {scheduled:'<span class="badge badge-blue" style="font-size:9px">Agendado</span>', completed:'<span class="badge badge-green" style="font-size:9px">Realizado</span>'};
+
+      const rows = hours.map(r => `
+        <div class="timeline-row">
+          <div class="timeline-hour">${r.h}</div>
+          <div class="timeline-slot">
+            ${r.apts.map(a => `
+              <div class="apt-card ${a.type}">
+                <div class="apt-name">${a.name}</div>
+                <div class="apt-meta">${a.meta}</div>
+                <div class="apt-badges">${statusBadge[a.status]||''} <button class="btn btn-danger" style="padding:1px 7px;font-size:10px">🗑</button></div>
+              </div>`).join('')}
+          </div>
+        </div>`).join('');
+
+      return `<div class="app anim">
+        ${sidebar('agenda')}
+        <div class="s-main">
+          <div class="s-topbar">
+            <div class="s-topbar-title">📅 Agenda do Dia</div>
+            <div class="s-topbar-right">
+              <button class="btn btn-outline btn-sm">‹</button>
+              <input class="fc" type="date" value="2026-05-22" style="width:140px;font-size:12px">
+              <button class="btn btn-outline btn-sm">›</button>
+              <button class="btn btn-outline btn-sm">Hoje</button>
+              <button class="btn btn-primary btn-sm highlight">+ Nova Consulta</button>
+              <div class="s-t-avatar">AD</div>
+            </div>
+          </div>
+          <div class="s-page" style="padding:12px 16px">
+            <div class="s-page-header" style="margin-bottom:10px">
+              <div><div class="s-page-title">Agenda do Dia</div><div class="s-page-sub">sexta-feira, 22 de maio de 2026</div></div>
+            </div>
+            <div class="s-card" style="padding:0">${rows}</div>
+          </div>
+        </div>
+      </div>`;
+    },
+    instr() { return `<div class="anim">
+      <div class="i-section">Usando a Agenda</div>
+      <div class="i-item"><div class="i-icon bl">📅</div><div class="i-text"><strong>Acesse Agenda do Dia</strong><span>Menu → Principal → <strong>Agenda do Dia</strong>. Mostra a linha do tempo das consultas.</span></div></div>
+      <div class="i-item"><div class="i-icon bl">◀▶</div><div class="i-text"><strong>Navegue entre datas</strong><span>Use as setas ‹ › ou escolha diretamente no campo de data. O botão <strong>Hoje</strong> volta ao dia atual.</span></div></div>
+      <div class="i-item"><div class="i-icon or">➕</div><div class="i-text"><strong>Nova Consulta</strong><span>Clique em "+ Nova Consulta" ou em qualquer horário vazio. Selecione paciente, profissional, sala, data/hora e duração.</span></div></div>
+      <div class="i-item"><div class="i-icon bl">🟠🔵</div><div class="i-text"><strong>Cores dos agendamentos</strong><span>🟠 Laranja = Médico &nbsp;&nbsp; 🔵 Azul = Dentista. Clique no card para editar ou atualizar o status.</span></div></div>
+      <div class="i-item"><div class="i-icon gr">✅</div><div class="i-text"><strong>Status da consulta</strong><span>Atualize para <strong>Realizado</strong> após o atendimento, ou <strong>Cancelado</strong> se necessário.</span></div></div>
+      <div class="i-tip"><span class="ti">💡</span>Use o <strong>Calendário Mensal</strong> (menu) para ter uma visão de todas as consultas do mês.</div>
+    </div>`; }
+  },
+
+  // 8 — DASHBOARD
+  {
+    badge:'Módulo 8', title:'Dashboard', sub:'Visão geral e acesso rápido às funcionalidades',
+    url:'psaude.ia.br/',
+    screen() {
+      return `<div class="app anim">
+        ${sidebar('dashboard')}
+        <div class="s-main">
+          <div class="s-topbar">
+            <div class="s-topbar-title">Dashboard</div>
+            <div class="s-topbar-right">
+              <button class="btn btn-primary btn-sm highlight">+ Novo Registro</button>
+              <div class="s-t-avatar">AD</div>
+            </div>
+          </div>
+          <div class="s-page">
+            <div class="s-page-header">
+              <div><div class="s-page-title">Dashboard</div><div class="s-page-sub">sexta-feira, 22 de maio de 2026</div></div>
+            </div>
+            <!-- Stats -->
+            <div class="s-stats">
+              <div class="s-stat"><div class="s-stat-icon bl">🧑‍⚕️</div><div><div class="s-stat-val">248</div><div class="s-stat-lbl">Pacientes</div></div></div>
+              <div class="s-stat"><div class="s-stat-icon or">👨‍⚕️</div><div><div class="s-stat-val">4</div><div class="s-stat-lbl">Profissionais</div></div></div>
+              <div class="s-stat"><div class="s-stat-icon gr">📅</div><div><div class="s-stat-val">6</div><div class="s-stat-lbl">Consultas Hoje</div></div></div>
+              <div class="s-stat"><div class="s-stat-icon pu">📋</div><div><div class="s-stat-val">89</div><div class="s-stat-lbl">Registros</div></div></div>
+            </div>
+            <!-- Two col -->
+            <div class="grid2">
+              <div class="s-card" style="padding:14px">
+                <div class="s-card-header">
+                  <div class="s-card-title"><span style="color:var(--blue)">📅</span> Agenda de Hoje</div>
+                  <button class="btn btn-outline btn-sm">Ver tudo</button>
+                </div>
+                ${[
+                  {time:'08:00',name:'Carlos Eduardo Santos',meta:'Dr. Rafael • Consultório 1'},
+                  {time:'10:00',name:'Maria Luísa Gomes',meta:'Dra. Maria • Consultório 2'},
+                  {time:'14:00',name:'Ana Paula Ferreira',meta:'Dr. Rafael • Consultório 1'},
+                ].map(a=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray-100)">
+                  <div style="width:46px;text-align:center;font-size:13px;font-weight:700;color:var(--gray-800)">${a.time}</div>
+                  <div style="flex:1"><div style="font-size:12px;font-weight:500">${a.name}</div><div style="font-size:10px;color:var(--gray-500)">${a.meta}</div></div>
+                  <span class="badge badge-orange">Médico</span>
+                </div>`).join('')}
+              </div>
+              <div class="s-card" style="padding:14px">
+                <div class="s-card-header">
+                  <div class="s-card-title"><span style="color:var(--orange)">⚡</span> Ações Rápidas</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <button class="btn btn-secondary" style="justify-content:flex-start;font-size:12px">📅 Agendar Consulta</button>
+                  <button class="btn btn-outline" style="justify-content:flex-start;font-size:12px">👤 Novo Paciente</button>
+                  <button class="btn btn-primary" style="justify-content:flex-start;font-size:12px">📄 Registrar Procedimento</button>
+                  <button class="btn btn-outline" style="justify-content:flex-start;font-size:12px">🕐 Histórico de Paciente</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    },
+    instr() { return `<div class="anim">
+      <div class="i-section">Usando o Dashboard</div>
+      <div class="i-item"><div class="i-icon bl">📊</div><div class="i-text"><strong>Tela inicial</strong><span>O dashboard é a primeira tela após o login. Resume pacientes, profissionais, consultas do dia e registros.</span></div></div>
+      <div class="i-item"><div class="i-icon bl">📅</div><div class="i-text"><strong>Agenda de Hoje</strong><span>Mostra as consultas do dia com horário, paciente, médico e sala. Clique em "Ver tudo" para a agenda completa.</span></div></div>
+      <div class="i-item"><div class="i-icon or">⚡</div><div class="i-text"><strong>Ações Rápidas</strong><span>Atalhos para as funções mais usadas: agendar consulta, novo paciente, registrar procedimento e histórico.</span></div></div>
+      <div class="i-item"><div class="i-icon gr">🎉</div><div class="i-text"><strong>Tutorial concluído!</strong><span>Você conheceu todos os módulos do sistema. Agora está pronto para usar o P. Soluções para Saúde!</span></div></div>
+      <div class="i-tip"><span class="ti">🏥</span>Acesse <strong>psaude.ia.br</strong> e comece a usar. Em caso de dúvidas, consulte o suporte P. Soluções.</div>
+    </div>`; }
+  },
+];
+
+// ============================================================
+// STATE & RENDER
+// ============================================================
+let cur = 0;
+const total = STEPS.length;
+
+function goTo(i) {
+  if (i < 0 || i >= total) return;
+  cur = i;
+  render();
+}
+function next() { goTo(cur + 1); }
+function prev() { goTo(cur - 1); }
+
+function render() {
+  const s = STEPS[cur];
+  const pct = Math.round((cur / (total - 1)) * 100);
+
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-pct').textContent = pct + '%';
+  document.getElementById('prog-label').textContent = s.badge;
+  document.getElementById('step-cur').textContent = cur + 1;
+  document.getElementById('step-total').textContent = total;
+  document.getElementById('url-bar').textContent = s.url;
+  document.getElementById('screen').innerHTML = s.screen();
+  document.getElementById('instr-badge').textContent = s.badge;
+  document.getElementById('instr-title').textContent = s.title;
+  document.getElementById('instr-sub').textContent = s.sub;
+  document.getElementById('instr-body').innerHTML = s.instr();
+
+  const btnPrev = document.getElementById('btn-prev');
+  const btnNext = document.getElementById('btn-next');
+  btnPrev.disabled = cur === 0;
+  btnNext.textContent = cur === total - 1 ? '✓ Concluído' : 'Próximo →';
+
+  for (let i = 0; i < total; i++) {
+    const el = document.getElementById('nav-' + i);
+    if (!el) continue;
+    el.classList.remove('active', 'done');
+    if (i === cur) el.classList.add('active');
+    else if (i < cur) el.classList.add('done');
+  }
+}
+
+render();
+</script>
+</body>
+</html>
