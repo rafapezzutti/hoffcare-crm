@@ -409,10 +409,54 @@ export default function ProfessionalStatement() {
                       ))}
                     </tbody>
                     <tfoot>
+                      {/* Linha 1: subtotal bruto */}
                       <tr style={{ background: 'var(--gray-50)' }}>
-                        <td colSpan={3} style={{ fontWeight: 700 }}>Total Atendimentos</td>
-                        <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--success)' }}>
-                          R$ {fmt(data.summary.total_records)}
+                        <td colSpan={3} style={{ fontWeight: 600, color: 'var(--gray-600)', fontSize: 13 }}>
+                          Subtotal bruto
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--success)', fontSize: 13 }}>
+                          R$ {fmt(data.summary.total_records_gross)}
+                        </td>
+                      </tr>
+
+                      {/* Linha 2: acertos (só se existir) */}
+                      {data.settlements.length > 0 && (() => {
+                        const saldo = data.summary.total_settlements_in - data.summary.total_settlements_out;
+                        return (
+                          <tr style={{ background: 'var(--gray-50)' }}>
+                            <td colSpan={3} style={{ fontWeight: 600, color: 'var(--gray-600)', fontSize: 13 }}>
+                              <i className="fas fa-handshake" style={{ marginRight: 6, color: '#6f42c1', fontSize: 11 }} />
+                              Acertos financeiros ({data.settlements.length})
+                            </td>
+                            <td style={{ textAlign: 'right', fontWeight: 700, fontSize: 13,
+                              color: saldo >= 0 ? 'var(--success)' : '#dc3545' }}>
+                              {saldo >= 0 ? '+' : '−'} R$ {fmt(Math.abs(saldo))}
+                            </td>
+                          </tr>
+                        );
+                      })()}
+
+                      {/* Linha 3: repasse % (só se < 100%) */}
+                      {data.summary.repasse_percent < 100 && (
+                        <tr style={{ background: '#eef7fc' }}>
+                          <td colSpan={3} style={{ fontWeight: 600, color: '#1a7fad', fontSize: 13 }}>
+                            <i className="fas fa-percent" style={{ marginRight: 6, fontSize: 11 }} />
+                            Repasse {data.summary.repasse_percent}% sobre base R$ {fmt(data.summary.base_before_repasse)}
+                          </td>
+                          <td style={{ textAlign: 'right', fontWeight: 800, color: '#1a7fad', fontSize: 13 }}>
+                            R$ {fmt(data.summary.total_after_repasse)}
+                          </td>
+                        </tr>
+                      )}
+
+                      {/* Linha 4: total líquido dos atendimentos */}
+                      <tr style={{ background: '#1a2535' }}>
+                        <td colSpan={3} style={{ fontWeight: 700, color: '#fff', fontSize: 13 }}>
+                          Líquido de atendimentos
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: 800, fontSize: 15,
+                          color: data.summary.total_after_repasse >= 0 ? '#4DB8E8' : '#dc3545' }}>
+                          R$ {fmt(data.summary.total_after_repasse)}
                         </td>
                       </tr>
                     </tfoot>
