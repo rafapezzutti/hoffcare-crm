@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import Modal from '../components/Modal';
 import { PROF_TYPES, getProfType } from '../config/professionalTypes';
+import { useAuth } from '../context/AuthContext';
 
 const empty = { type: 'medico', name: '', cpf: '', crm_cro: '', birthdate: '', email: '', phone: '' };
 
 export default function Professionals() {
+  const { user } = useAuth();
+  const isAutonomous = !!user?.is_autonomous;
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState(empty);
@@ -56,7 +59,9 @@ export default function Professionals() {
           <h1 className="page-title">Profissionais de Saúde</h1>
           <p className="page-subtitle">Médicos, dentistas e demais profissionais do consultório</p>
         </div>
-        <button className="btn btn-primary" onClick={() => handleOpen()}><i className="fas fa-user-plus" /> Novo Profissional</button>
+        {!isAutonomous && (
+          <button className="btn btn-primary" onClick={() => handleOpen()}><i className="fas fa-user-plus" /> Novo Profissional</button>
+        )}
       </div>
 
       <div className="card">
@@ -99,8 +104,10 @@ export default function Professionals() {
                     <td>{p.phone || '—'}</td>
                     <td>{p.email || '—'}</td>
                     <td><div className="table-actions">
-                      <button className="btn btn-outline btn-sm" onClick={() => handleOpen(p)}><i className="fas fa-pen" /></button>
-                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(p.id)}><i className="fas fa-trash" /></button>
+                      {!isAutonomous && <>
+                        <button className="btn btn-outline btn-sm" onClick={() => handleOpen(p)}><i className="fas fa-pen" /></button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleDelete(p.id)}><i className="fas fa-trash" /></button>
+                      </>}
                     </div></td>
                   </tr>
                 );

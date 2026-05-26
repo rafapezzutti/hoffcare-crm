@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
 
 const AuthContext = createContext(null);
@@ -8,6 +8,19 @@ export function AuthProvider({ children }) {
     const stored = localStorage.getItem('psaude_user');
     return stored ? JSON.parse(stored) : null;
   });
+
+  // Ao montar, atualiza o usuário via /me para garantir campos atualizados (ex: is_autonomous)
+  useEffect(() => {
+    const token = localStorage.getItem('psaude_token');
+    if (!token) return;
+    api.get('/auth/me').then(res => {
+      const fresh = res.data;
+      localStorage.setItem('psaude_user', JSON.stringify(fresh));
+      setUser(fresh);
+    }).catch(() => {
+      // Token expirado ou inválido — não faz nada, ProtectedRoute vai redirecionar
+    });
+  }, []);
 
   const login = async (email, password) => {
     const res = await api.post('/auth/login', { email, password });

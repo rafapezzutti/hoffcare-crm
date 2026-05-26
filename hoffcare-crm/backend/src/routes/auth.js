@@ -165,7 +165,12 @@ router.post('/reset-password', async (req, res) => {
 router.get('/me', auth, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, email, role, clinic_id FROM users WHERE id = $1', [req.user.id]
+      `SELECT u.id, u.name, u.email, u.role, u.clinic_id,
+              COALESCE(c.is_autonomous, false) as is_autonomous
+       FROM users u
+       LEFT JOIN clinics c ON c.id = u.clinic_id
+       WHERE u.id = $1`,
+      [req.user.id]
     );
     res.json(result.rows[0]);
   } catch (err) {
