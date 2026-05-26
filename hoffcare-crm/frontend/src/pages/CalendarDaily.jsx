@@ -27,6 +27,7 @@ export default function CalendarDaily() {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState('');
   const [patientSearch, setPatientSearch] = useState('');
+  const [dateTimeLocked, setDateTimeLocked] = useState(false);
 
   const loadDay = async (d) => {
     const res = await api.get(`/appointments?start=${d}T00:00:00&end=${d}T23:59:59`);
@@ -47,12 +48,16 @@ export default function CalendarDaily() {
   const handleOpen = (apt = null, hour = null) => {
     setEditing(apt);
     if (apt) {
-      setForm({ ...apt, appointment_date: dayjs(apt.appointment_date).format('YYYY-MM-DDTHH:mm') });
+      // Converte para timezone local do PC ao abrir edição
+      const localDt = dayjs(apt.appointment_date).format('YYYY-MM-DDTHH:mm');
+      setForm({ ...apt, appointment_date: localDt });
       setPatientSearch(apt.patient_name || '');
+      setDateTimeLocked(true); // trava data/hora ao editar
     } else {
       const dt = hour !== null ? `${date}T${String(hour).padStart(2, '0')}:00` : `${date}T08:00`;
       setForm({ ...emptyForm, appointment_date: dt });
       setPatientSearch('');
+      setDateTimeLocked(false); // novo agendamento: livre para editar
     }
     setError(''); setOpen(true);
   };
@@ -193,7 +198,38 @@ export default function CalendarDaily() {
             </div>
           </div>
           <div className="form-grid form-grid-2">
-            <div className="form-group"><label className="form-label">Data e Hora <span className="required">*</span></label><input className="form-control" type="datetime-local" {...f('appointment_date')} required /></div>
+            <div className="form-group">
+              <label className="form-label">Data e Hora <span className="required">*</span></label>
+              {dateTimeLocked ? (
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div className="form-control" style={{
+                    background: 'var(--gray-50)', color: 'var(--gray-700)',
+                    cursor: 'default', userSelect: 'none', flex: 1, display: 'flex', alignItems: 'center', gap: 6
+                  }}>
+                    <i className="fas fa-lock" style={{ color: 'var(--gray-400)', fontSize: 11 }} />
+                    {dayjs(form.appointment_date).format('DD/MM/YYYY [às] HH:mm')}
+                  </div>
+                  <button type="button" className="btn btn-outline btn-sm"
+                    onClick={() => setDateTimeLocked(false)}
+                    style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+                    title="Clique para alterar data e hora">
+                    <i className="fas fa-pencil-alt" /> Alterar
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input className="form-control" type="datetime-local" {...f('appointment_date')} required style={{ flex: 1 }} />
+                  {editing && (
+                    <button type="button" className="btn btn-outline btn-sm"
+                      onClick={() => setDateTimeLocked(true)}
+                      style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+                      title="Travar data e hora">
+                      <i className="fas fa-lock-open" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
             <div className="form-group"><label className="form-label">Duração (min)</label><input className="form-control" type="number" {...f('duration_minutes')} min={15} step={15} /></div>
           </div>
           {editing && (
