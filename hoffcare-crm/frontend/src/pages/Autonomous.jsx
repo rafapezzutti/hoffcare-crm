@@ -320,13 +320,9 @@ export default function Autonomous() {
                 required={form.nationality === 'brasileiro'} />
             </div>
             <div className="form-group">
-              <label className="form-label">
-                {currentType.council}
-                {form.nationality === 'brasileiro' && <span className="required">*</span>}
-              </label>
+              <label className="form-label">{currentType.council}</label>
               <input className="form-control" {...f('crm_cro')}
-                placeholder={form.type === 'medico' ? 'CRM-SP 000000' : 'CRO-SP 000000'}
-                required={form.nationality === 'brasileiro'} />
+                placeholder={`${currentType.council} (opcional)`} />
             </div>
           </div>
 
