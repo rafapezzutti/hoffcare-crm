@@ -35,8 +35,8 @@ router.get('/:id', auth, async (req, res) => {
 
 router.post('/', auth, async (req, res) => {
   const { type, name, cpf, crm_cro, birthdate, email, phone } = req.body;
-  if (!type || !name || !cpf || !crm_cro)
-    return res.status(400).json({ error: 'Tipo, nome, CPF e CRM/CRO são obrigatórios' });
+  if (!name)
+    return res.status(400).json({ error: 'Nome é obrigatório' });
 
   const clinic_id = req.user.clinic_id;
   if (!clinic_id) return res.status(400).json({ error: 'Selecione uma clínica antes de cadastrar' });

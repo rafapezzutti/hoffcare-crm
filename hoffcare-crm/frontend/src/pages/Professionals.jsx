@@ -124,7 +124,7 @@ export default function Professionals() {
         {error && <div className="alert alert-error">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">{t('professionals.specialty')} <span className="required">*</span></label>
+            <label className="form-label">{t('professionals.specialty')}</label>
             <select className="form-control" {...f('type')}>
               {PROF_TYPES.map(pt => (
                 <option key={pt.value} value={pt.value}>{pt.emoji} {pt.label}</option>
@@ -137,12 +137,12 @@ export default function Professionals() {
           </div>
           <div className="form-grid form-grid-2">
             <div className="form-group">
-              <label className="form-label">{t('professionals.cpf')} <span className="required">*</span></label>
-              <input className="form-control" {...f('cpf')} placeholder="000.000.000-00" required />
+              <label className="form-label">{t('professionals.cpf')}</label>
+              <input className="form-control" {...f('cpf')} placeholder="000.000.000-00" />
             </div>
             <div className="form-group">
-              <label className="form-label">{currentType.council} <span className="required">*</span></label>
-              <input className="form-control" {...f('crm_cro')} placeholder={`${currentType.council}-XX 00000`} required />
+              <label className="form-label">{currentType.council}</label>
+              <input className="form-control" {...f('crm_cro')} placeholder={`${currentType.council}-XX 00000`} />
             </div>
           </div>
           <div className="form-group">
