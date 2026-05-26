@@ -39,6 +39,7 @@ app.use('/api/appointments', require('./routes/appointments'));
 app.use('/api/records', require('./routes/records'));
 app.use('/api/cron', require('./routes/cron'));
 app.use('/api/autonomous', require('./routes/autonomous'));
+app.use('/api/whatsapp', require('./routes/whatsapp'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));
 

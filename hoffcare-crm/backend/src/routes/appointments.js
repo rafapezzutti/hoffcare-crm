@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { Resend } = require('resend');
 const pool = require('../config/db');
 const { auth } = require('../middleware/auth');
+const { sendConfirmation, sendCancellation } = require('../services/whatsapp');
 const router = express.Router();
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -76,12 +77,16 @@ router.post('/', auth, async (req, res) => {
 
   try {
     // Busca dados do paciente, profissional e clínica
-    const [patientRes, clinicRes] = await Promise.all([
-      pool.query('SELECT name, email FROM patients WHERE id = $1', [patient_id]),
-      pool.query('SELECT name, email, email_confirmations FROM clinics WHERE id = $1', [clinic_id]),
+    const [patientRes, clinicRes, profRes] = await Promise.all([
+      pool.query('SELECT name, email, phone FROM patients WHERE id = $1', [patient_id]),
+      pool.query(`SELECT name, email, email_confirmations,
+                         whatsapp_enabled, whatsapp_confirm, whatsapp_instance_id, whatsapp_token
+                  FROM clinics WHERE id = $1`, [clinic_id]),
+      pool.query('SELECT name FROM professionals WHERE id = $1', [professional_id]),
     ]);
     const patient = patientRes.rows[0];
     const clinic = clinicRes.rows[0];
+    const professional = profRes.rows[0];
 
     // Gera tokens de confirmação e cancelamento
     const confirmToken = crypto.randomBytes(24).toString('hex');
@@ -126,6 +131,24 @@ router.post('/', auth, async (req, res) => {
           </div>
         `)
       }).catch(e => console.error('Erro e-mail confirmação:', e.message));
+    }
+
+    // WhatsApp: confirmação de agendamento
+    if (clinic?.whatsapp_enabled && clinic?.whatsapp_confirm &&
+        clinic?.whatsapp_instance_id && clinic?.whatsapp_token && patient?.phone) {
+      const dateStr = new Date(appointment_date).toLocaleString('pt-BR', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo'
+      });
+      sendConfirmation({
+        instanceId: clinic.whatsapp_instance_id,
+        token: clinic.whatsapp_token,
+        patientName: patient.name,
+        patientPhone: patient.phone,
+        professionalName: professional?.name || 'profissional',
+        clinicName: clinic.name,
+        dateStr
+      }).catch(e => console.error('[WhatsApp] Erro confirmação:', e.message));
     }
 
     res.status(201).json(apt);
@@ -177,9 +200,10 @@ router.get('/respond', async (req, res) => {
   try {
     const column = action === 'confirm' ? 'confirmation_token' : 'cancel_token';
     const aptRes = await pool.query(
-      `SELECT a.*, p.name as patient_name, p.email as patient_email,
+      `SELECT a.*, p.name as patient_name, p.email as patient_email, p.phone as patient_phone,
               pr.name as professional_name,
-              c.name as clinic_name, c.email as clinic_email, c.email_confirmations
+              c.name as clinic_name, c.email as clinic_email, c.email_confirmations,
+              c.whatsapp_enabled, c.whatsapp_cancel, c.whatsapp_instance_id, c.whatsapp_token
        FROM appointments a
        LEFT JOIN patients p ON a.patient_id = p.id
        LEFT JOIN professionals pr ON a.professional_id = pr.id
@@ -233,6 +257,21 @@ router.get('/respond', async (req, res) => {
             </p>
           `)
         }).catch(e => console.error('Erro e-mail cancelamento clínica:', e.message));
+      }
+
+      // WhatsApp: aviso de cancelamento ao paciente
+      if (apt.whatsapp_enabled && apt.whatsapp_cancel &&
+          apt.whatsapp_instance_id && apt.whatsapp_token && apt.patient_phone) {
+        const dateStr = formatDate(apt.appointment_date);
+        sendCancellation({
+          instanceId: apt.whatsapp_instance_id,
+          token: apt.whatsapp_token,
+          patientName: apt.patient_name,
+          patientPhone: apt.patient_phone,
+          professionalName: apt.professional_name,
+          clinicName: apt.clinic_name,
+          dateStr
+        }).catch(e => console.error('[WhatsApp] Erro cancelamento:', e.message));
       }
 
       return res.json({ message: 'Consulta cancelada. A clínica foi notificada.', status: 'cancelled' });
