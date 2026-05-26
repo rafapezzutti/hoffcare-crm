@@ -108,7 +108,7 @@ router.get('/statement/:professional_id', auth, async (req, res) => {
         SELECT mr.consultation_date, mr.id as record_id,
                pat.name as patient_name,
                COALESCE(SUM(mrp.value), 0) as total_value,
-               ARRAY_AGG(mrp.name ORDER BY mrp.id) FILTER (WHERE mrp.id IS NOT NULL) as procedures
+               ARRAY_AGG(mrp.procedure_name ORDER BY mrp.id) FILTER (WHERE mrp.id IS NOT NULL) as procedures
         FROM medical_records mr
         LEFT JOIN patients pat ON pat.id = mr.patient_id
         LEFT JOIN medical_record_procedures mrp ON mrp.record_id = mr.id
