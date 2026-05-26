@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import Modal from '../components/Modal';
+import { PROF_TYPES, getProfType } from '../config/professionalTypes';
 
 const RECURRENCES = [
   { value: 'mensal', label: 'Mensal' },
@@ -24,19 +25,23 @@ const statusBadge = (status) => status === 'active'
 export default function Rentals() {
   const [items, setItems] = useState([]);
   const [rooms, setRooms] = useState([]);
+  const [professionals, setProfessionals] = useState([]);
   const [form, setForm] = useState(empty);
   const [editing, setEditing] = useState(null);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [manualName, setManualName] = useState(false);
 
   const load = async () => {
-    const [r, rm] = await Promise.all([
+    const [r, rm, pr] = await Promise.all([
       api.get('/rentals').catch(() => ({ data: [] })),
       api.get('/rooms').catch(() => ({ data: [] })),
+      api.get('/professionals').catch(() => ({ data: [] })),
     ]);
     setItems(r.data);
     setRooms(rm.data);
+    setProfessionals(pr.data);
   };
   useEffect(() => { load(); }, []);
 
@@ -47,13 +52,21 @@ export default function Rentals() {
 
   const handleOpen = (item = null) => {
     setEditing(item);
-    setForm(item ? {
-      ...item,
-      start_date: item.start_date?.slice(0, 10) || '',
-      end_date: item.end_date?.slice(0, 10) || '',
-      room_id: item.room_id || '',
-      value: item.value || '',
-    } : empty);
+    if (item) {
+      setForm({
+        ...item,
+        start_date: item.start_date?.slice(0, 10) || '',
+        end_date: item.end_date?.slice(0, 10) || '',
+        room_id: item.room_id || '',
+        value: item.value || '',
+      });
+      // Se o nome salvo não bate com nenhum profissional cadastrado, abre no modo manual
+      const matchesProfessional = professionals.some(p => p.name === item.tenant_name);
+      setManualName(!matchesProfessional);
+    } else {
+      setForm(empty);
+      setManualName(false);
+    }
     setError(''); setOpen(true);
   };
 
@@ -194,8 +207,52 @@ export default function Rentals() {
         {error && <div className="alert alert-error">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Nome do Locatário <span className="required">*</span></label>
-            <input className="form-control" {...f('tenant_name')} required />
+            <label className="form-label">Locatário <span className="required">*</span></label>
+            {!manualName ? (
+              <>
+                <select
+                  className="form-control"
+                  value={form.tenant_name}
+                  onChange={e => setForm(p => ({ ...p, tenant_name: e.target.value }))}
+                  required={!manualName}
+                >
+                  <option value="">— Selecione um profissional —</option>
+                  {PROF_TYPES.map(pt => {
+                    const profs = professionals.filter(p => p.type === pt.value);
+                    if (profs.length === 0) return null;
+                    return (
+                      <optgroup key={pt.value} label={`${pt.emoji} ${pt.label}`}>
+                        {profs.map(p => (
+                          <option key={p.id} value={p.name}>
+                            {p.name}{p.crm_cro ? ` (${p.crm_cro})` : ''}
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  })}
+                </select>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  style={{ marginTop: 6, fontSize: 12 }}
+                  onClick={() => { setManualName(true); setForm(p => ({ ...p, tenant_name: '' })); }}
+                >
+                  <i className="fas fa-keyboard" /> Digitar nome manualmente
+                </button>
+              </>
+            ) : (
+              <>
+                <input className="form-control" {...f('tenant_name')} required placeholder="Nome do locatário" />
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  style={{ marginTop: 6, fontSize: 12 }}
+                  onClick={() => { setManualName(false); setForm(p => ({ ...p, tenant_name: '' })); }}
+                >
+                  <i className="fas fa-user-md" /> Selecionar profissional cadastrado
+                </button>
+              </>
+            )}
           </div>
           <div className="form-grid form-grid-2">
             <div className="form-group">
