@@ -17,6 +17,7 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
     "pg": "^8.11.3",
+    "axios": "^1.7.2",
     "resend": "^3.2.0"
   },
   "devDependencies": {
