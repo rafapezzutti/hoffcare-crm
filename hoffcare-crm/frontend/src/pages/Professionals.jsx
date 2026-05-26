@@ -104,10 +104,10 @@ export default function Professionals() {
                     <td>{p.phone || '—'}</td>
                     <td>{p.email || '—'}</td>
                     <td><div className="table-actions">
-                      {!isAutonomous && <>
-                        <button className="btn btn-outline btn-sm" onClick={() => handleOpen(p)}><i className="fas fa-pen" /></button>
+                      <button className="btn btn-outline btn-sm" onClick={() => handleOpen(p)}><i className="fas fa-pen" /></button>
+                      {!isAutonomous && (
                         <button className="btn btn-danger btn-sm" onClick={() => handleDelete(p.id)}><i className="fas fa-trash" /></button>
-                      </>}
+                      )}
                     </div></td>
                   </tr>
                 );

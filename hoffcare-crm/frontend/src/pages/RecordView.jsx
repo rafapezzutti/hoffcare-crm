@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import dayjs from 'dayjs';
+import { getProfType } from '../config/professionalTypes';
 
 export default function RecordView() {
   const { id } = useParams();
@@ -40,6 +41,7 @@ export default function RecordView() {
   if (!record) return <div className="loading"><div className="spinner" /></div>;
 
   const total = record.procedures?.reduce((s, p) => s + Number(p.value), 0) || 0;
+  const profType = getProfType(record.type);
 
   return (
     <div className="page">
@@ -56,20 +58,25 @@ export default function RecordView() {
       </div>
 
       <div className="card" ref={printRef}>
-        {/* Header A4 */}
+        {/* Header — logo P. Saúde */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: 20, borderBottom: '2px solid var(--orange)', marginBottom: 20 }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <svg width="36" height="36" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="38" y="10" width="24" height="80" rx="8" fill="#4DB8E8"/>
+                <rect x="10" y="38" width="80" height="24" rx="8" fill="#4DB8E8"/>
+                <rect x="42" y="14" width="16" height="72" rx="6" fill="#E8841A" opacity="0.7"/>
+                <rect x="14" y="42" width="72" height="16" rx="6" fill="#E8841A" opacity="0.7"/>
+                <circle cx="50" cy="50" r="10" fill="#1a2535"/>
+                <circle cx="50" cy="50" r="6" fill="#4DB8E8"/>
+              </svg>
               <div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--blue)', letterSpacing: 2 }}>HOFF</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--orange)', marginTop: -6, letterSpacing: 2 }}>CARE</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 10, color: 'var(--gray-500)', letterSpacing: 2 }}>clínica & odonto</div>
-                {record.clinic_name && <div style={{ fontSize: 13, fontWeight: 600, marginTop: 4 }}>{record.clinic_name}</div>}
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#4DB8E8', lineHeight: 1.1, letterSpacing: 0.5 }}>P. Soluções</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#E8841A', letterSpacing: 0.5 }}>para Saúde</div>
               </div>
             </div>
-            {record.street && <div style={{ fontSize: 11, color: 'var(--gray-500)', marginTop: 6 }}>{record.street}, {record.number} {record.complement} — CEP {record.cep}</div>}
+            {record.clinic_name && <div style={{ fontSize: 13, fontWeight: 600, marginTop: 8 }}>{record.clinic_name}</div>}
+            {record.street && <div style={{ fontSize: 11, color: 'var(--gray-500)', marginTop: 4 }}>{record.street}, {record.number} {record.complement} — CEP {record.cep}</div>}
             {record.clinic_phone && <div style={{ fontSize: 11, color: 'var(--gray-500)' }}>Tel: {record.clinic_phone} {record.clinic_email && `| ${record.clinic_email}`}</div>}
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -90,8 +97,8 @@ export default function RecordView() {
           <div>
             <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--gray-500)', marginBottom: 10 }}>Profissional</h3>
             <PrintRow label="Nome" value={record.professional_name} />
-            <PrintRow label={record.type === 'medico' ? 'CRM' : 'CRO'} value={record.crm_cro} />
-            <PrintRow label="Especialidade" value={record.type === 'medico' ? 'Médico' : 'Dentista'} />
+            {record.crm_cro && <PrintRow label={profType.council} value={record.crm_cro} />}
+            <PrintRow label="Especialidade" value={profType.label} />
           </div>
         </div>
 
@@ -123,10 +130,12 @@ export default function RecordView() {
           </div>
         </div>
 
+        {/* Assinaturas */}
         <div style={{ marginTop: 48, paddingTop: 20, borderTop: '1px solid var(--gray-200)', display: 'flex', justifyContent: 'space-between' }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ width: 200, borderTop: '1px solid var(--gray-400)', marginTop: 40, paddingTop: 8, fontSize: 11, color: 'var(--gray-500)' }}>
-              {record.professional_name}<br />{record.type === 'medico' ? 'CRM' : 'CRO'}: {record.crm_cro}
+              {record.professional_name}
+              {record.crm_cro && <><br />{profType.council}: {record.crm_cro}</>}
             </div>
           </div>
           <div style={{ textAlign: 'center' }}>
@@ -137,7 +146,7 @@ export default function RecordView() {
         </div>
 
         <div style={{ marginTop: 24, textAlign: 'center', fontSize: 10, color: 'var(--gray-400)' }}>
-          Documento gerado em {dayjs().format('DD/MM/YYYY HH:mm')} — HoffCare CRM — powered by P. Soluções
+          Documento gerado em {dayjs().format('DD/MM/YYYY HH:mm')} — P. Saúde
         </div>
       </div>
 

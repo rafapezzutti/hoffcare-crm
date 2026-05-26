@@ -45,8 +45,8 @@ export default function Layout() {
     window.location.reload();
   };
 
-  // Itens ocultos para usuários autônomos
-  const autonomousHidden = ['/professionals', '/rooms'];
+  // Itens ocultos para usuários autônomos (salas não fazem sentido para autônomos)
+  const autonomousHidden = ['/rooms'];
 
   const renderNavItem = (item, i) => {
     if (item.section) return <div key={i} className="sidebar-section">{item.section}</div>;
