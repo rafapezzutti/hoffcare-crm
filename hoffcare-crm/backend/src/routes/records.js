@@ -35,6 +35,63 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// Resumo financeiro mensal
+router.get('/monthly', auth, async (req, res) => {
+  const clinic_id = req.user.clinic_id;
+  if (!clinic_id) return res.json({ total_revenue: '0', total_records: '0', total_procedures: '0', by_day: [], by_type: [] });
+
+  const y = parseInt(req.query.year) || new Date().getFullYear();
+  const m = parseInt(req.query.month) || new Date().getMonth() + 1;
+
+  try {
+    const [summary, byDay, byType] = await Promise.all([
+      pool.query(`
+        SELECT
+          COUNT(DISTINCT mr.id) as total_records,
+          COALESCE(SUM(mrp.value), 0) as total_revenue,
+          COUNT(mrp.id) as total_procedures
+        FROM medical_records mr
+        LEFT JOIN medical_record_procedures mrp ON mrp.record_id = mr.id
+        WHERE mr.clinic_id = $1
+          AND EXTRACT(YEAR FROM mr.consultation_date) = $2
+          AND EXTRACT(MONTH FROM mr.consultation_date) = $3
+      `, [clinic_id, y, m]),
+
+      pool.query(`
+        SELECT
+          EXTRACT(DAY FROM mr.consultation_date)::int as day,
+          COALESCE(SUM(mrp.value), 0) as revenue,
+          COUNT(DISTINCT mr.id) as records
+        FROM medical_records mr
+        LEFT JOIN medical_record_procedures mrp ON mrp.record_id = mr.id
+        WHERE mr.clinic_id = $1
+          AND EXTRACT(YEAR FROM mr.consultation_date) = $2
+          AND EXTRACT(MONTH FROM mr.consultation_date) = $3
+        GROUP BY EXTRACT(DAY FROM mr.consultation_date)
+        ORDER BY day
+      `, [clinic_id, y, m]),
+
+      pool.query(`
+        SELECT
+          mr.type,
+          COUNT(DISTINCT mr.id) as records,
+          COALESCE(SUM(mrp.value), 0) as revenue
+        FROM medical_records mr
+        LEFT JOIN medical_record_procedures mrp ON mrp.record_id = mr.id
+        WHERE mr.clinic_id = $1
+          AND EXTRACT(YEAR FROM mr.consultation_date) = $2
+          AND EXTRACT(MONTH FROM mr.consultation_date) = $3
+        GROUP BY mr.type
+        ORDER BY revenue DESC
+      `, [clinic_id, y, m]),
+    ]);
+
+    res.json({ ...summary.rows[0], by_day: byDay.rows, by_type: byType.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Get single record with procedures
 router.get('/:id', auth, async (req, res) => {
   try {

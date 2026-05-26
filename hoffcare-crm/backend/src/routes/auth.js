@@ -32,22 +32,30 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ error: 'Email e senha são obrigatórios' });
 
   try {
-    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const result = await pool.query(
+      `SELECT u.*, c.is_autonomous
+       FROM users u
+       LEFT JOIN clinics c ON c.id = u.clinic_id
+       WHERE u.email = $1`,
+      [email]
+    );
     const user = result.rows[0];
     if (!user) return res.status(401).json({ error: 'Credenciais inválidas' });
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(401).json({ error: 'Credenciais inválidas' });
 
+    const isAutonomous = !!user.is_autonomous;
+
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role, clinic_id: user.clinic_id },
+      { id: user.id, email: user.email, role: user.role, clinic_id: user.clinic_id, is_autonomous: isAutonomous },
       process.env.JWT_SECRET,
       { expiresIn: '12h' }
     );
 
     res.json({
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, clinic_id: user.clinic_id }
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, clinic_id: user.clinic_id, is_autonomous: isAutonomous }
     });
   } catch (err) {
     console.error(err);

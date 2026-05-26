@@ -3,12 +3,15 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import dayjs from 'dayjs';
 import { PROF_TYPES, getProfType } from '../config/professionalTypes';
+import { useAuth } from '../context/AuthContext';
 
 export default function RecordForm() {
   const { id } = useParams();
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const isEdit = !!id;
+  const isAutonomous = !!user?.is_autonomous;
 
   const [form, setForm] = useState({
     type: 'medico',
@@ -36,8 +39,15 @@ export default function RecordForm() {
       api.get('/procedures'),
     ]).then(([p, pr, proc]) => {
       setPatients(p.data);
-      setProfessionals(pr.data);
       setAllProcedures(proc.data);
+      setProfessionals(pr.data);
+
+      // Autônomo: pré-seleciona automaticamente o único profissional dele
+      if (isAutonomous && pr.data.length > 0 && !isEdit) {
+        const prof = pr.data[0];
+        setForm(f => ({ ...f, type: prof.type, professional_id: prof.id }));
+        setSelectedProfessional(prof);
+      }
     });
 
     if (params.get('patient_id')) {
@@ -70,8 +80,6 @@ export default function RecordForm() {
     p.cpf.includes(patientSearch)
   );
 
-  // Procedimentos filtrados pelo tipo selecionado
-  // 'dentista' mapeia para 'odontologico' na tabela de procedimentos (legado)
   const procType = form.type === 'dentista' ? 'odontologico' : form.type;
   const filteredProcedures = allProcedures.filter(p =>
     (p.type === procType || p.type === form.type) &&
@@ -86,11 +94,23 @@ export default function RecordForm() {
     setProcSearch(''); setShowProcList(false);
   };
 
+  const addManualProcedure = () => {
+    setForm(f => ({
+      ...f,
+      procedures: [...f.procedures, { procedure_id: null, procedure_name: '', procedure_code: 'MANUAL', value: '', isManual: true }]
+    }));
+  };
+
   const removeProcedure = (i) => setForm(f => ({ ...f, procedures: f.procedures.filter((_, idx) => idx !== i) }));
 
   const updateValue = (i, v) => setForm(f => ({
     ...f,
     procedures: f.procedures.map((p, idx) => idx === i ? { ...p, value: v } : p)
+  }));
+
+  const updateName = (i, v) => setForm(f => ({
+    ...f,
+    procedures: f.procedures.map((p, idx) => idx === i ? { ...p, procedure_name: v } : p)
   }));
 
   const total = form.procedures.reduce((s, p) => s + (parseFloat(p.value) || 0), 0);
@@ -99,6 +119,10 @@ export default function RecordForm() {
     if (!form.patient_id || !form.professional_id) {
       setError('Paciente e profissional são obrigatórios'); return;
     }
+    // Valida procedimentos manuais: precisam ter nome
+    const emptyManual = form.procedures.find(p => p.isManual && !p.procedure_name.trim());
+    if (emptyManual) { setError('Preencha o nome de todos os procedimentos manuais'); return; }
+
     setSaving(true); setError('');
     try {
       if (isEdit) await api.put(`/records/${id}`, form);
@@ -132,16 +156,29 @@ export default function RecordForm() {
         <div className="card">
           <div className="card-header"><span className="card-title">Informações da Consulta</span></div>
 
+          {/* Especialidade — bloqueado para autônomo */}
           <div className="form-group">
             <label className="form-label">Especialidade <span className="required">*</span></label>
-            <select className="form-control" value={form.type}
-              onChange={e => setForm(f => ({ ...f, type: e.target.value, professional_id: '', procedures: [] }))}>
-              {PROF_TYPES.map(t => (
-                <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>
-              ))}
-            </select>
+            {isAutonomous ? (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                background: currentType.bg, border: `1px solid ${currentType.border}33`,
+                borderRadius: 6, padding: '8px 12px', fontSize: 13, fontWeight: 600, color: currentType.color
+              }}>
+                <span>{currentType.emoji}</span>
+                <span>{currentType.label}</span>
+              </div>
+            ) : (
+              <select className="form-control" value={form.type}
+                onChange={e => setForm(f => ({ ...f, type: e.target.value, professional_id: '', procedures: [] }))}>
+                {PROF_TYPES.map(t => (
+                  <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>
+                ))}
+              </select>
+            )}
           </div>
 
+          {/* Paciente */}
           <div className="form-group" style={{ position: 'relative' }}>
             <label className="form-label">Paciente <span className="required">*</span></label>
             <input className="form-control" placeholder="Digite para buscar paciente..." value={patientSearch}
@@ -164,26 +201,41 @@ export default function RecordForm() {
             </div>
           )}
 
+          {/* Profissional — bloqueado para autônomo */}
           <div className="form-group">
             <label className="form-label">Profissional <span className="required">*</span></label>
-            <select className="form-control" value={form.professional_id}
-              onChange={e => {
-                const prof = professionals.find(p => p.id == e.target.value);
-                setForm(f => ({ ...f, professional_id: e.target.value }));
-                setSelectedProfessional(prof || null);
+            {isAutonomous && selectedProfessional ? (
+              <div style={{
+                background: 'var(--gray-50)', border: '1px solid var(--gray-200)',
+                borderRadius: 6, padding: '8px 12px', fontSize: 13
               }}>
-              <option value="">— Selecione —</option>
-              {professionals
-                .filter(p => p.type === form.type || (form.type === 'dentista' && p.type === 'odontologico'))
-                .map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}{p.crm_cro ? ` (${p.crm_cro})` : ''}
-                  </option>
-                ))}
-            </select>
+                <strong>{selectedProfessional.name}</strong>
+                {selectedProfessional.crm_cro && (
+                  <span style={{ color: 'var(--gray-500)', marginLeft: 8 }}>
+                    {currentType.council}: {selectedProfessional.crm_cro}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <select className="form-control" value={form.professional_id}
+                onChange={e => {
+                  const prof = professionals.find(p => p.id == e.target.value);
+                  setForm(f => ({ ...f, professional_id: e.target.value }));
+                  setSelectedProfessional(prof || null);
+                }}>
+                <option value="">— Selecione —</option>
+                {professionals
+                  .filter(p => p.type === form.type || (form.type === 'dentista' && p.type === 'odontologico'))
+                  .map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}{p.crm_cro ? ` (${p.crm_cro})` : ''}
+                    </option>
+                  ))}
+              </select>
+            )}
           </div>
 
-          {selectedProfessional && selectedProfessional.crm_cro && (
+          {!isAutonomous && selectedProfessional?.crm_cro && (
             <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: -10, marginBottom: 12 }}>
               {currentType.council}: {selectedProfessional.crm_cro}
             </div>
@@ -191,17 +243,21 @@ export default function RecordForm() {
 
           <div className="form-group">
             <label className="form-label">Data da Consulta</label>
-            <input className="form-control" type="date" value={form.consultation_date} onChange={e => setForm(f => ({ ...f, consultation_date: e.target.value }))} />
+            <input className="form-control" type="date" value={form.consultation_date}
+              onChange={e => setForm(f => ({ ...f, consultation_date: e.target.value }))} />
           </div>
         </div>
 
         <div className="card">
-          <div className="card-header"><span className="card-title">Procedimentos Realizados</span></div>
+          <div className="card-header">
+            <span className="card-title">Procedimentos Realizados</span>
+          </div>
 
-          <div style={{ position: 'relative', marginBottom: 16 }}>
+          {/* Busca em lista de procedimentos cadastrados */}
+          <div style={{ position: 'relative', marginBottom: 12 }}>
             <div className="search-input-wrapper">
               <i className="fas fa-search" />
-              <input className="form-control" placeholder="Buscar procedimento para adicionar..."
+              <input className="form-control" placeholder="Buscar procedimento cadastrado..."
                 value={procSearch}
                 onChange={e => { setProcSearch(e.target.value); setShowProcList(true); }}
                 onFocus={() => setShowProcList(true)} />
@@ -224,6 +280,13 @@ export default function RecordForm() {
             )}
           </div>
 
+          {/* Botão procedimento manual */}
+          <button type="button" className="btn btn-outline btn-sm" onClick={addManualProcedure}
+            style={{ marginBottom: 16, fontSize: 12, color: 'var(--gray-600)' }}>
+            <i className="fas fa-pencil" style={{ marginRight: 6 }} />
+            Adicionar procedimento manual
+          </button>
+
           {form.procedures.length === 0 && (
             <div className="empty-state" style={{ padding: 30 }}>
               <i className="fas fa-list-check" />
@@ -232,16 +295,35 @@ export default function RecordForm() {
           )}
 
           {form.procedures.map((p, i) => (
-            <div key={i} className="procedure-row">
+            <div key={i} className="procedure-row" style={{ alignItems: 'flex-start' }}>
               <div className="procedure-name">
-                <div style={{ fontSize: 11, color: 'var(--gray-400)', fontFamily: 'monospace' }}>{p.procedure_code}</div>
-                <div style={{ fontSize: 13 }}>{p.procedure_name.length > 50 ? p.procedure_name.slice(0, 50) + '...' : p.procedure_name}</div>
+                {p.isManual ? (
+                  <>
+                    <div style={{ fontSize: 10, color: 'var(--gray-400)', marginBottom: 3 }}>
+                      <i className="fas fa-pencil" style={{ marginRight: 4 }} />Procedimento manual
+                    </div>
+                    <input
+                      className="form-control"
+                      style={{ fontSize: 13, padding: '4px 8px' }}
+                      placeholder="Descreva o procedimento..."
+                      value={p.procedure_name}
+                      onChange={e => updateName(i, e.target.value)}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 11, color: 'var(--gray-400)', fontFamily: 'monospace' }}>{p.procedure_code}</div>
+                    <div style={{ fontSize: 13 }}>{p.procedure_name.length > 50 ? p.procedure_name.slice(0, 50) + '...' : p.procedure_name}</div>
+                  </>
+                )}
               </div>
               <div className="procedure-value">
                 <input className="form-control" type="number" step="0.01" min="0" placeholder="R$ 0,00"
                   value={p.value} onChange={e => updateValue(i, e.target.value)} />
               </div>
-              <button className="btn btn-danger btn-sm btn-icon" onClick={() => removeProcedure(i)}><i className="fas fa-times" /></button>
+              <button className="btn btn-danger btn-sm btn-icon" onClick={() => removeProcedure(i)}>
+                <i className="fas fa-times" />
+              </button>
             </div>
           ))}
 

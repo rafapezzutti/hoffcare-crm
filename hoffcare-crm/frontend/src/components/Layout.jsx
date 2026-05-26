@@ -45,8 +45,12 @@ export default function Layout() {
     window.location.reload();
   };
 
+  // Itens ocultos para usuários autônomos
+  const autonomousHidden = ['/professionals', '/rooms'];
+
   const renderNavItem = (item, i) => {
     if (item.section) return <div key={i} className="sidebar-section">{item.section}</div>;
+    if (user?.is_autonomous && autonomousHidden.includes(item.to)) return null;
     return (
       <NavLink
         key={item.to}
