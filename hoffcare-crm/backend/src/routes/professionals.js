@@ -45,7 +45,7 @@ router.post('/', auth, async (req, res) => {
     const result = await pool.query(
       `INSERT INTO professionals (type, name, cpf, crm_cro, birthdate, email, phone, clinic_id)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [type, name, cpf, crm_cro, birthdate || null, email, phone, clinic_id]
+      [type, name, cpf || null, crm_cro || null, birthdate || null, email || null, phone || null, clinic_id]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -61,7 +61,7 @@ router.put('/:id', auth, async (req, res) => {
     const result = await pool.query(
       `UPDATE professionals SET type=$1, name=$2, cpf=$3, crm_cro=$4, birthdate=$5, email=$6, phone=$7
        WHERE id=$8 AND clinic_id=$9 RETURNING *`,
-      [type, name, cpf, crm_cro, birthdate || null, email, phone, req.params.id, clinic_id]
+      [type, name, cpf || null, crm_cro || null, birthdate || null, email || null, phone || null, req.params.id, clinic_id]
     );
     if (!result.rows[0]) return res.status(404).json({ error: 'Profissional não encontrado' });
     res.json(result.rows[0]);
