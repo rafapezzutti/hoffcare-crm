@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import dayjs from 'dayjs';
+import { PROF_TYPES, getProfType } from '../config/professionalTypes';
 
 export default function RecordForm() {
   const { id } = useParams();
@@ -10,7 +11,7 @@ export default function RecordForm() {
   const isEdit = !!id;
 
   const [form, setForm] = useState({
-    type: 'dentista',
+    type: 'medico',
     patient_id: params.get('patient_id') || '',
     professional_id: '',
     consultation_date: dayjs().format('YYYY-MM-DD'),
@@ -58,7 +59,7 @@ export default function RecordForm() {
         });
         setPatientSearch(rec.patient_name);
         setSelectedPatient({ name: rec.patient_name, cpf: rec.patient_cpf });
-        setSelectedProfessional({ name: rec.professional_name, crm_cro: rec.crm_cro });
+        setSelectedProfessional({ name: rec.professional_name, crm_cro: rec.crm_cro, type: rec.type });
       });
     }
   }, [id]);
@@ -69,10 +70,11 @@ export default function RecordForm() {
     p.cpf.includes(patientSearch)
   );
 
-  // 'dentista' no registro corresponde a procedimentos 'odontologico'
+  // Procedimentos filtrados pelo tipo selecionado
+  // 'dentista' mapeia para 'odontologico' na tabela de procedimentos (legado)
   const procType = form.type === 'dentista' ? 'odontologico' : form.type;
   const filteredProcedures = allProcedures.filter(p =>
-    p.type === procType &&
+    (p.type === procType || p.type === form.type) &&
     (procSearch === '' || p.name.toLowerCase().includes(procSearch.toLowerCase()) || p.code.includes(procSearch))
   ).slice(0, 20);
 
@@ -107,9 +109,7 @@ export default function RecordForm() {
     } finally { setSaving(false); }
   };
 
-  const professionalLabel = selectedProfessional
-    ? `${selectedProfessional.name} — ${selectedProfessional.crm_cro}`
-    : (form.professional_id ? professionals.find(p => p.id == form.professional_id)?.let?.(p => `${p.name} — ${p.crm_cro}`) : '');
+  const currentType = getProfType(form.type);
 
   return (
     <div className="page">
@@ -132,10 +132,13 @@ export default function RecordForm() {
         <div className="card">
           <div className="card-header"><span className="card-title">Informações da Consulta</span></div>
 
-          <div className="form-group"><label className="form-label">Tipo <span className="required">*</span></label>
-            <select className="form-control" value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value, procedures: [] }))}>
-              <option value="dentista">Odontológico</option>
-              <option value="medico">Médico</option>
+          <div className="form-group">
+            <label className="form-label">Especialidade <span className="required">*</span></label>
+            <select className="form-control" value={form.type}
+              onChange={e => setForm(f => ({ ...f, type: e.target.value, professional_id: '', procedures: [] }))}>
+              {PROF_TYPES.map(t => (
+                <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>
+              ))}
             </select>
           </div>
 
@@ -170,18 +173,19 @@ export default function RecordForm() {
                 setSelectedProfessional(prof || null);
               }}>
               <option value="">— Selecione —</option>
-              {professionals.filter(p => {
-                if (form.type === 'odontologico') return p.type === 'odontologico' || p.type === 'dentista';
-                return p.type === form.type;
-              }).map(p => (
-                <option key={p.id} value={p.id}>{p.name} ({p.crm_cro})</option>
-              ))}
+              {professionals
+                .filter(p => p.type === form.type || (form.type === 'dentista' && p.type === 'odontologico'))
+                .map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}{p.crm_cro ? ` (${p.crm_cro})` : ''}
+                  </option>
+                ))}
             </select>
           </div>
 
-          {selectedProfessional && (
+          {selectedProfessional && selectedProfessional.crm_cro && (
             <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: -10, marginBottom: 12 }}>
-              {form.type === 'medico' ? 'CRM' : 'CRO'}: {selectedProfessional.crm_cro}
+              {currentType.council}: {selectedProfessional.crm_cro}
             </div>
           )}
 
@@ -211,7 +215,11 @@ export default function RecordForm() {
                     {p.name.length > 60 ? p.name.slice(0, 60) + '...' : p.name}
                   </div>
                 ))}
-                {filteredProcedures.length === 0 && <div style={{ padding: '10px 14px', color: 'var(--gray-400)', fontSize: 12 }}>Nenhum procedimento encontrado</div>}
+                {filteredProcedures.length === 0 && (
+                  <div style={{ padding: '10px 14px', color: 'var(--gray-400)', fontSize: 12 }}>
+                    Nenhum procedimento cadastrado para {currentType.label}
+                  </div>
+                )}
               </div>
             )}
           </div>
