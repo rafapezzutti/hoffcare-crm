@@ -3,10 +3,11 @@ import api from '../services/api';
 import Modal from '../components/Modal';
 import dayjs from 'dayjs';
 import 'dayjs/locale/pt-br';
+import { PROF_TYPES, getProfType } from '../config/professionalTypes';
 dayjs.locale('pt-br');
 
 const emptyForm = {
-  type: 'dentista', patient_id: '', professional_id: '', room_id: '',
+  type: 'medico', patient_id: '', professional_id: '', room_id: '',
   appointment_date: '', duration_minutes: 30, notes: '', status: 'pending_confirmation'
 };
 
@@ -86,6 +87,10 @@ export default function CalendarDaily() {
     cancelled: 'Cancelado'
   };
 
+  // Filtra profissionais e salas pelo tipo selecionado na agenda
+  const filteredProfessionals = professionals.filter(p => p.type === form.type || form.type === '');
+  const filteredRooms = rooms.filter(r => r.type === form.type || form.type === '');
+
   return (
     <div className="page">
       <div className="page-header">
@@ -109,20 +114,23 @@ export default function CalendarDaily() {
               </div>
               <div style={{ flex: 1, padding: '6px 8px', display: 'flex', flexWrap: 'wrap', gap: 8, cursor: 'pointer' }}
                 onClick={() => apts.length === 0 && handleOpen(null, h)}>
-                {apts.map(a => (
-                  <div key={a.id} style={{
-                    background: a.type === 'medico' ? 'rgba(232,132,26,0.12)' : 'rgba(77,184,232,0.12)',
-                    border: `1.5px solid ${a.type === 'medico' ? 'var(--orange)' : 'var(--blue)'}`,
-                    borderRadius: 8, padding: '6px 12px', minWidth: 200, cursor: 'pointer'
-                  }} onClick={e => { e.stopPropagation(); handleOpen(a); }}>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>{a.patient_name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--gray-500)' }}>{dayjs(a.appointment_date).format('HH:mm')} • {a.professional_name} • {a.room_name}</div>
-                    <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                      <span className={`badge ${statusColor[a.status]}`} style={{ fontSize: 10 }}>{statusLabel[a.status]}</span>
-                      <button className="btn btn-danger" style={{ padding: '2px 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); handleDelete(a.id); }}><i className="fas fa-trash" /></button>
+                {apts.map(a => {
+                  const t = getProfType(a.type);
+                  return (
+                    <div key={a.id} style={{
+                      background: t.bg,
+                      border: `1.5px solid ${t.border}`,
+                      borderRadius: 8, padding: '6px 12px', minWidth: 200, cursor: 'pointer'
+                    }} onClick={e => { e.stopPropagation(); handleOpen(a); }}>
+                      <div style={{ fontWeight: 600, fontSize: 13 }}>{a.patient_name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--gray-500)' }}>{dayjs(a.appointment_date).format('HH:mm')} • {a.professional_name} • {a.room_name}</div>
+                      <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                        <span className={`badge ${statusColor[a.status]}`} style={{ fontSize: 10 }}>{statusLabel[a.status]}</span>
+                        <button className="btn btn-danger" style={{ padding: '2px 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); handleDelete(a.id); }}><i className="fas fa-trash" /></button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {apts.length === 0 && <div style={{ width: '100%', height: '100%' }} />}
               </div>
             </div>
@@ -134,10 +142,12 @@ export default function CalendarDaily() {
         footer={<><button className="btn btn-outline" onClick={() => setOpen(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleSubmit}>Salvar</button></>}>
         {error && <div className="alert alert-error">{error}</div>}
         <form onSubmit={handleSubmit}>
-          <div className="form-group"><label className="form-label">Tipo <span className="required">*</span></label>
-            <select className="form-control" {...f('type')}>
-              <option value="dentista">Dentista</option>
-              <option value="medico">Médico</option>
+          <div className="form-group">
+            <label className="form-label">Especialidade <span className="required">*</span></label>
+            <select className="form-control" {...f('type')} onChange={e => setForm(p => ({ ...p, type: e.target.value, professional_id: '', room_id: '' }))}>
+              {PROF_TYPES.map(t => (
+                <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>
+              ))}
             </select>
           </div>
           <div className="form-group">
@@ -156,18 +166,20 @@ export default function CalendarDaily() {
             )}
           </div>
           <div className="form-grid form-grid-2">
-            <div className="form-group"><label className="form-label">Profissional <span className="required">*</span></label>
+            <div className="form-group">
+              <label className="form-label">Profissional <span className="required">*</span></label>
               <select className="form-control" {...f('professional_id')} required>
                 <option value="">— Selecione —</option>
-                {professionals.filter(p => form.type === 'todos' || p.type === form.type).map(p => (
-                  <option key={p.id} value={p.id}>{p.name} ({p.crm_cro})</option>
+                {filteredProfessionals.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}{p.crm_cro ? ` (${p.crm_cro})` : ''}</option>
                 ))}
               </select>
             </div>
-            <div className="form-group"><label className="form-label">Sala</label>
+            <div className="form-group">
+              <label className="form-label">Sala</label>
               <select className="form-control" {...f('room_id')}>
                 <option value="">— Selecione —</option>
-                {rooms.filter(r => r.type === form.type).map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                {filteredRooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
             </div>
           </div>
@@ -179,6 +191,8 @@ export default function CalendarDaily() {
             <div className="form-group"><label className="form-label">Status</label>
               <select className="form-control" {...f('status')}>
                 <option value="scheduled">Agendado</option>
+                <option value="pending_confirmation">Aguardando confirmação</option>
+                <option value="confirmed">Confirmado</option>
                 <option value="completed">Realizado</option>
                 <option value="cancelled">Cancelado</option>
               </select>

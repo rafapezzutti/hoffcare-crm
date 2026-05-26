@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import Modal from '../components/Modal';
+import { PROF_TYPES, getProfType } from '../config/professionalTypes';
 
 const empty = {
   type: 'dentista', nationality: 'brasileiro',
@@ -134,8 +135,7 @@ export default function Autonomous() {
     onChange: val => setForm(p => ({ ...p, [field]: val }))
   });
 
-  const typeLabel = { dentista: '🦷 Dentista', odontologico: '🦷 Dentista', medico: '🩺 Médico' };
-  const typeBadge = { dentista: 'badge-blue', odontologico: 'badge-blue', medico: 'badge-orange' };
+  const currentType = getProfType(form.type);
 
   // Notif badges for table
   const notifIcons = (item) => {
@@ -204,11 +204,18 @@ export default function Autonomous() {
                   </div>
                 </td></tr>
               )}
-              {filtered.map(p => (
+              {filtered.map(p => {
+                const t = getProfType(p.type);
+                return (
                 <tr key={p.clinic_id}>
                   <td>
-                    <span className={`badge ${typeBadge[p.type] || 'badge-blue'}`}>
-                      {typeLabel[p.type] || p.type}
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      background: t.bg, color: t.color,
+                      border: `1px solid ${t.border}33`,
+                      borderRadius: 4, padding: '2px 8px', fontSize: 12, fontWeight: 600
+                    }}>
+                      {t.emoji} {t.label}
                     </span>
                   </td>
                   <td>
@@ -245,7 +252,8 @@ export default function Autonomous() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -271,8 +279,9 @@ export default function Autonomous() {
             <div className="form-group">
               <label className="form-label">Especialidade <span className="required">*</span></label>
               <select className="form-control" {...f('type')}>
-                <option value="dentista">🦷 Dentista</option>
-                <option value="medico">🩺 Médico</option>
+                {PROF_TYPES.map(t => (
+                  <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>
+                ))}
               </select>
             </div>
             <div className="form-group">
@@ -309,7 +318,7 @@ export default function Autonomous() {
             </div>
             <div className="form-group">
               <label className="form-label">
-                {form.type === 'medico' ? 'CRM' : 'CRO'}
+                {currentType.council}
                 {form.nationality === 'brasileiro' && <span className="required">*</span>}
               </label>
               <input className="form-control" {...f('crm_cro')}
