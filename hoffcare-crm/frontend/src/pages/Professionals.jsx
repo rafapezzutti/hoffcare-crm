@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Modal from '../components/Modal';
 import { PROF_TYPES, getProfType } from '../config/professionalTypes';
@@ -7,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 const empty = { type: 'medico', name: '', cpf: '', crm_cro: '', birthdate: '', email: '', phone: '' };
 
 export default function Professionals() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isAutonomous = !!user?.is_autonomous;
   const [items, setItems] = useState([]);
@@ -56,11 +58,11 @@ export default function Professionals() {
     <div className="page">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Profissionais de Saúde</h1>
-          <p className="page-subtitle">Médicos, dentistas e demais profissionais do consultório</p>
+          <h1 className="page-title">{t('professionals.title')}</h1>
+          <p className="page-subtitle">{t('professionals.subtitle')}</p>
         </div>
         {!isAutonomous && (
-          <button className="btn btn-primary" onClick={() => handleOpen()}><i className="fas fa-user-plus" /> Novo Profissional</button>
+          <button className="btn btn-primary" onClick={() => handleOpen()}><i className="fas fa-user-plus" /> {t('professionals.newProfessional')}</button>
         )}
       </div>
 
@@ -68,37 +70,37 @@ export default function Professionals() {
         <div className="search-bar">
           <div className="search-input-wrapper">
             <i className="fas fa-search" />
-            <input className="form-control" placeholder="Buscar por nome, CPF ou registro profissional..." value={search} onChange={e => setSearch(e.target.value)} />
+            <input className="form-control" placeholder={t('professionals.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} />
           </div>
         </div>
         <div className="table-container">
           <table className="table">
             <thead>
-              <tr><th>Especialidade</th><th>Nome</th><th>CPF</th><th>Registro</th><th>Telefone</th><th>Email</th><th>Ações</th></tr>
+              <tr><th>{t('professionals.specialty')}</th><th>{t('professionals.name')}</th><th>{t('professionals.cpf')}</th><th>{t('professionals.registry')}</th><th>{t('professionals.phone')}</th><th>{t('professionals.email')}</th><th>{t('professionals.actions')}</th></tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={7}><div className="empty-state"><i className="fas fa-user-md" /><p>Nenhum profissional encontrado</p></div></td></tr>
+                <tr><td colSpan={7}><div className="empty-state"><i className="fas fa-user-md" /><p>{t('professionals.empty')}</p></div></td></tr>
               )}
               {filtered.map(p => {
-                const t = getProfType(p.type);
+                const profType = getProfType(p.type);
                 return (
                   <tr key={p.id}>
                     <td>
                       <span style={{
                         display: 'inline-flex', alignItems: 'center', gap: 5,
-                        background: t.bg, color: t.color,
-                        border: `1px solid ${t.border}33`,
+                        background: profType.bg, color: profType.color,
+                        border: `1px solid ${profType.border}33`,
                         borderRadius: 4, padding: '2px 8px', fontSize: 12, fontWeight: 600
                       }}>
-                        {t.emoji} {t.label}
+                        {profType.emoji} {profType.label}
                       </span>
                     </td>
                     <td><strong>{p.name}</strong></td>
                     <td>{p.cpf || '—'}</td>
                     <td>
                       <span style={{ fontFamily: 'monospace', fontSize: 12 }}>
-                        {p.crm_cro ? <><span style={{ color: 'var(--gray-400)', fontSize: 11 }}>{t.council} </span>{p.crm_cro}</> : '—'}
+                        {p.crm_cro ? <><span style={{ color: 'var(--gray-400)', fontSize: 11 }}>{profType.council} </span>{p.crm_cro}</> : '—'}
                       </span>
                     </td>
                     <td>{p.phone || '—'}</td>
@@ -117,25 +119,25 @@ export default function Professionals() {
         </div>
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)} title={editing ? 'Editar Profissional' : 'Novo Profissional'}
-        footer={<><button className="btn btn-outline" onClick={() => setOpen(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleSubmit}>Salvar</button></>}>
+      <Modal open={open} onClose={() => setOpen(false)} title={editing ? t('professionals.editProfessional') : t('professionals.newProfessional')}
+        footer={<><button className="btn btn-outline" onClick={() => setOpen(false)}>{t('professionals.cancel')}</button><button className="btn btn-primary" onClick={handleSubmit}>{t('professionals.save')}</button></>}>
         {error && <div className="alert alert-error">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Especialidade <span className="required">*</span></label>
+            <label className="form-label">{t('professionals.specialty')} <span className="required">*</span></label>
             <select className="form-control" {...f('type')}>
-              {PROF_TYPES.map(t => (
-                <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>
+              {PROF_TYPES.map(pt => (
+                <option key={pt.value} value={pt.value}>{pt.emoji} {pt.label}</option>
               ))}
             </select>
           </div>
           <div className="form-group">
-            <label className="form-label">Nome Completo <span className="required">*</span></label>
+            <label className="form-label">{t('professionals.fullName')} <span className="required">*</span></label>
             <input className="form-control" {...f('name')} required />
           </div>
           <div className="form-grid form-grid-2">
             <div className="form-group">
-              <label className="form-label">CPF <span className="required">*</span></label>
+              <label className="form-label">{t('professionals.cpf')} <span className="required">*</span></label>
               <input className="form-control" {...f('cpf')} placeholder="000.000.000-00" required />
             </div>
             <div className="form-group">
@@ -144,7 +146,7 @@ export default function Professionals() {
             </div>
           </div>
           <div className="form-group">
-            <label className="form-label">Data de Nascimento</label>
+            <label className="form-label">{t('professionals.birthdate')}</label>
             <input className="form-control" type="date" {...f('birthdate')} />
           </div>
           <div className="form-grid form-grid-2">

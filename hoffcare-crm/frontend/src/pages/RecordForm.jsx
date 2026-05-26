@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import dayjs from 'dayjs';
 import { PROF_TYPES, getProfType } from '../config/professionalTypes';
 import { useAuth } from '../context/AuthContext';
 
 export default function RecordForm() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -117,11 +119,11 @@ export default function RecordForm() {
 
   const handleSubmit = async () => {
     if (!form.patient_id || !form.professional_id) {
-      setError('Paciente e profissional são obrigatórios'); return;
+      setError(t('recordForm.errorRequired')); return;
     }
     // Valida procedimentos manuais: precisam ter nome
     const emptyManual = form.procedures.find(p => p.isManual && !p.procedure_name.trim());
-    if (emptyManual) { setError('Preencha o nome de todos os procedimentos manuais'); return; }
+    if (emptyManual) { setError(t('recordForm.errorManual')); return; }
 
     setSaving(true); setError('');
     try {
@@ -129,7 +131,7 @@ export default function RecordForm() {
       else { const r = await api.post('/records', form); navigate(`/records/${r.data.id}/view`); return; }
       navigate(`/records/${id}/view`);
     } catch (err) {
-      setError(err.response?.data?.error || 'Erro ao salvar');
+      setError(err.response?.data?.error || t('recordForm.errorSave'));
     } finally { setSaving(false); }
   };
 
@@ -140,12 +142,12 @@ export default function RecordForm() {
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button className="btn btn-outline btn-sm" onClick={() => navigate('/records')}><i className="fas fa-arrow-left" /></button>
-          <h1 className="page-title">{isEdit ? 'Editar Registro' : 'Novo Registro de Procedimento'}</h1>
+          <h1 className="page-title">{isEdit ? t('recordForm.editRecord') : t('recordForm.newRecord')}</h1>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-outline" onClick={() => navigate('/records')}>Cancelar</button>
+          <button className="btn btn-outline" onClick={() => navigate('/records')}>{t('recordForm.cancel')}</button>
           <button className="btn btn-primary" onClick={handleSubmit} disabled={saving}>
-            {saving ? 'Salvando...' : <><i className="fas fa-save" /> Salvar</>}
+            {saving ? t('recordForm.saving') : <><i className="fas fa-save" /> {t('recordForm.save')}</>}
           </button>
         </div>
       </div>
@@ -154,11 +156,11 @@ export default function RecordForm() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
         <div className="card">
-          <div className="card-header"><span className="card-title">Informações da Consulta</span></div>
+          <div className="card-header"><span className="card-title">{t('recordForm.consultationInfo')}</span></div>
 
           {/* Especialidade — bloqueado para autônomo */}
           <div className="form-group">
-            <label className="form-label">Especialidade <span className="required">*</span></label>
+            <label className="form-label">{t('recordForm.specialty')} <span className="required">*</span></label>
             {isAutonomous ? (
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 8,
@@ -180,8 +182,8 @@ export default function RecordForm() {
 
           {/* Paciente */}
           <div className="form-group" style={{ position: 'relative' }}>
-            <label className="form-label">Paciente <span className="required">*</span></label>
-            <input className="form-control" placeholder="Digite para buscar paciente..." value={patientSearch}
+            <label className="form-label">{t('recordForm.patient')} <span className="required">*</span></label>
+            <input className="form-control" placeholder={t('recordForm.searchPatient')} value={patientSearch}
               onChange={e => { setPatientSearch(e.target.value); setForm(f => ({ ...f, patient_id: '' })); setSelectedPatient(null); }} />
             {patientSearch && !form.patient_id && (
               <div style={{ position: 'absolute', zIndex: 10, width: '100%', background: 'white', border: '1px solid var(--gray-200)', borderRadius: 6, maxHeight: 180, overflowY: 'auto' }}>
@@ -203,7 +205,7 @@ export default function RecordForm() {
 
           {/* Profissional — bloqueado para autônomo */}
           <div className="form-group">
-            <label className="form-label">Profissional <span className="required">*</span></label>
+            <label className="form-label">{t('recordForm.professional')} <span className="required">*</span></label>
             {isAutonomous && selectedProfessional ? (
               <div style={{
                 background: 'var(--gray-50)', border: '1px solid var(--gray-200)',
@@ -223,7 +225,7 @@ export default function RecordForm() {
                   setForm(f => ({ ...f, professional_id: e.target.value }));
                   setSelectedProfessional(prof || null);
                 }}>
-                <option value="">— Selecione —</option>
+                <option value="">{t('recordForm.select')}</option>
                 {professionals
                   .filter(p => p.type === form.type || (form.type === 'dentista' && p.type === 'odontologico'))
                   .map(p => (
@@ -242,7 +244,7 @@ export default function RecordForm() {
           )}
 
           <div className="form-group">
-            <label className="form-label">Data da Consulta</label>
+            <label className="form-label">{t('recordForm.consultationDate')}</label>
             <input className="form-control" type="date" value={form.consultation_date}
               onChange={e => setForm(f => ({ ...f, consultation_date: e.target.value }))} />
           </div>
@@ -250,14 +252,14 @@ export default function RecordForm() {
 
         <div className="card">
           <div className="card-header">
-            <span className="card-title">Procedimentos Realizados</span>
+            <span className="card-title">{t('recordForm.procedures')}</span>
           </div>
 
           {/* Busca em lista de procedimentos cadastrados */}
           <div style={{ position: 'relative', marginBottom: 12 }}>
             <div className="search-input-wrapper">
               <i className="fas fa-search" />
-              <input className="form-control" placeholder="Buscar procedimento cadastrado..."
+              <input className="form-control" placeholder={t('recordForm.searchProcedure')}
                 value={procSearch}
                 onChange={e => { setProcSearch(e.target.value); setShowProcList(true); }}
                 onFocus={() => setShowProcList(true)} />
@@ -273,7 +275,7 @@ export default function RecordForm() {
                 ))}
                 {filteredProcedures.length === 0 && (
                   <div style={{ padding: '10px 14px', color: 'var(--gray-400)', fontSize: 12 }}>
-                    Nenhum procedimento cadastrado para {currentType.label}
+                    {t('recordForm.noProcedures')} {currentType.label}
                   </div>
                 )}
               </div>
@@ -284,13 +286,13 @@ export default function RecordForm() {
           <button type="button" className="btn btn-outline btn-sm" onClick={addManualProcedure}
             style={{ marginBottom: 16, fontSize: 12, color: 'var(--gray-600)' }}>
             <i className="fas fa-pencil" style={{ marginRight: 6 }} />
-            Adicionar procedimento manual
+            {t('recordForm.addManual')}
           </button>
 
           {form.procedures.length === 0 && (
             <div className="empty-state" style={{ padding: 30 }}>
               <i className="fas fa-list-check" />
-              <p>Adicione procedimentos realizados</p>
+              <p>{t('recordForm.addProcedures')}</p>
             </div>
           )}
 
@@ -300,12 +302,12 @@ export default function RecordForm() {
                 {p.isManual ? (
                   <>
                     <div style={{ fontSize: 10, color: 'var(--gray-400)', marginBottom: 3 }}>
-                      <i className="fas fa-pencil" style={{ marginRight: 4 }} />Procedimento manual
+                      <i className="fas fa-pencil" style={{ marginRight: 4 }} />{t('recordForm.manualProcedure')}
                     </div>
                     <input
                       className="form-control"
                       style={{ fontSize: 13, padding: '4px 8px' }}
-                      placeholder="Descreva o procedimento..."
+                      placeholder={t('recordForm.describeProcedure')}
                       value={p.procedure_name}
                       onChange={e => updateName(i, e.target.value)}
                     />
@@ -329,7 +331,7 @@ export default function RecordForm() {
 
           {form.procedures.length > 0 && (
             <div className="total-box">
-              <span>Total dos Procedimentos</span>
+              <span>{t('recordForm.totalProcedures')}</span>
               <span style={{ fontSize: 20 }}>R$ {total.toFixed(2)}</span>
             </div>
           )}

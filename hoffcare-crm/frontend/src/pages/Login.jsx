@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
+import i18n from '../i18n/index.js';
+
+const LANGS = [
+  { code: 'pt', label: 'Português', flag: '🇧🇷' },
+  { code: 'en', label: 'English',   flag: '🇺🇸' },
+  { code: 'es', label: 'Español',   flag: '🇪🇸' },
+];
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -10,6 +18,14 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const [lang, setLang] = useState(localStorage.getItem('psaude_lang') || 'pt');
+
+  const handleLang = (code) => {
+    setLang(code);
+    i18n.changeLanguage(code);
+    localStorage.setItem('psaude_lang', code);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,7 +35,7 @@ export default function Login() {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.error || 'Erro ao fazer login. Verifique seu email e senha.');
+      setError(err.response?.data?.error || t('login.errorDefault'));
     } finally {
       setLoading(false);
     }
@@ -28,6 +44,31 @@ export default function Login() {
   return (
     <div className="login-page">
       <div className="login-card">
+
+        {/* Seletor de idioma */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 20 }}>
+          {LANGS.map(l => (
+            <button
+              key={l.code}
+              onClick={() => handleLang(l.code)}
+              title={l.label}
+              style={{
+                background: lang === l.code ? 'var(--blue)' : 'var(--gray-100)',
+                border: lang === l.code ? '2px solid var(--blue)' : '2px solid transparent',
+                borderRadius: 8,
+                padding: '6px 12px',
+                fontSize: 22,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                opacity: lang === l.code ? 1 : 0.55,
+                transform: lang === l.code ? 'scale(1.15)' : 'scale(1)',
+              }}
+            >
+              {l.flag}
+            </button>
+          ))}
+        </div>
+
         <div className="login-logo">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
             <svg width="52" height="52" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -43,27 +84,27 @@ export default function Login() {
               <div style={{ fontSize: 14, fontWeight: 600, color: '#E8841A', lineHeight: 1.2, letterSpacing: 1 }}>para Saúde</div>
             </div>
           </div>
-          <p style={{ marginTop: 10, fontSize: 11, color: '#adb5bd', letterSpacing: 2 }}>sistema de gestão clínica</p>
-          <h1 style={{ marginTop: 16, fontSize: 15, fontWeight: 600, color: '#495057' }}>Acesse sua conta</h1>
+          <p style={{ marginTop: 10, fontSize: 11, color: '#adb5bd', letterSpacing: 2 }}>{t('login.system')}</p>
+          <h1 style={{ marginTop: 16, fontSize: 15, fontWeight: 600, color: '#495057' }}>{t('login.accessAccount')}</h1>
         </div>
 
         {error && <div className="alert alert-error"><i className="fas fa-circle-exclamation" /> {error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Email</label>
+            <label className="form-label">{t('login.email')}</label>
             <input
               className="form-control"
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="seu@email.com"
+              placeholder={t('login.emailPlaceholder')}
               required
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">Senha</label>
+            <label className="form-label">{t('login.password')}</label>
             <div style={{ position: 'relative' }}>
               <input
                 className="form-control"
@@ -96,8 +137,8 @@ export default function Login() {
             style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}
           >
             {loading
-              ? <><span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> Entrando...</>
-              : <><i className="fas fa-right-to-bracket" /> Entrar</>
+              ? <><span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> {t('login.entering')}</>
+              : <><i className="fas fa-right-to-bracket" /> {t('login.enter')}</>
             }
           </button>
         </form>
@@ -107,11 +148,11 @@ export default function Login() {
             onClick={() => navigate('/forgot-password')}
             style={{ background: 'none', border: 'none', color: '#4DB8E8', cursor: 'pointer', fontSize: 13 }}
           >
-            Esqueceu sua senha?
+            {t('login.forgotPassword')}
           </button>
         </div>
 
-        <div className="login-powered">powered by P. Soluções</div>
+        <div className="login-powered">{t('login.poweredBy')}</div>
       </div>
     </div>
   );

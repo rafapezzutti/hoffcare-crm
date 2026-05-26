@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import './i18n/index.js';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ClinicProvider } from './context/ClinicContext';
 import Layout from './components/Layout';

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Modal from '../components/Modal';
 
 export default function Rooms() {
+  const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [form, setForm] = useState({ type: 'dentista', name: '' });
   const [editing, setEditing] = useState(null);
@@ -28,23 +30,23 @@ export default function Rooms() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Remover sala?')) return;
+    if (!confirm(t('rooms.removeRoom'))) return;
     await api.delete(`/rooms/${id}`); load();
   };
 
   return (
     <div className="page">
       <div className="page-header">
-        <div><h1 className="page-title">Salas</h1><p className="page-subtitle">Gerenciar salas de atendimento</p></div>
-        <button className="btn btn-primary" onClick={() => handleOpen()}><i className="fas fa-plus" /> Nova Sala</button>
+        <div><h1 className="page-title">{t('rooms.title')}</h1><p className="page-subtitle">{t('rooms.subtitle')}</p></div>
+        <button className="btn btn-primary" onClick={() => handleOpen()}><i className="fas fa-plus" /> {t('rooms.newRoom')}</button>
       </div>
 
       <div className="card">
         <div className="table-container">
           <table className="table">
-            <thead><tr><th>Tipo</th><th>Nome da Sala</th><th>Ações</th></tr></thead>
+            <thead><tr><th>{t('rooms.type')}</th><th>{t('rooms.roomName')}</th><th>{t('rooms.actions')}</th></tr></thead>
             <tbody>
-              {items.length === 0 && <tr><td colSpan={3}><div className="empty-state"><i className="fas fa-door-open" /><p>Nenhuma sala cadastrada</p></div></td></tr>}
+              {items.length === 0 && <tr><td colSpan={3}><div className="empty-state"><i className="fas fa-door-open" /><p>{t('rooms.empty')}</p></div></td></tr>}
               {items.map(r => (
                 <tr key={r.id}>
                   <td><span className={`badge ${r.type === 'medico' ? 'badge-orange' : 'badge-blue'}`}>{r.type === 'medico' ? '🩺 Médico' : '🦷 Dentista'}</span></td>
@@ -60,8 +62,8 @@ export default function Rooms() {
         </div>
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)} title={editing ? 'Editar Sala' : 'Nova Sala'}
-        footer={<><button className="btn btn-outline" onClick={() => setOpen(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleSubmit}>Salvar</button></>}>
+      <Modal open={open} onClose={() => setOpen(false)} title={editing ? t('rooms.editRoom') : t('rooms.newRoom')}
+        footer={<><button className="btn btn-outline" onClick={() => setOpen(false)}>{t('rooms.cancel')}</button><button className="btn btn-primary" onClick={handleSubmit}>{t('rooms.save')}</button></>}>
         {error && <div className="alert alert-error">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group"><label className="form-label">Tipo <span className="required">*</span></label>

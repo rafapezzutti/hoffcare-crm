@@ -1,38 +1,40 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useClinic } from '../context/ClinicContext';
 
-const navItems = [
-  { section: 'Principal' },
-  { to: '/', icon: 'fa-house', label: 'Dashboard', exact: true },
-  { to: '/calendar/daily', icon: 'fa-calendar-day', label: 'Agenda do Dia' },
-  { to: '/calendar/monthly', icon: 'fa-calendar-alt', label: 'Calendário Mensal' },
-
-  { section: 'Cadastros' },
-  { to: '/patients', icon: 'fa-user-injured', label: 'Pacientes' },
-  { to: '/professionals', icon: 'fa-user-md', label: 'Profissionais' },
-  { to: '/rooms', icon: 'fa-door-open', label: 'Salas' },
-  { to: '/procedures', icon: 'fa-list-check', label: 'Procedimentos' },
-
-  { section: 'Atendimento' },
-  { to: '/records/new', icon: 'fa-file-medical', label: 'Novo Prontuário' },
-  { to: '/records', icon: 'fa-clipboard-list', label: 'Prontuários' },
-  { to: '/history', icon: 'fa-clock-rotate-left', label: 'Histórico de Pacientes' },
-];
-
-const adminItems = [
-  { section: 'Administração' },
-  { to: '/clinics', icon: 'fa-hospital', label: 'Consultórios' },
-  { to: '/users', icon: 'fa-users-gear', label: 'Usuários' },
-  { to: '/autonomous', icon: 'fa-user-doctor', label: 'Autônomos' },
-];
-
 export default function Layout() {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const { clinics, selectedClinic, setSelectedClinic } = useClinic();
   const navigate = useNavigate();
   const [clinicOpen, setClinicOpen] = useState(false);
+
+  const navItems = [
+    { section: t('nav.principal') },
+    { to: '/', icon: 'fa-house', label: t('nav.dashboard'), exact: true },
+    { to: '/calendar/daily', icon: 'fa-calendar-day', label: t('nav.dailyCalendar') },
+    { to: '/calendar/monthly', icon: 'fa-calendar-alt', label: t('nav.monthlyCalendar') },
+
+    { section: t('nav.registros') },
+    { to: '/patients', icon: 'fa-user-injured', label: t('nav.patients') },
+    { to: '/professionals', icon: 'fa-user-md', label: t('nav.professionals') },
+    { to: '/rooms', icon: 'fa-door-open', label: t('nav.rooms') },
+    { to: '/procedures', icon: 'fa-list-check', label: t('nav.procedures') },
+
+    { section: t('nav.atendimento') },
+    { to: '/records/new', icon: 'fa-file-medical', label: t('nav.newRecord') },
+    { to: '/records', icon: 'fa-clipboard-list', label: t('nav.records') },
+    { to: '/history', icon: 'fa-clock-rotate-left', label: t('nav.history') },
+  ];
+
+  const adminItems = [
+    { section: t('nav.admin') },
+    { to: '/clinics', icon: 'fa-hospital', label: t('nav.clinics') },
+    { to: '/users', icon: 'fa-users-gear', label: t('nav.users') },
+    { to: '/autonomous', icon: 'fa-user-doctor', label: t('nav.autonomous') },
+  ];
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
@@ -86,7 +88,7 @@ export default function Layout() {
 
           {/* Seletor de clínica */}
           <div style={{ marginTop: 12, marginBottom: 4, width: '100%', position: 'relative' }}>
-            <div style={{ fontSize: 9, color: '#6c757d', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Clínica ativa</div>
+            <div style={{ fontSize: 9, color: '#6c757d', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>{t('nav.activeClinic')}</div>
             {user?.role === 'admin' && clinics.length > 1 ? (
               <>
                 <button
@@ -100,7 +102,7 @@ export default function Layout() {
                 >
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 130 }}>
                     <i className="fas fa-hospital" style={{ marginRight: 6, color: '#E8841A', fontSize: 10 }} />
-                    {selectedClinic?.name || 'Selecionar...'}
+                    {selectedClinic?.name || t('nav.selectClinic')}
                   </span>
                   <i className={`fas fa-chevron-${clinicOpen ? 'up' : 'down'}`} style={{ fontSize: 9, opacity: 0.6, flexShrink: 0 }} />
                 </button>
@@ -154,7 +156,7 @@ export default function Layout() {
             </div>
           </div>
           <button onClick={handleLogout} className="sidebar-link" style={{ padding: '8px 0', color: '#dc3545' }}>
-            <i className="fas fa-right-from-bracket" /> Sair
+            <i className="fas fa-right-from-bracket" /> {t('nav.logout')}
           </button>
         </div>
       </aside>
@@ -169,10 +171,10 @@ export default function Layout() {
               <i className="fas fa-hospital" />
             </div>
             <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--gray-700)' }}>
-              Selecione uma clínica para começar
+              {t('common.selectClinic')}
             </h2>
             <p style={{ color: 'var(--gray-500)', fontSize: 14, maxWidth: 340 }}>
-              Use o menu lateral para escolher a clínica que deseja gerenciar. Os dados serão carregados após a seleção.
+              {t('common.selectClinicHint')}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8, width: 280 }}>
               {clinics.map(c => (

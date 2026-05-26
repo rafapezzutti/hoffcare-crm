@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import dayjs from 'dayjs';
 import { getProfType } from '../config/professionalTypes';
 
 export default function RecordView() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const [record, setRecord] = useState(null);
@@ -48,12 +50,12 @@ export default function RecordView() {
       <div className="page-header no-print">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button className="btn btn-outline btn-sm" onClick={() => navigate('/records')}><i className="fas fa-arrow-left" /></button>
-          <h1 className="page-title">Registro de Procedimento</h1>
+          <h1 className="page-title">{t('recordView.title')}</h1>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-outline" onClick={() => navigate(`/records/${id}/edit`)}><i className="fas fa-pen" /> Editar</button>
-          <button className="btn btn-secondary" onClick={handleSavePDF}><i className="fas fa-file-pdf" /> Salvar PDF</button>
-          <button className="btn btn-primary" onClick={handlePrint}><i className="fas fa-print" /> Imprimir</button>
+          <button className="btn btn-outline" onClick={() => navigate(`/records/${id}/edit`)}><i className="fas fa-pen" /> {t('recordView.edit')}</button>
+          <button className="btn btn-secondary" onClick={handleSavePDF}><i className="fas fa-file-pdf" /> {t('recordView.savePDF')}</button>
+          <button className="btn btn-primary" onClick={handlePrint}><i className="fas fa-print" /> {t('recordView.print')}</button>
         </div>
       </div>
 
@@ -80,36 +82,36 @@ export default function RecordView() {
             {record.clinic_phone && <div style={{ fontSize: 11, color: 'var(--gray-500)' }}>Tel: {record.clinic_phone} {record.clinic_email && `| ${record.clinic_email}`}</div>}
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 11, color: 'var(--gray-500)' }}>Nº do Registro</div>
+            <div style={{ fontSize: 11, color: 'var(--gray-500)' }}>{t('recordView.recordNumber')}</div>
             <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--gray-800)' }}>#{String(record.id).padStart(6, '0')}</div>
-            <div style={{ fontSize: 11, color: 'var(--gray-500)', marginTop: 4 }}>Data: {dayjs(record.consultation_date).format('DD/MM/YYYY')}</div>
+            <div style={{ fontSize: 11, color: 'var(--gray-500)', marginTop: 4 }}>{t('recordView.date')}: {dayjs(record.consultation_date).format('DD/MM/YYYY')}</div>
           </div>
         </div>
 
         {/* Patient / Professional */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 20 }}>
           <div>
-            <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--gray-500)', marginBottom: 10 }}>Paciente</h3>
-            <PrintRow label="Nome" value={record.patient_name} />
-            <PrintRow label="CPF" value={record.patient_cpf} />
-            {record.patient_birthdate && <PrintRow label="Nascimento" value={dayjs(record.patient_birthdate).format('DD/MM/YYYY')} />}
+            <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--gray-500)', marginBottom: 10 }}>{t('recordView.patient')}</h3>
+            <PrintRow label={t('recordView.name')} value={record.patient_name} />
+            <PrintRow label={t('recordView.cpf')} value={record.patient_cpf} />
+            {record.patient_birthdate && <PrintRow label={t('recordView.birthdate')} value={dayjs(record.patient_birthdate).format('DD/MM/YYYY')} />}
           </div>
           <div>
-            <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--gray-500)', marginBottom: 10 }}>Profissional</h3>
-            <PrintRow label="Nome" value={record.professional_name} />
+            <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--gray-500)', marginBottom: 10 }}>{t('recordView.professional')}</h3>
+            <PrintRow label={t('recordView.name')} value={record.professional_name} />
             {record.crm_cro && <PrintRow label={profType.council} value={record.crm_cro} />}
-            <PrintRow label="Especialidade" value={profType.label} />
+            <PrintRow label={t('recordView.specialty')} value={profType.label} />
           </div>
         </div>
 
         {/* Procedures */}
-        <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--gray-500)', marginBottom: 10 }}>Procedimentos Realizados</h3>
+        <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--gray-500)', marginBottom: 10 }}>{t('recordView.proceduresDone')}</h3>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: 'var(--gray-50)' }}>
-              <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--gray-500)', borderBottom: '2px solid var(--gray-200)' }}>Código</th>
-              <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--gray-500)', borderBottom: '2px solid var(--gray-200)' }}>Procedimento</th>
-              <th style={{ padding: '10px 14px', textAlign: 'right', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--gray-500)', borderBottom: '2px solid var(--gray-200)' }}>Valor</th>
+              <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--gray-500)', borderBottom: '2px solid var(--gray-200)' }}>{t('recordView.code')}</th>
+              <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--gray-500)', borderBottom: '2px solid var(--gray-200)' }}>{t('recordView.procedure')}</th>
+              <th style={{ padding: '10px 14px', textAlign: 'right', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--gray-500)', borderBottom: '2px solid var(--gray-200)' }}>{t('recordView.value')}</th>
             </tr>
           </thead>
           <tbody>
@@ -125,7 +127,7 @@ export default function RecordView() {
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
           <div style={{ background: 'var(--gray-800)', color: 'white', padding: '14px 24px', borderRadius: 8, display: 'flex', gap: 40, alignItems: 'center' }}>
-            <span style={{ fontSize: 13, opacity: 0.8 }}>Total</span>
+            <span style={{ fontSize: 13, opacity: 0.8 }}>{t('recordView.total')}</span>
             <span style={{ fontSize: 22, fontWeight: 700 }}>R$ {total.toFixed(2)}</span>
           </div>
         </div>
@@ -140,13 +142,13 @@ export default function RecordView() {
           </div>
           <div style={{ textAlign: 'center' }}>
             <div style={{ width: 200, borderTop: '1px solid var(--gray-400)', marginTop: 40, paddingTop: 8, fontSize: 11, color: 'var(--gray-500)' }}>
-              Assinatura do Paciente<br />{record.patient_name}
+              {t('recordView.patientSignature')}<br />{record.patient_name}
             </div>
           </div>
         </div>
 
         <div style={{ marginTop: 24, textAlign: 'center', fontSize: 10, color: 'var(--gray-400)' }}>
-          Documento gerado em {dayjs().format('DD/MM/YYYY HH:mm')} — P. Saúde
+          {t('recordView.generatedAt')} {dayjs().format('DD/MM/YYYY HH:mm')} — {t('recordView.systemName')}
         </div>
       </div>
 

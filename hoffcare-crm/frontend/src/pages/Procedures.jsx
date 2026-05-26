@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Modal from '../components/Modal';
 import { PROF_TYPES, getProfType } from '../config/professionalTypes';
 
 const PROC_TYPES = [
   { value: 'odontologico', label: 'Odontológico', emoji: '🦷' },
-  ...PROF_TYPES.filter(t => t.value !== 'dentista').map(t => ({ value: t.value, label: t.label, emoji: t.emoji }))
+  ...PROF_TYPES.filter(pt => pt.value !== 'dentista').map(pt => ({ value: pt.value, label: pt.label, emoji: pt.emoji }))
 ];
 
 const empty = { type: 'odontologico', code: '', name: '', cho: '' };
 
 export default function Procedures() {
+  const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [filter, setFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -67,20 +69,20 @@ export default function Procedures() {
   return (
     <div className="page">
       <div className="page-header">
-        <div><h1 className="page-title">Procedimentos</h1><p className="page-subtitle">{items.length} procedimentos cadastrados</p></div>
-        <button className="btn btn-primary" onClick={() => handleOpen()}><i className="fas fa-plus" /> Novo Procedimento</button>
+        <div><h1 className="page-title">{t('procedures.title')}</h1><p className="page-subtitle">{t('procedures.subtitle', { count: items.length })}</p></div>
+        <button className="btn btn-primary" onClick={() => handleOpen()}><i className="fas fa-plus" /> {t('procedures.newProcedure')}</button>
       </div>
 
       <div className="card">
         <div className="search-bar">
           <div className="search-input-wrapper">
             <i className="fas fa-search" />
-            <input className="form-control" placeholder="Buscar por nome ou código..." value={filter} onChange={e => { setFilter(e.target.value); setPage(1); }} />
+            <input className="form-control" placeholder={t('procedures.searchPlaceholder')} value={filter} onChange={e => { setFilter(e.target.value); setPage(1); }} />
           </div>
           <select className="form-control" style={{ width: 200 }} value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(1); }}>
-            <option value="">Todas as especialidades</option>
-            {PROC_TYPES.map(t => (
-              <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>
+            <option value="">{t('procedures.allSpecialties')}</option>
+            {PROC_TYPES.map(pt => (
+              <option key={pt.value} value={pt.value}>{pt.emoji} {pt.label}</option>
             ))}
           </select>
           <span style={{ fontSize: 13, color: 'var(--gray-500)', whiteSpace: 'nowrap' }}>{filtered.length} resultado(s)</span>
@@ -89,24 +91,24 @@ export default function Procedures() {
         <div className="table-container">
           <table className="table">
             <thead>
-              <tr><th>Especialidade</th><th>Código</th><th>Procedimento</th><th>CHO</th><th>Ações</th></tr>
+              <tr><th>{t('procedures.specialty')}</th><th>{t('procedures.code')}</th><th>{t('procedures.name')}</th><th>{t('procedures.cho')}</th><th>{t('procedures.actions')}</th></tr>
             </thead>
             <tbody>
               {paged.length === 0 && (
-                <tr><td colSpan={5}><div className="empty-state"><i className="fas fa-list-check" /><p>Nenhum procedimento encontrado</p></div></td></tr>
+                <tr><td colSpan={5}><div className="empty-state"><i className="fas fa-list-check" /><p>{t('procedures.empty')}</p></div></td></tr>
               )}
               {paged.map(p => {
-                const t = getProcBadge(p.type);
+                const procBadge = getProcBadge(p.type);
                 return (
                   <tr key={p.id}>
                     <td>
                       <span style={{
                         display: 'inline-flex', alignItems: 'center', gap: 5,
-                        background: t.bg, color: t.color,
-                        border: `1px solid ${t.border}33`,
+                        background: procBadge.bg, color: procBadge.color,
+                        border: `1px solid ${procBadge.border}33`,
                         borderRadius: 4, padding: '2px 8px', fontSize: 12, fontWeight: 600
                       }}>
-                        {t.emoji} {p.type === 'odontologico' ? 'Odonto' : t.short}
+                        {procBadge.emoji} {p.type === 'odontologico' ? 'Odonto' : procBadge.short}
                       </span>
                     </td>
                     <td><code style={{ fontSize: 12, background: 'var(--gray-100)', padding: '2px 6px', borderRadius: 4 }}>{p.code}</code></td>
@@ -132,32 +134,32 @@ export default function Procedures() {
         )}
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)} title={editing ? 'Editar Procedimento' : 'Novo Procedimento'}
-        footer={<><button className="btn btn-outline" onClick={() => setOpen(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleSubmit}>Salvar</button></>}>
+      <Modal open={open} onClose={() => setOpen(false)} title={editing ? t('procedures.editProcedure') : t('procedures.newProcedure')}
+        footer={<><button className="btn btn-outline" onClick={() => setOpen(false)}>{t('procedures.cancel')}</button><button className="btn btn-primary" onClick={handleSubmit}>{t('procedures.save')}</button></>}>
         {error && <div className="alert alert-error">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Especialidade <span className="required">*</span></label>
+            <label className="form-label">{t('procedures.specialty')} <span className="required">*</span></label>
             <select className="form-control" {...f('type')}>
-              {PROC_TYPES.map(t => (
-                <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>
+              {PROC_TYPES.map(pt => (
+                <option key={pt.value} value={pt.value}>{pt.emoji} {pt.label}</option>
               ))}
             </select>
           </div>
           <div className="form-grid form-grid-2">
             <div className="form-group">
-              <label className="form-label">Código <span className="required">*</span></label>
+              <label className="form-label">{t('procedures.code')} <span className="required">*</span></label>
               <input className="form-control" {...f('code')} required />
             </div>
             {isOdonto && (
               <div className="form-group">
-                <label className="form-label">CHO</label>
+                <label className="form-label">{t('procedures.cho')}</label>
                 <input className="form-control" type="number" {...f('cho')} />
               </div>
             )}
           </div>
           <div className="form-group">
-            <label className="form-label">Nome do Procedimento <span className="required">*</span></label>
+            <label className="form-label">{t('procedures.procedureName')} <span className="required">*</span></label>
             <textarea className="form-control" {...f('name')} required rows={2} />
           </div>
         </form>

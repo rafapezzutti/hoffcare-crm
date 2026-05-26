@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import dayjs from 'dayjs';
 import 'dayjs/locale/pt-br';
 import { getProfType } from '../config/professionalTypes';
 dayjs.locale('pt-br');
 
-const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-
 export default function Dashboard() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState('overview');
   const [stats, setStats] = useState({ patients: 0, professionals: 0, appointments: 0, records: 0 });
   const [todayAppointments, setTodayAppointments] = useState([]);
@@ -43,10 +43,12 @@ export default function Dashboard() {
       .finally(() => setLoadingMonthly(false));
   }, [tab, selYear, selMonth]);
 
+  const MONTHS = t('calendar.months', { returnObjects: true });
+
   const cards = [
     { icon: 'fa-user-injured', label: 'Pacientes', value: stats.patients, color: 'blue', to: '/patients' },
     { icon: 'fa-user-md', label: 'Profissionais', value: stats.professionals, color: 'orange', to: '/professionals' },
-    { icon: 'fa-calendar-check', label: 'Consultas Hoje', value: stats.appointments, color: 'green', to: '/calendar/daily' },
+    { icon: 'fa-calendar-check', label: t('dashboard.todayAppointments'), value: stats.appointments, color: 'green', to: '/calendar/daily' },
     { icon: 'fa-file-medical', label: 'Registros', value: stats.records, color: 'purple', to: '/records' },
   ];
 
@@ -77,17 +79,17 @@ export default function Dashboard() {
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '2px solid var(--gray-100)', paddingBottom: 0 }}>
         {[
-          { key: 'overview', label: 'Visão Geral', icon: 'fa-chart-pie' },
-          { key: 'monthly', label: 'Controle Mensal', icon: 'fa-chart-bar' },
-        ].map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)} style={{
+          { key: 'overview', label: t('dashboard.overviewTab'), icon: 'fa-chart-pie' },
+          { key: 'monthly', label: t('dashboard.monthlyTab'), icon: 'fa-chart-bar' },
+        ].map(tabItem => (
+          <button key={tabItem.key} onClick={() => setTab(tabItem.key)} style={{
             background: 'none', border: 'none', cursor: 'pointer',
             padding: '10px 18px', fontSize: 13, fontWeight: 600,
-            color: tab === t.key ? 'var(--blue)' : 'var(--gray-500)',
-            borderBottom: tab === t.key ? '2px solid var(--blue)' : '2px solid transparent',
+            color: tab === tabItem.key ? 'var(--blue)' : 'var(--gray-500)',
+            borderBottom: tab === tabItem.key ? '2px solid var(--blue)' : '2px solid transparent',
             marginBottom: -2, transition: 'color 0.15s',
           }}>
-            <i className={`fas ${t.icon}`} style={{ marginRight: 7 }} />{t.label}
+            <i className={`fas ${tabItem.icon}`} style={{ marginRight: 7 }} />{tabItem.label}
           </button>
         ))}
       </div>
@@ -121,7 +123,7 @@ export default function Dashboard() {
               ) : (
                 <div>
                   {todayAppointments.map(apt => {
-                    const t = getProfType(apt.type);
+                    const profType = getProfType(apt.type);
                     return (
                       <div key={apt.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--gray-100)' }}>
                         <div style={{ width: 52, textAlign: 'center' }}>
@@ -135,9 +137,9 @@ export default function Dashboard() {
                         </div>
                         <span style={{
                           display: 'inline-flex', alignItems: 'center', gap: 4,
-                          background: t.bg, color: t.color, border: `1px solid ${t.border}33`,
+                          background: profType.bg, color: profType.color, border: `1px solid ${profType.border}33`,
                           borderRadius: 4, padding: '2px 7px', fontSize: 11, fontWeight: 600
-                        }}>{t.emoji} {t.short}</span>
+                        }}>{profType.emoji} {profType.short}</span>
                       </div>
                     );
                   })}
@@ -178,7 +180,7 @@ export default function Dashboard() {
 
             <select className="form-control" style={{ width: 140 }} value={selMonth}
               onChange={e => setSelMonth(Number(e.target.value))}>
-              {MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
+              {Array.isArray(MONTHS) && MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
             </select>
 
             <select className="form-control" style={{ width: 90 }} value={selYear}
@@ -192,7 +194,7 @@ export default function Dashboard() {
             }}><i className="fas fa-chevron-right" /></button>
 
             <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--gray-700)' }}>
-              {MONTHS[selMonth - 1]} {selYear}
+              {Array.isArray(MONTHS) && MONTHS[selMonth - 1]} {selYear}
             </span>
           </div>
 
@@ -210,21 +212,21 @@ export default function Dashboard() {
                     <div className="stat-value" style={{ fontSize: 22 }}>
                       R$ {parseFloat(monthly?.total_revenue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </div>
-                    <div className="stat-label">Receita do Mês</div>
+                    <div className="stat-label">{t('dashboard.monthRevenueFull')}</div>
                   </div>
                 </div>
                 <div className="stat-card">
                   <div className="stat-icon blue"><i className="fas fa-file-medical" /></div>
                   <div>
                     <div className="stat-value">{monthly?.total_records || 0}</div>
-                    <div className="stat-label">Atendimentos</div>
+                    <div className="stat-label">{t('dashboard.consultations')}</div>
                   </div>
                 </div>
                 <div className="stat-card">
                   <div className="stat-icon orange"><i className="fas fa-list-check" /></div>
                   <div>
                     <div className="stat-value">{monthly?.total_procedures || 0}</div>
-                    <div className="stat-label">Procedimentos</div>
+                    <div className="stat-label">{t('dashboard.proceduresCount')}</div>
                   </div>
                 </div>
                 <div className="stat-card">
@@ -235,7 +237,7 @@ export default function Dashboard() {
                         ? (parseFloat(monthly.total_revenue) / parseInt(monthly.total_records)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
                         : '0,00'}
                     </div>
-                    <div className="stat-label">Ticket Médio</div>
+                    <div className="stat-label">{t('dashboard.avgTicket')}</div>
                   </div>
                 </div>
               </div>
@@ -249,7 +251,7 @@ export default function Dashboard() {
                   {maxRevenue === 0 ? (
                     <div className="empty-state" style={{ padding: 40 }}>
                       <i className="fas fa-chart-bar" />
-                      <p>Sem dados para {MONTHS[selMonth - 1]}</p>
+                      <p>{t('dashboard.noData')}</p>
                     </div>
                   ) : (
                     <div style={{ overflowX: 'auto' }}>
@@ -281,25 +283,25 @@ export default function Dashboard() {
                 {/* Receita por especialidade */}
                 <div className="card">
                   <div className="card-header">
-                    <span className="card-title"><i className="fas fa-stethoscope" style={{ color: 'var(--orange)', marginRight: 8 }} />Por Especialidade</span>
+                    <span className="card-title"><i className="fas fa-stethoscope" style={{ color: 'var(--orange)', marginRight: 8 }} />{t('dashboard.bySpecialty')}</span>
                   </div>
                   {!monthly?.by_type?.length ? (
                     <div className="empty-state" style={{ padding: 30 }}>
                       <i className="fas fa-stethoscope" />
-                      <p>Sem atendimentos</p>
+                      <p>{t('dashboard.noData')}</p>
                     </div>
                   ) : (
                     <div>
                       {monthly.by_type.map((item, i) => {
-                        const t = getProfType(item.type);
+                        const profType = getProfType(item.type);
                         const pct = maxRevenue > 0
                           ? Math.round((parseFloat(item.revenue) / parseFloat(monthly.total_revenue)) * 100)
                           : 0;
                         return (
                           <div key={i} style={{ padding: '10px 0', borderBottom: '1px solid var(--gray-100)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                              <span style={{ fontSize: 12, fontWeight: 600, color: t.color }}>
-                                {t.emoji} {t.label}
+                              <span style={{ fontSize: 12, fontWeight: 600, color: profType.color }}>
+                                {profType.emoji} {profType.label}
                               </span>
                               <span style={{ fontSize: 12, color: 'var(--gray-600)' }}>
                                 {item.records} atend.
@@ -307,7 +309,7 @@ export default function Dashboard() {
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               <div style={{ flex: 1, height: 6, background: 'var(--gray-100)', borderRadius: 3 }}>
-                                <div style={{ width: `${pct}%`, height: '100%', background: t.color, borderRadius: 3 }} />
+                                <div style={{ width: `${pct}%`, height: '100%', background: profType.color, borderRadius: 3 }} />
                               </div>
                               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray-700)', minWidth: 80, textAlign: 'right' }}>
                                 R$ {parseFloat(item.revenue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Modal from '../components/Modal';
 
@@ -37,6 +38,7 @@ function PasswordField({ label, value, onChange, required, placeholder, autoComp
 }
 
 export default function Users() {
+  const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [clinics, setClinics] = useState([]);
   const [form, setForm] = useState(empty);
@@ -93,19 +95,20 @@ export default function Users() {
   return (
     <div className="page">
       <div className="page-header">
-        <div><h1 className="page-title">Usuários do Sistema</h1><p className="page-subtitle">Gerenciar acessos</p></div>
-        <button className="btn btn-primary" onClick={() => handleOpen()}><i className="fas fa-user-plus" /> Novo Usuário</button>
+        <div><h1 className="page-title">{t('users.title')}</h1><p className="page-subtitle">{t('users.subtitle')}</p></div>
+        <button className="btn btn-primary" onClick={() => handleOpen()}><i className="fas fa-user-plus" /> {t('users.newUser')}</button>
       </div>
       <div className="card">
         <div className="table-container">
           <table className="table">
-            <thead><tr><th>Nome</th><th>Email</th><th>Perfil</th><th>Consultório</th><th>Ações</th></tr></thead>
+            <thead><tr><th>{t('users.name')}</th><th>{t('users.email')}</th><th>{t('users.role')}</th><th>{t('users.clinic')}</th><th>{t('users.actions')}</th></tr></thead>
             <tbody>
+              {items.length === 0 && <tr><td colSpan={5}><div className="empty-state"><i className="fas fa-users" /><p>{t('users.empty')}</p></div></td></tr>}
               {items.map(u => (
                 <tr key={u.id}>
                   <td>{u.name}</td>
                   <td>{u.email}</td>
-                  <td><span className={`badge ${u.role === 'admin' ? 'badge-orange' : 'badge-blue'}`}>{u.role === 'admin' ? 'Administrador' : 'Responsável'}</span></td>
+                  <td><span className={`badge ${u.role === 'admin' ? 'badge-orange' : 'badge-blue'}`}>{u.role === 'admin' ? t('users.admin') : t('users.responsible')}</span></td>
                   <td>{u.clinic_name || '-'}</td>
                   <td><div className="table-actions">
                     <button className="btn btn-outline btn-sm" onClick={() => handleOpen(u)}><i className="fas fa-pen" /></button>
@@ -118,15 +121,15 @@ export default function Users() {
         </div>
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)} title={editing ? 'Editar Usuário' : 'Novo Usuário'}
-        footer={<><button className="btn btn-outline" onClick={() => setOpen(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleSubmit} disabled={passwordsMismatch}>Salvar</button></>}>
+      <Modal open={open} onClose={() => setOpen(false)} title={editing ? t('users.editUser') : t('users.newUser')}
+        footer={<><button className="btn btn-outline" onClick={() => setOpen(false)}>{t('users.cancel')}</button><button className="btn btn-primary" onClick={handleSubmit} disabled={passwordsMismatch}>{t('users.save')}</button></>}>
         {error && <div className="alert alert-error"><i className="fas fa-circle-exclamation" /> {error}</div>}
         <form onSubmit={handleSubmit}>
-          <div className="form-group"><label className="form-label">Nome <span className="required">*</span></label><input className="form-control" {...f('name')} required /></div>
-          <div className="form-group"><label className="form-label">Email <span className="required">*</span></label><input className="form-control" type="email" {...f('email')} required autoComplete="off" /></div>
+          <div className="form-group"><label className="form-label">{t('users.name')} <span className="required">*</span></label><input className="form-control" {...f('name')} required /></div>
+          <div className="form-group"><label className="form-label">{t('users.email')} <span className="required">*</span></label><input className="form-control" type="email" {...f('email')} required autoComplete="off" /></div>
 
           <PasswordField
-            label={editing ? 'Nova senha (deixe em branco para manter)' : 'Senha *'}
+            label={editing ? `${t('users.newPassword')} (${t('users.passwordHint')})` : `${t('users.password')} *`}
             value={form.password || ''}
             onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
             required={!editing}
@@ -137,7 +140,7 @@ export default function Users() {
           {(form.password || !editing) && (
             <div className="form-group">
               <label className="form-label">
-                Confirmar senha
+                {t('users.confirmPassword')}
                 {passwordsMatch && <span style={{ marginLeft: 8, color: '#28a745', fontSize: 11 }}><i className="fas fa-check-circle" /> Senhas iguais</span>}
                 {passwordsMismatch && <span style={{ marginLeft: 8, color: '#dc3545', fontSize: 11 }}><i className="fas fa-times-circle" /> Senhas diferentes</span>}
               </label>
@@ -159,13 +162,13 @@ export default function Users() {
           )}
 
           <div className="form-grid form-grid-2">
-            <div className="form-group"><label className="form-label">Perfil <span className="required">*</span></label>
+            <div className="form-group"><label className="form-label">{t('users.role')} <span className="required">*</span></label>
               <select className="form-control" {...f('role')}>
-                <option value="responsavel">Responsável pelo Consultório</option>
-                <option value="admin">Administrador</option>
+                <option value="responsavel">{t('users.responsible')}</option>
+                <option value="admin">{t('users.admin')}</option>
               </select>
             </div>
-            <div className="form-group"><label className="form-label">Consultório</label>
+            <div className="form-group"><label className="form-label">{t('users.clinic')}</label>
               <select className="form-control" value={form.clinic_id || ''} onChange={e => setForm(p => ({ ...p, clinic_id: e.target.value }))}>
                 <option value="">— Selecione —</option>
                 {clinics.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}

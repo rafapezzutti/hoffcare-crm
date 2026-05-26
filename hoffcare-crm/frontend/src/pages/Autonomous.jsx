@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Modal from '../components/Modal';
 import { PROF_TYPES, getProfType } from '../config/professionalTypes';
@@ -56,6 +57,7 @@ const Toggle = ({ label, hint, checked, onChange }) => (
 );
 
 export default function Autonomous() {
+  const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState(empty);
@@ -152,11 +154,11 @@ export default function Autonomous() {
     <div className="page">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Profissionais Autônomos</h1>
-          <p className="page-subtitle">Profissionais independentes com acesso próprio ao sistema</p>
+          <h1 className="page-title">{t('autonomous.title')}</h1>
+          <p className="page-subtitle">{t('autonomous.subtitle')}</p>
         </div>
         <button className="btn btn-primary" onClick={() => handleOpen()}>
-          <i className="fas fa-user-plus" /> Novo Autônomo
+          <i className="fas fa-user-plus" /> {t('autonomous.newAutonomous')}
         </button>
       </div>
 
@@ -186,13 +188,13 @@ export default function Autonomous() {
           <table className="table">
             <thead>
               <tr>
-                <th>Tipo</th>
-                <th>Nome</th>
-                <th>CPF</th>
-                <th>CRM/CRO</th>
-                <th>E-mail / Login</th>
-                <th>Notificações</th>
-                <th>Ações</th>
+                <th>{t('autonomous.type')}</th>
+                <th>{t('autonomous.name')}</th>
+                <th>{t('autonomous.cpf')}</th>
+                <th>{t('autonomous.crmCro')}</th>
+                <th>{t('autonomous.emailLogin')}</th>
+                <th>{t('autonomous.notifications')}</th>
+                <th>{t('autonomous.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -200,22 +202,22 @@ export default function Autonomous() {
                 <tr><td colSpan={7}>
                   <div className="empty-state">
                     <i className="fas fa-user-doctor" />
-                    <p>Nenhum profissional autônomo cadastrado</p>
+                    <p>{t('autonomous.empty')}</p>
                   </div>
                 </td></tr>
               )}
               {filtered.map(p => {
-                const t = getProfType(p.type);
+                const profType = getProfType(p.type);
                 return (
                 <tr key={p.clinic_id}>
                   <td>
                     <span style={{
                       display: 'inline-flex', alignItems: 'center', gap: 5,
-                      background: t.bg, color: t.color,
-                      border: `1px solid ${t.border}33`,
+                      background: profType.bg, color: profType.color,
+                      border: `1px solid ${profType.border}33`,
                       borderRadius: 4, padding: '2px 8px', fontSize: 12, fontWeight: 600
                     }}>
-                      {t.emoji} {t.label}
+                      {profType.emoji} {profType.label}
                     </span>
                   </td>
                   <td>
@@ -225,7 +227,7 @@ export default function Autonomous() {
                         marginLeft: 6, fontSize: 10, padding: '2px 6px', borderRadius: 4,
                         background: '#fffbea', color: '#744210', border: '1px solid #f6e05e',
                         verticalAlign: 'middle'
-                      }}>🌎 Estrangeiro</span>
+                      }}>🌎 {t('autonomous.foreigner')}</span>
                     )}
                   </td>
                   <td>{p.cpf || <span style={{ color: 'var(--gray-300)' }}>—</span>}</td>
@@ -262,12 +264,12 @@ export default function Autonomous() {
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title={editing ? `Editar — ${editing.name}` : 'Novo Profissional Autônomo'}
+        title={editing ? `${t('autonomous.edit')} — ${editing.name}` : t('autonomous.newAutonomous')}
         footer={
           <>
-            <button className="btn btn-outline" onClick={() => setOpen(false)}>Cancelar</button>
+            <button className="btn btn-outline" onClick={() => setOpen(false)}>{t('autonomous.cancel')}</button>
             <button className="btn btn-primary" onClick={handleSubmit} disabled={loading}>
-              {loading ? 'Salvando...' : 'Salvar'}
+              {loading ? t('autonomous.saving') : t('autonomous.save')}
             </button>
           </>
         }
@@ -277,24 +279,24 @@ export default function Autonomous() {
         <form onSubmit={handleSubmit}>
           <div className="form-grid form-grid-2">
             <div className="form-group">
-              <label className="form-label">Especialidade <span className="required">*</span></label>
+              <label className="form-label">{t('autonomous.specialty')} <span className="required">*</span></label>
               <select className="form-control" {...f('type')}>
-                {PROF_TYPES.map(t => (
-                  <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>
+                {PROF_TYPES.map(profT => (
+                  <option key={profT.value} value={profT.value}>{profT.emoji} {profT.label}</option>
                 ))}
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label">Nacionalidade <span className="required">*</span></label>
+              <label className="form-label">{t('autonomous.nationality')} <span className="required">*</span></label>
               <select className="form-control" {...f('nationality')}>
-                <option value="brasileiro">🇧🇷 Brasileiro</option>
-                <option value="estrangeiro">🌎 Estrangeiro</option>
+                <option value="brasileiro">🇧🇷 {t('autonomous.brazilian')}</option>
+                <option value="estrangeiro">🌎 {t('autonomous.foreigner')}</option>
               </select>
             </div>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Nome Completo <span className="required">*</span></label>
+            <label className="form-label">{t('autonomous.fullName')} <span className="required">*</span></label>
             <input className="form-control" {...f('name')} required placeholder="Dr. João Silva" />
           </div>
 
@@ -311,7 +313,7 @@ export default function Autonomous() {
           <div className="form-grid form-grid-2">
             <div className="form-group">
               <label className="form-label">
-                CPF {form.nationality === 'brasileiro' && <span className="required">*</span>}
+                {t('autonomous.cpf')} {form.nationality === 'brasileiro' && <span className="required">*</span>}
               </label>
               <input className="form-control" {...f('cpf')} placeholder="000.000.000-00"
                 required={form.nationality === 'brasileiro'} />
@@ -329,11 +331,11 @@ export default function Autonomous() {
 
           <div className="form-grid form-grid-2">
             <div className="form-group">
-              <label className="form-label">Data de Nascimento</label>
+              <label className="form-label">{t('autonomous.birthdate')}</label>
               <input className="form-control" type="date" {...f('birthdate')} />
             </div>
             <div className="form-group">
-              <label className="form-label">Telefone</label>
+              <label className="form-label">{t('autonomous.phone')}</label>
               <input className="form-control" {...f('phone')} placeholder="(00) 00000-0000" />
             </div>
           </div>
@@ -342,23 +344,23 @@ export default function Autonomous() {
           <div style={{ borderTop: '1px solid var(--gray-100)', paddingTop: 16, marginTop: 4 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
               <i className="fas fa-bell" style={{ marginRight: 6, color: '#E8841A' }} />
-              Notificações por E-mail
+              {t('autonomous.notifications')}
             </div>
             <div style={{ fontSize: 11, color: 'var(--gray-400)', marginBottom: 12 }}>
               O e-mail do profissional receberá os avisos de cancelamento quando ativado.
             </div>
             <Toggle
-              label="Confirmação de consulta"
+              label={t('autonomous.emailConfirmations')}
               hint="E-mail enviado ao paciente no momento do agendamento"
               {...tog('email_confirmations')}
             />
             <Toggle
-              label="Lembrete 24h antes"
+              label={t('autonomous.emailReminders')}
               hint="E-mail com link para confirmar ou cancelar a consulta"
               {...tog('email_reminders')}
             />
             <Toggle
-              label="Recall após 6 meses"
+              label={t('autonomous.emailRecall')}
               hint="Lembrete automático para agendar nova consulta"
               {...tog('email_recall')}
             />
@@ -368,11 +370,11 @@ export default function Autonomous() {
           <div style={{ borderTop: '1px solid var(--gray-100)', paddingTop: 16, marginTop: 4 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
               <i className="fas fa-key" style={{ marginRight: 6, color: '#4DB8E8' }} />
-              Acesso ao Sistema
+              {t('autonomous.systemAccess')}
             </div>
 
             <div className="form-group">
-              <label className="form-label">E-mail de Login <span className="required">*</span></label>
+              <label className="form-label">{t('autonomous.loginEmail')} <span className="required">*</span></label>
               <input className="form-control" type="email" {...f('email')}
                 placeholder="profissional@email.com" required autoComplete="off" />
               <div style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 4 }}>
@@ -381,11 +383,11 @@ export default function Autonomous() {
             </div>
 
             <PasswordField
-              label={editing ? 'Nova Senha (deixe em branco para manter)' : 'Senha de Acesso'}
+              label={editing ? `${t('autonomous.newPassword')} (${t('autonomous.passwordHint')})` : t('autonomous.accessPassword')}
               value={form.password}
               onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
               required={!editing}
-              placeholder={editing ? 'Deixe em branco para manter' : 'Mínimo 6 caracteres'}
+              placeholder={editing ? t('autonomous.passwordHint') : 'Mínimo 6 caracteres'}
             />
 
             {!editing && (

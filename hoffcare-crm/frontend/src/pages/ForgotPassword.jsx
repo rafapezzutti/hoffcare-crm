@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 export default function ForgotPassword() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
@@ -42,7 +44,7 @@ export default function ForgotPassword() {
             </div>
           </div>
           <p style={{ marginTop: 10, fontSize: 11, color: '#adb5bd', letterSpacing: 2 }}>sistema de gestão clínica</p>
-          <h1 style={{ marginTop: 16, fontSize: 15, fontWeight: 600, color: '#495057' }}>Recuperar senha</h1>
+          <h1 style={{ marginTop: 16, fontSize: 15, fontWeight: 600, color: '#495057' }}>{t('forgotPassword.title')}</h1>
         </div>
 
         {sent ? (
@@ -57,7 +59,7 @@ export default function ForgotPassword() {
               Verifique também a pasta de spam.
             </p>
             <button className="btn btn-outline" onClick={() => navigate('/login')} style={{ width: '100%', justifyContent: 'center' }}>
-              <i className="fas fa-arrow-left" /> Voltar ao login
+              <i className="fas fa-arrow-left" /> {t('forgotPassword.backToLogin')}
             </button>
           </div>
         ) : (
@@ -65,12 +67,12 @@ export default function ForgotPassword() {
             {error && <div className="alert alert-error"><i className="fas fa-circle-exclamation" /> {error}</div>}
 
             <p style={{ fontSize: 13, color: '#6c757d', marginBottom: 20, lineHeight: 1.5 }}>
-              Informe seu e-mail cadastrado e enviaremos um link para você criar uma nova senha.
+              {t('forgotPassword.subtitle')}
             </p>
 
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label className="form-label">Email</label>
+                <label className="form-label">{t('forgotPassword.email')}</label>
                 <input
                   className="form-control"
                   type="email"
@@ -89,8 +91,8 @@ export default function ForgotPassword() {
                 style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}
               >
                 {loading
-                  ? <><span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> Enviando...</>
-                  : <><i className="fas fa-paper-plane" /> Enviar link de recuperação</>
+                  ? <><span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> {t('forgotPassword.sending')}</>
+                  : <><i className="fas fa-paper-plane" /> {t('forgotPassword.send')}</>
                 }
               </button>
             </form>
@@ -101,7 +103,7 @@ export default function ForgotPassword() {
                 style={{ background: 'none', border: 'none', color: '#4DB8E8', cursor: 'pointer', fontSize: 13 }}
               >
                 <i className="fas fa-arrow-left" style={{ marginRight: 6 }} />
-                Voltar ao login
+                {t('forgotPassword.backToLogin')}
               </button>
             </div>
           </>

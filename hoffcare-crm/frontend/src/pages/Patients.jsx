@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 
 export default function Patients() {
+  const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,30 +30,30 @@ export default function Patients() {
   const calcAge = (birthdate) => {
     if (!birthdate) return '-';
     const years = Math.floor((new Date() - new Date(birthdate)) / (365.25 * 24 * 60 * 60 * 1000));
-    return `${years} anos`;
+    return `${years} ${t('patients.years')}`;
   };
 
   return (
     <div className="page">
       <div className="page-header">
-        <div><h1 className="page-title">Pacientes</h1><p className="page-subtitle">{items.length} cadastrados</p></div>
-        <button className="btn btn-primary" onClick={() => navigate('/patients/new')}><i className="fas fa-user-plus" /> Novo Paciente</button>
+        <div><h1 className="page-title">{t('patients.title')}</h1><p className="page-subtitle">{items.length} {t('patients.registered')}</p></div>
+        <button className="btn btn-primary" onClick={() => navigate('/patients/new')}><i className="fas fa-user-plus" /> {t('patients.newPatient')}</button>
       </div>
 
       <div className="card">
         <div className="search-bar">
           <div className="search-input-wrapper">
             <i className="fas fa-search" />
-            <input className="form-control" placeholder="Buscar por nome ou CPF..." value={search} onChange={handleSearch} />
+            <input className="form-control" placeholder={t('patients.searchPlaceholder')} value={search} onChange={handleSearch} />
           </div>
         </div>
 
         {loading ? <div className="loading"><div className="spinner" /></div> : (
           <div className="table-container">
             <table className="table">
-              <thead><tr><th>Nome</th><th>CPF</th><th>Idade</th><th>Telefone</th><th>Email</th><th>Ações</th></tr></thead>
+              <thead><tr><th>{t('patients.name')}</th><th>{t('patients.cpf')}</th><th>{t('patients.age')}</th><th>{t('patients.phone')}</th><th>{t('patients.email')}</th><th>{t('patients.actions')}</th></tr></thead>
               <tbody>
-                {items.length === 0 && <tr><td colSpan={6}><div className="empty-state"><i className="fas fa-user-injured" /><p>Nenhum paciente encontrado</p></div></td></tr>}
+                {items.length === 0 && <tr><td colSpan={6}><div className="empty-state"><i className="fas fa-user-injured" /><p>{t('patients.empty')}</p></div></td></tr>}
                 {items.map(p => (
                   <tr key={p.id}>
                     <td><strong style={{ cursor: 'pointer', color: 'var(--blue-dark)' }} onClick={() => navigate(`/patients/${p.id}`)}>{p.name}</strong></td>

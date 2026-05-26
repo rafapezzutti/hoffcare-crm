@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Modal from '../components/Modal';
 
@@ -24,6 +25,7 @@ const Toggle = ({ label, hint, checked, onChange }) => (
 );
 
 export default function Clinics() {
+  const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(empty);
   const [editing, setEditing] = useState(null);
@@ -68,16 +70,16 @@ export default function Clinics() {
   return (
     <div className="page">
       <div className="page-header">
-        <div><h1 className="page-title">Consultórios</h1><p className="page-subtitle">Gerenciar unidades</p></div>
-        <button className="btn btn-primary" onClick={() => handleOpen()}><i className="fas fa-plus" /> Novo Consultório</button>
+        <div><h1 className="page-title">{t('clinics.title')}</h1><p className="page-subtitle">{t('clinics.subtitle')}</p></div>
+        <button className="btn btn-primary" onClick={() => handleOpen()}><i className="fas fa-plus" /> {t('clinics.newClinic')}</button>
       </div>
 
       <div className="card">
         <div className="table-container">
           <table className="table">
-            <thead><tr><th>Nome</th><th>Responsável</th><th>Telefone</th><th>Email</th><th>Ações</th></tr></thead>
+            <thead><tr><th>{t('clinics.name')}</th><th>{t('clinics.responsible')}</th><th>{t('clinics.phone')}</th><th>{t('clinics.email')}</th><th>{t('clinics.actions')}</th></tr></thead>
             <tbody>
-              {items.length === 0 && <tr><td colSpan={5}><div className="empty-state"><i className="fas fa-hospital" /><p>Nenhum consultório cadastrado</p></div></td></tr>}
+              {items.length === 0 && <tr><td colSpan={5}><div className="empty-state"><i className="fas fa-hospital" /><p>{t('clinics.empty')}</p></div></td></tr>}
               {items.map(c => (
                 <tr key={c.id}>
                   <td><strong>{c.name}</strong></td>
@@ -95,45 +97,45 @@ export default function Clinics() {
         </div>
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)} title={editing ? 'Editar Consultório' : 'Novo Consultório'}
-        footer={<><button className="btn btn-outline" onClick={() => setOpen(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleSubmit}>Salvar</button></>}>
+      <Modal open={open} onClose={() => setOpen(false)} title={editing ? t('clinics.editClinic') : t('clinics.newClinic')}
+        footer={<><button className="btn btn-outline" onClick={() => setOpen(false)}>{t('clinics.cancel')}</button><button className="btn btn-primary" onClick={handleSubmit}>{t('clinics.save')}</button></>}>
         {error && <div className="alert alert-error">{error}</div>}
         <form onSubmit={handleSubmit}>
-          <div className="form-group"><label className="form-label">Nome <span className="required">*</span></label><input className="form-control" {...f('name')} required /></div>
+          <div className="form-group"><label className="form-label">{t('clinics.name')} <span className="required">*</span></label><input className="form-control" {...f('name')} required /></div>
           <div className="form-grid form-grid-2">
-            <div className="form-group"><label className="form-label">Responsável</label><input className="form-control" {...f('responsible_name')} /></div>
-            <div className="form-group"><label className="form-label">CPF do Responsável</label><input className="form-control" {...f('responsible_cpf')} placeholder="000.000.000-00" /></div>
+            <div className="form-group"><label className="form-label">{t('clinics.responsible')}</label><input className="form-control" {...f('responsible_name')} /></div>
+            <div className="form-group"><label className="form-label">{t('clinics.responsibleCpf')}</label><input className="form-control" {...f('responsible_cpf')} placeholder="000.000.000-00" /></div>
           </div>
           <div className="form-grid form-grid-2">
-            <div className="form-group"><label className="form-label">CEP</label><input className="form-control" {...f('cep')} placeholder="00000-000" /></div>
-            <div className="form-group"><label className="form-label">Número</label><input className="form-control" {...f('number')} /></div>
+            <div className="form-group"><label className="form-label">{t('clinics.cep')}</label><input className="form-control" {...f('cep')} placeholder="00000-000" /></div>
+            <div className="form-group"><label className="form-label">{t('clinics.number')}</label><input className="form-control" {...f('number')} /></div>
           </div>
-          <div className="form-group"><label className="form-label">Rua</label><input className="form-control" {...f('street')} /></div>
-          <div className="form-group"><label className="form-label">Complemento</label><input className="form-control" {...f('complement')} /></div>
+          <div className="form-group"><label className="form-label">{t('clinics.street')}</label><input className="form-control" {...f('street')} /></div>
+          <div className="form-group"><label className="form-label">{t('clinics.complement')}</label><input className="form-control" {...f('complement')} /></div>
           <div className="form-grid form-grid-2">
-            <div className="form-group"><label className="form-label">Telefone</label><input className="form-control" {...f('phone')} placeholder="(00) 00000-0000" /></div>
-            <div className="form-group"><label className="form-label">Email <span style={{fontSize:11,color:'var(--gray-400)'}}>— usado para notificações</span></label><input className="form-control" type="email" {...f('email')} /></div>
+            <div className="form-group"><label className="form-label">{t('clinics.phone')}</label><input className="form-control" {...f('phone')} placeholder="(00) 00000-0000" /></div>
+            <div className="form-group"><label className="form-label">{t('clinics.email')} <span style={{fontSize:11,color:'var(--gray-400)'}}>— usado para notificações</span></label><input className="form-control" type="email" {...f('email')} /></div>
           </div>
 
           <div className="form-group" style={{ marginTop: 8 }}>
             <label className="form-label" style={{ marginBottom: 8 }}>
               <i className="fas fa-envelope" style={{ marginRight: 6, color: '#4DB8E8' }} />
-              Notificações por E-mail
+              {t('clinics.notifications')}
             </label>
             <Toggle
-              label="Confirmação de agendamento"
+              label={t('clinics.emailConfirmations')}
               hint="Paciente recebe e-mail ao ser agendado com links de confirmar/cancelar"
               checked={!!form.email_confirmations}
               onChange={v => setForm(p => ({ ...p, email_confirmations: v }))}
             />
             <Toggle
-              label="Lembrete 24h antes"
+              label={t('clinics.emailReminders')}
               hint="Paciente recebe lembrete no dia anterior com opção de confirmar ou cancelar"
               checked={!!form.email_reminders}
               onChange={v => setForm(p => ({ ...p, email_reminders: v }))}
             />
             <Toggle
-              label="Recall de 6 meses"
+              label={t('clinics.emailRecall')}
               hint="Paciente recebe e-mail após 6 meses sem consulta para remarcar"
               checked={!!form.email_recall}
               onChange={v => setForm(p => ({ ...p, email_recall: v }))}
