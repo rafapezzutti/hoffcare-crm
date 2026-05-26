@@ -43,16 +43,41 @@ router.post('/', auth, adminOnly, async (req, res) => {
 
 router.put('/:id', auth, adminOnly, async (req, res) => {
   const { name, responsible_name, responsible_cpf, cep, street, number, complement, phone, email,
-          email_confirmations, email_reminders, email_recall } = req.body;
+          email_confirmations, email_reminders, email_recall,
+          whatsapp_enabled, whatsapp_confirm, whatsapp_reminder, whatsapp_cancel,
+          whatsapp_reminder_hours, whatsapp_instance_id, whatsapp_token } = req.body;
   try {
-    const result = await pool.query(
-      `UPDATE clinics SET name=$1, responsible_name=$2, responsible_cpf=$3, cep=$4,
-       street=$5, number=$6, complement=$7, phone=$8, email=$9,
-       email_confirmations=$10, email_reminders=$11, email_recall=$12
-       WHERE id=$13 RETURNING *`,
-      [name, responsible_name, responsible_cpf, cep, street, number, complement, phone, email,
-       !!email_confirmations, !!email_reminders, !!email_recall, req.params.id]
-    );
+    // Monta query dinamicamente para não sobrescrever o token se vier vazio
+    let query, values;
+    if (whatsapp_token && whatsapp_token !== '***') {
+      query = `UPDATE clinics SET name=$1, responsible_name=$2, responsible_cpf=$3, cep=$4,
+               street=$5, number=$6, complement=$7, phone=$8, email=$9,
+               email_confirmations=$10, email_reminders=$11, email_recall=$12,
+               whatsapp_enabled=$13, whatsapp_confirm=$14, whatsapp_reminder=$15,
+               whatsapp_cancel=$16, whatsapp_reminder_hours=$17,
+               whatsapp_instance_id=$18, whatsapp_token=$19
+               WHERE id=$20 RETURNING *`;
+      values = [name, responsible_name, responsible_cpf, cep, street, number, complement, phone, email,
+                !!email_confirmations, !!email_reminders, !!email_recall,
+                !!whatsapp_enabled, !!whatsapp_confirm, !!whatsapp_reminder, !!whatsapp_cancel,
+                whatsapp_reminder_hours || 24, whatsapp_instance_id || null, whatsapp_token,
+                req.params.id];
+    } else {
+      query = `UPDATE clinics SET name=$1, responsible_name=$2, responsible_cpf=$3, cep=$4,
+               street=$5, number=$6, complement=$7, phone=$8, email=$9,
+               email_confirmations=$10, email_reminders=$11, email_recall=$12,
+               whatsapp_enabled=$13, whatsapp_confirm=$14, whatsapp_reminder=$15,
+               whatsapp_cancel=$16, whatsapp_reminder_hours=$17,
+               whatsapp_instance_id=$18
+               WHERE id=$19 RETURNING *`;
+      values = [name, responsible_name, responsible_cpf, cep, street, number, complement, phone, email,
+                !!email_confirmations, !!email_reminders, !!email_recall,
+                !!whatsapp_enabled, !!whatsapp_confirm, !!whatsapp_reminder, !!whatsapp_cancel,
+                whatsapp_reminder_hours || 24, whatsapp_instance_id || null,
+                req.params.id];
+    }
+
+    const result = await pool.query(query, values);
     if (!result.rows[0]) return res.status(404).json({ error: 'Consultório não encontrado' });
     res.json(result.rows[0]);
   } catch (err) {
