@@ -82,10 +82,12 @@ export default function Clinics() {
     if (!testPhone) return;
     setTestLoading(true); setTestResult(null);
     try {
-      const res = await api.post('/whatsapp/test', { phone: testPhone });
+      const res = await api.post('/whatsapp/test', { phone: testPhone, clinic_id: editing?.id });
       setTestResult({ ok: true, msg: res.data.message });
     } catch (err) {
-      setTestResult({ ok: false, msg: err.response?.data?.error || 'Erro ao enviar' });
+      const data = err.response?.data;
+      const msg = data?.detail ? `${data.error} — ${data.detail}` : (data?.error || 'Erro ao enviar');
+      setTestResult({ ok: false, msg });
     } finally { setTestLoading(false); }
   };
 

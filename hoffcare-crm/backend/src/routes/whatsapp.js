@@ -59,13 +59,16 @@ router.put('/settings', auth, async (req, res) => {
 
 // ── POST /api/whatsapp/test
 router.post('/test', auth, async (req, res) => {
-  const { phone } = req.body;
+  const { phone, clinic_id } = req.body;
   if (!phone) return res.status(400).json({ error: 'Número obrigatório' });
+
+  // Admins podem testar qualquer clínica passando clinic_id; fallback para a própria clínica
+  const targetClinicId = clinic_id || req.user.clinic_id;
 
   try {
     const result = await pool.query(
       'SELECT whatsapp_instance_id, whatsapp_token FROM clinics WHERE id = $1',
-      [req.user.clinic_id]
+      [targetClinicId]
     );
     const { whatsapp_instance_id, whatsapp_token } = result.rows[0] || {};
     if (!whatsapp_instance_id || !whatsapp_token)
@@ -76,7 +79,11 @@ router.post('/test', auth, async (req, res) => {
     const r = await sendText(whatsapp_instance_id, whatsapp_token, phone, msg);
 
     if (r.ok) res.json({ ok: true, message: 'Mensagem enviada com sucesso!' });
-    else res.status(400).json({ error: 'Falha ao enviar. Verifique Instance ID e Token.', detail: r.error });
+    else {
+      console.error('[WhatsApp test] Z-API error:', JSON.stringify(r.error));
+      const detail = typeof r.error === 'object' ? JSON.stringify(r.error) : String(r.error);
+      res.status(400).json({ error: 'Falha ao enviar. Verifique Instance ID e Token.', detail });
+    }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
