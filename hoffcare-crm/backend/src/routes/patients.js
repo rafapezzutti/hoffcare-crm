@@ -96,7 +96,7 @@ router.post('/', auth, async (req, res) => {
     res.status(201).json(patient);
   } catch (err) {
     await client.query('ROLLBACK');
-    if (err.code === '23505') return res.status(400).json({ error: 'CPF já cadastrado' });
+    if (err.code === '23505') return res.status(400).json({ error: 'CPF já cadastrado neste consultório' });
     res.status(500).json({ error: err.message });
   } finally {
     client.release();
