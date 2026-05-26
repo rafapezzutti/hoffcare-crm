@@ -96,7 +96,7 @@ export default function History() {
                 {group.records.map(r => (
                   <tr key={r.id}>
                     <td><strong>{dayjs(r.consultation_date).format('DD/MM/YYYY')}</strong></td>
-                    <td><span className={`badge ${r.type === 'medico' ? 'badge-orange' : 'badge-blue'}`}>{getProfType(r.type).label}</span></td>
+                    <td>{(() => { const pt = getProfType(r.type); return <span style={{ display:'inline-flex', alignItems:'center', gap:4, background:pt.bg, color:pt.color, border:`1px solid ${pt.border}33`, borderRadius:4, padding:'2px 8px', fontSize:12, fontWeight:600 }}>{pt.emoji} {pt.labelKey ? t(pt.labelKey) : pt.label}</span>; })()}</td>
                     <td>{r.professional_name}<div style={{ fontSize: 11, color: 'var(--gray-500)' }}>{r.crm_cro}</div></td>
                     <td style={{ fontWeight: 600, color: 'var(--success)' }}>R$ {Number(r.total_value).toFixed(2)}</td>
                     <td><div className="table-actions">

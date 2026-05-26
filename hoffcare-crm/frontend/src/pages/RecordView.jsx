@@ -100,7 +100,7 @@ export default function RecordView() {
             <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--gray-500)', marginBottom: 10 }}>{t('recordView.professional')}</h3>
             <PrintRow label={t('recordView.name')} value={record.professional_name} />
             {record.crm_cro && <PrintRow label={profType.council} value={record.crm_cro} />}
-            <PrintRow label={t('recordView.specialty')} value={profType.label} />
+            <PrintRow label={t('recordView.specialty')} value={profType.labelKey ? t(profType.labelKey) : profType.label} />
           </div>
         </div>
 

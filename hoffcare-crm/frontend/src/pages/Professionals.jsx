@@ -93,7 +93,7 @@ export default function Professionals() {
                         border: `1px solid ${profType.border}33`,
                         borderRadius: 4, padding: '2px 8px', fontSize: 12, fontWeight: 600
                       }}>
-                        {profType.emoji} {profType.label}
+                        {profType.emoji} {profType.labelKey ? t(profType.labelKey) : profType.label}
                       </span>
                     </td>
                     <td><strong>{p.name}</strong></td>

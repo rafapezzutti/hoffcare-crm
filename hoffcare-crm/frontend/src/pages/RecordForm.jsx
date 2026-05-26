@@ -168,13 +168,13 @@ export default function RecordForm() {
                 borderRadius: 6, padding: '8px 12px', fontSize: 13, fontWeight: 600, color: currentType.color
               }}>
                 <span>{currentType.emoji}</span>
-                <span>{currentType.label}</span>
+                <span>{currentType.labelKey ? t(currentType.labelKey) : currentType.label}</span>
               </div>
             ) : (
               <select className="form-control" value={form.type}
                 onChange={e => setForm(f => ({ ...f, type: e.target.value, professional_id: '', procedures: [] }))}>
-                {PROF_TYPES.map(t => (
-                  <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>
+                {PROF_TYPES.map(pt => (
+                  <option key={pt.value} value={pt.value}>{pt.emoji} {pt.labelKey ? t(pt.labelKey) : pt.label}</option>
                 ))}
               </select>
             )}

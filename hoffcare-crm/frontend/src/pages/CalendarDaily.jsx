@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Modal from '../components/Modal';
 import dayjs from 'dayjs';
@@ -14,6 +15,7 @@ const emptyForm = {
 const hours = Array.from({ length: 14 }, (_, i) => i + 7); // 7h to 20h
 
 export default function CalendarDaily() {
+  const { t } = useTranslation();
   const [date, setDate] = useState(dayjs().format('YYYY-MM-DD'));
   const [appointments, setAppointments] = useState([]);
   const [patients, setPatients] = useState([]);
@@ -99,8 +101,8 @@ export default function CalendarDaily() {
           <button className="btn btn-outline" onClick={() => setDate(dayjs(date).subtract(1, 'day').format('YYYY-MM-DD'))}><i className="fas fa-chevron-left" /></button>
           <input type="date" className="form-control" value={date} onChange={e => setDate(e.target.value)} style={{ width: 160 }} />
           <button className="btn btn-outline" onClick={() => setDate(dayjs(date).add(1, 'day').format('YYYY-MM-DD'))}><i className="fas fa-chevron-right" /></button>
-          <button className="btn btn-outline btn-sm" onClick={() => setDate(dayjs().format('YYYY-MM-DD'))}>Hoje</button>
-          <button className="btn btn-primary" onClick={() => handleOpen()}><i className="fas fa-plus" /> Nova Consulta</button>
+          <button className="btn btn-outline btn-sm" onClick={() => setDate(dayjs().format('YYYY-MM-DD'))}>{t('calendar.today')}</button>
+          <button className="btn btn-primary" onClick={() => handleOpen()}><i className="fas fa-plus" /> {t('calendar.newAppointment')}</button>
         </div>
       </div>
 
@@ -138,21 +140,21 @@ export default function CalendarDaily() {
         })}
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)} title={editing ? 'Editar Consulta' : 'Nova Consulta'} size="modal-lg"
-        footer={<><button className="btn btn-outline" onClick={() => setOpen(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleSubmit}>Salvar</button></>}>
+      <Modal open={open} onClose={() => setOpen(false)} title={editing ? t('calendar.editAppointment') : t('calendar.newConsultation')} size="modal-lg"
+        footer={<><button className="btn btn-outline" onClick={() => setOpen(false)}>{t('calendar.cancel')}</button><button className="btn btn-primary" onClick={handleSubmit}>{t('calendar.save')}</button></>}>
         {error && <div className="alert alert-error">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Especialidade <span className="required">*</span></label>
+            <label className="form-label">{t('calendar.specialty')} <span className="required">*</span></label>
             <select className="form-control" {...f('type')} onChange={e => setForm(p => ({ ...p, type: e.target.value, professional_id: '', room_id: '' }))}>
-              {PROF_TYPES.map(t => (
-                <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>
+              {PROF_TYPES.map(pt => (
+                <option key={pt.value} value={pt.value}>{pt.emoji} {pt.labelKey ? t(pt.labelKey) : pt.label}</option>
               ))}
             </select>
           </div>
           <div className="form-group">
-            <label className="form-label">Paciente <span className="required">*</span></label>
-            <input className="form-control" placeholder="Buscar paciente..." value={patientSearch} onChange={e => { setPatientSearch(e.target.value); setForm(p => ({ ...p, patient_id: '' })); }} />
+            <label className="form-label">{t('calendar.patient')} <span className="required">*</span></label>
+            <input className="form-control" placeholder={t('calendar.searchPatient')} value={patientSearch} onChange={e => { setPatientSearch(e.target.value); setForm(p => ({ ...p, patient_id: '' })); }} />
             {patientSearch && !form.patient_id && (
               <div style={{ border: '1px solid var(--gray-200)', borderRadius: 6, maxHeight: 160, overflowY: 'auto', background: 'white', position: 'absolute', zIndex: 10, width: 490 }}>
                 {filteredPatients.slice(0, 10).map(p => (
@@ -161,7 +163,7 @@ export default function CalendarDaily() {
                     {p.name} — {p.cpf}
                   </div>
                 ))}
-                {filteredPatients.length === 0 && <div style={{ padding: '8px 12px', color: 'var(--gray-400)', fontSize: 13 }}>Nenhum paciente encontrado</div>}
+                {filteredPatients.length === 0 && <div style={{ padding: '8px 12px', color: 'var(--gray-400)', fontSize: 13 }}>{t('common.noData')}</div>}
               </div>
             )}
           </div>

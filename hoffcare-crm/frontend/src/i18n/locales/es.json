@@ -341,6 +341,20 @@
     "cancel": "Cancelar",
     "save": "Guardar"
   },
+  "profTypes": {
+    "medico": "Médico",
+    "dentista": "Dentista",
+    "fisioterapeuta": "Fisioterapeuta",
+    "psicologo": "Psicólogo",
+    "nutricionista": "Nutricionista",
+    "fonoaudiologo": "Fonoaudiólogo",
+    "terapeuta_ocupacional": "Terapeuta Ocupacional",
+    "enfermeiro": "Enfermero",
+    "biomedico": "Biomédico",
+    "farmaceutico": "Farmacéutico",
+    "quiropraxista": "Quiropraxista",
+    "esteticista": "Esteticista"
+  },
   "common": {
     "loading": "Cargando...",
     "save": "Guardar",
