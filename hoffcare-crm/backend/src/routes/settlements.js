@@ -147,27 +147,28 @@ router.get('/statement/:professional_id', auth, async (req, res) => {
 
     const totalRecordsGross = records.reduce((s, r) => s + parseFloat(r.total_value), 0);
 
-    // Aplica repasse % se configurado (dentistas e outros com % negociado)
-    // repasse_percentual = % que o profissional recebe sobre os procedimentos
     const repassePercent = professional.repasse_percentual != null
       ? parseFloat(professional.repasse_percentual)
       : 100; // sem repasse configurado = recebe 100%
-    const totalRecords = totalRecordsGross * repassePercent / 100;
 
-    // a_pagar: clínica paga ao profissional → profissional RECEBE → soma
+    // a_pagar: clínica paga ao profissional → soma à base
     const totalSettlementsIn = settlements
       .filter(s => s.type === 'a_pagar')
       .reduce((s, r) => s + parseFloat(r.value), 0);
 
-    // a_receber: profissional paga à clínica → profissional PAGA → subtrai
+    // a_receber: profissional paga à clínica → subtrai da base
     const totalSettlementsOut = settlements
       .filter(s => s.type === 'a_receber')
       .reduce((s, r) => s + parseFloat(r.value), 0);
 
     const totalRentals = rentals.reduce((s, r) => s + parseFloat(r.value), 0);
 
-    // Líquido do profissional = repasse dos procedimentos + o que clínica paga - o que prof paga - aluguéis
-    const netTotal = totalRecords + totalSettlementsIn - totalSettlementsOut - totalRentals;
+    // Acertos entram ANTES do repasse %:
+    // base = procedimentos + acertos da clínica − acertos do profissional
+    // líquido = base × (repasse% / 100) − aluguéis
+    const baseBeforeRepasse = totalRecordsGross + totalSettlementsIn - totalSettlementsOut;
+    const totalAfterRepasse = baseBeforeRepasse * repassePercent / 100;
+    const netTotal = totalAfterRepasse - totalRentals;
 
     res.json({
       professional,
@@ -179,9 +180,11 @@ router.get('/statement/:professional_id', auth, async (req, res) => {
       summary: {
         total_records_gross: totalRecordsGross,
         repasse_percent: repassePercent,
-        total_records: totalRecords,       // já com repasse aplicado
-        total_settlements_in: totalSettlementsIn,   // clínica paga prof
-        total_settlements_out: totalSettlementsOut,  // prof paga clínica
+        total_settlements_in: totalSettlementsIn,
+        total_settlements_out: totalSettlementsOut,
+        base_before_repasse: baseBeforeRepasse,   // base antes de aplicar o %
+        total_after_repasse: totalAfterRepasse,    // base × %
+        total_records: totalAfterRepasse,          // alias para compatibilidade com o frontend
         total_rentals: totalRentals,
         net_total: netTotal,
       }

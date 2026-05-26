@@ -313,27 +313,50 @@ export default function ProfessionalStatement() {
 
             {/* Cards de resumo */}
             <div className="stats-grid" style={{ marginBottom: 24 }}>
+              {/* Procedimentos brutos */}
               <div className="stat-card">
                 <div className="stat-icon green"><i className="fas fa-stethoscope" /></div>
                 <div>
                   <div className="stat-value" style={{ fontSize: 20, color: 'var(--success)' }}>
-                    R$ {fmt(data.summary.total_records)}
+                    R$ {fmt(data.summary.total_records_gross)}
                   </div>
-                  <div className="stat-label">
-                    {data.records.length} atendimento(s)
-                    {data.summary.repasse_percent < 100 && (
-                      <span style={{ marginLeft: 6, background: 'rgba(77,184,232,0.15)', color: '#1a7fad', borderRadius: 4, padding: '1px 6px', fontSize: 11, fontWeight: 600 }}>
-                        {data.summary.repasse_percent}% repasse
-                      </span>
-                    )}
-                  </div>
-                  {data.summary.repasse_percent < 100 && (
-                    <div style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 2 }}>
-                      Bruto R$ {fmt(data.summary.total_records_gross)}
-                    </div>
-                  )}
+                  <div className="stat-label">{data.records.length} atendimento(s) — bruto</div>
                 </div>
               </div>
+
+              {/* Acertos (computados antes do repasse) */}
+              {data.settlements.length > 0 && (
+                <div className="stat-card">
+                  <div className="stat-icon blue"><i className="fas fa-handshake" /></div>
+                  <div>
+                    <div className="stat-value" style={{ fontSize: 20,
+                      color: data.summary.total_settlements_in - data.summary.total_settlements_out >= 0 ? 'var(--success)' : '#dc3545'
+                    }}>
+                      {data.summary.total_settlements_in - data.summary.total_settlements_out >= 0 ? '+' : '−'} R$ {fmt(Math.abs(data.summary.total_settlements_in - data.summary.total_settlements_out))}
+                    </div>
+                    <div className="stat-label">{data.settlements.length} acerto(s) antes do repasse</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Repasse % aplicado sobre (procedimentos + acertos) */}
+              {data.summary.repasse_percent < 100 && (
+                <div className="stat-card">
+                  <div className="stat-icon" style={{ background: 'rgba(77,184,232,0.15)' }}>
+                    <i className="fas fa-percent" style={{ color: '#1a7fad' }} />
+                  </div>
+                  <div>
+                    <div className="stat-value" style={{ fontSize: 20, color: '#1a7fad' }}>
+                      R$ {fmt(data.summary.total_after_repasse)}
+                    </div>
+                    <div className="stat-label">
+                      Base R$ {fmt(data.summary.base_before_repasse)} × {data.summary.repasse_percent}%
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Locações */}
               {data.rentals.length > 0 && (
                 <div className="stat-card">
                   <div className="stat-icon orange"><i className="fas fa-key" /></div>
@@ -342,19 +365,6 @@ export default function ProfessionalStatement() {
                       − R$ {fmt(data.summary.total_rentals)}
                     </div>
                     <div className="stat-label">{data.rentals.length} locação(ões)</div>
-                  </div>
-                </div>
-              )}
-              {data.settlements.length > 0 && (
-                <div className="stat-card">
-                  <div className="stat-icon blue"><i className="fas fa-handshake" /></div>
-                  <div>
-                    <div className="stat-value" style={{ fontSize: 20,
-                      color: data.summary.total_settlements_in - data.summary.total_settlements_out >= 0 ? 'var(--success)' : '#dc3545'
-                    }}>
-                      R$ {fmt(data.summary.total_settlements_in - data.summary.total_settlements_out)}
-                    </div>
-                    <div className="stat-label">{data.settlements.length} acerto(s)</div>
                   </div>
                 </div>
               )}
@@ -497,10 +507,14 @@ export default function ProfessionalStatement() {
                 R$ {fmt(data.summary.net_total)}
               </div>
               <div style={{ fontSize: 12, color: '#6c757d', marginTop: 8 }}>
-                Procedimentos R$ {fmt(data.summary.total_records)}
-                {data.summary.repasse_percent < 100 && ` (${data.summary.repasse_percent}% de R$ ${fmt(data.summary.total_records_gross)})`}
+                {data.summary.repasse_percent < 100
+                  ? `(R$ ${fmt(data.summary.total_records_gross)} ± acertos) × ${data.summary.repasse_percent}% = R$ ${fmt(data.summary.total_after_repasse)}`
+                  : `Procedimentos R$ ${fmt(data.summary.total_records_gross)}`
+                }
+                {data.settlements.length > 0 && data.summary.repasse_percent >= 100 &&
+                  ` ± Acertos R$ ${fmt(Math.abs(data.summary.total_settlements_in - data.summary.total_settlements_out))}`
+                }
                 {data.rentals.length > 0 && ` − Locações R$ ${fmt(data.summary.total_rentals)}`}
-                {data.settlements.length > 0 && ` ± Acertos R$ ${fmt(Math.abs(data.summary.total_settlements_in - data.summary.total_settlements_out))}`}
               </div>
             </div>
           </div>
