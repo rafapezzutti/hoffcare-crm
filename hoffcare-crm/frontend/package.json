@@ -16,9 +16,7 @@
     "react-router-dom": "^6.21.3",
     "react-to-print": "^2.15.1",
     "i18next": "^23.11.5",
-    "react-i18next": "^14.1.2"
-  },
-  "devDependencies": {
+    "react-i18next": "^14.1.2",
     "@vitejs/plugin-react": "^4.2.1",
     "vite": "^5.0.11"
   }
