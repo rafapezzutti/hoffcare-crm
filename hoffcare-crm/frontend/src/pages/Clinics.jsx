@@ -10,7 +10,7 @@ const empty = {
   email_confirmations: false, email_reminders: false, email_recall: false,
   whatsapp_enabled: false, whatsapp_confirm: false, whatsapp_reminder: false,
   whatsapp_cancel: false, whatsapp_reminder_hours: 24,
-  whatsapp_instance_id: '', whatsapp_token: ''
+  whatsapp_instance_id: '', whatsapp_token: '', whatsapp_security_token: ''
 };
 
 const Toggle = ({ label, hint, checked, onChange }) => (
@@ -173,9 +173,13 @@ export default function Clinics() {
                     <label className="form-label" style={{ fontSize: 12 }}>Instance ID <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>— obtido no painel Z-API</span></label>
                     <input className="form-control" style={{ fontSize: 13 }} placeholder="ex: 3ABC1D2E3F..." {...f('whatsapp_instance_id')} />
                   </div>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" style={{ fontSize: 12 }}>Token <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>— token de segurança da instância</span></label>
+                  <div className="form-group" style={{ marginBottom: 12 }}>
+                    <label className="form-label" style={{ fontSize: 12 }}>Token <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>— token da instância (painel Z-API)</span></label>
                     <input className="form-control" style={{ fontSize: 13 }} type="password" placeholder="Cole o token aqui..." {...f('whatsapp_token')} />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: 12 }}>Security Token <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>— Client-Token da sua conta Z-API</span></label>
+                    <input className="form-control" style={{ fontSize: 13 }} type="password" placeholder="Cole o Security Token aqui..." {...f('whatsapp_security_token')} />
                   </div>
                 </div>
 

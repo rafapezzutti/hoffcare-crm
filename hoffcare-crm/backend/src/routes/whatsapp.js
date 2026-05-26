@@ -67,16 +67,16 @@ router.post('/test', auth, async (req, res) => {
 
   try {
     const result = await pool.query(
-      'SELECT whatsapp_instance_id, whatsapp_token FROM clinics WHERE id = $1',
+      'SELECT whatsapp_instance_id, whatsapp_token, whatsapp_security_token FROM clinics WHERE id = $1',
       [targetClinicId]
     );
-    const { whatsapp_instance_id, whatsapp_token } = result.rows[0] || {};
+    const { whatsapp_instance_id, whatsapp_token, whatsapp_security_token } = result.rows[0] || {};
     if (!whatsapp_instance_id || !whatsapp_token)
       return res.status(400).json({ error: 'Configure o Instance ID e Token antes de testar' });
 
     const { sendText } = require('../services/whatsapp');
     const msg = `✅ *P. Soluções para Saúde*\n\nTeste de integração WhatsApp realizado com sucesso! 🎉`;
-    const r = await sendText(whatsapp_instance_id, whatsapp_token, phone, msg);
+    const r = await sendText(whatsapp_instance_id, whatsapp_token, phone, msg, whatsapp_security_token);
 
     if (r.ok) res.json({ ok: true, message: 'Mensagem enviada com sucesso!' });
     else {
