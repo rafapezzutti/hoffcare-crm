@@ -262,7 +262,23 @@ export default function ProfessionalStatement() {
         </div>
       )}
 
-      {data && (
+      {data && (() => {
+        const isEmpty = data.records.length === 0 && data.rentals.length === 0 && data.settlements.length === 0;
+        if (isEmpty) return (
+          <div className="card">
+            <div className="empty-state" style={{ padding: 60 }}>
+              <i className="fas fa-calendar-times" style={{ fontSize: 48, color: 'var(--gray-300)' }} />
+              <p style={{ marginTop: 16, fontSize: 16, fontWeight: 600, color: 'var(--gray-600)' }}>
+                Nenhum registro encontrado
+              </p>
+              <p style={{ fontSize: 13, color: 'var(--gray-400)', marginTop: 4 }}>
+                {data.professional?.name} não possui atendimentos, locações ou acertos em{' '}
+                <strong>{MONTHS[selMonth - 1]}/{selYear}</strong>.
+              </p>
+            </div>
+          </div>
+        );
+        return (
         <>
           {/* Botões de ação */}
           <div style={{ display: 'flex', gap: 12, marginBottom: 16, justifyContent: 'flex-end' }}>
@@ -474,7 +490,8 @@ export default function ProfessionalStatement() {
             </div>
           </div>
         </>
-      )}
+        );
+      })()}
 
       {!data && !loading && (
         <div className="card">

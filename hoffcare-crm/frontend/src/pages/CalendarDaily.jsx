@@ -12,7 +12,8 @@ const emptyForm = {
   appointment_date: '', duration_minutes: 30, notes: '', status: 'pending_confirmation'
 };
 
-const hours = Array.from({ length: 14 }, (_, i) => i + 7); // 7h to 20h
+const DEFAULT_START_HOUR = 7;
+const DEFAULT_END_HOUR = 20;
 
 export default function CalendarDaily() {
   const { t } = useTranslation();
@@ -73,6 +74,12 @@ export default function CalendarDaily() {
   const f = (field) => ({ value: form[field] || '', onChange: e => setForm(p => ({ ...p, [field]: e.target.value })) });
 
   const getAptAtHour = (h) => appointments.filter(a => dayjs(a.appointment_date).hour() === h);
+
+  // Grade de horas: sempre mostra 7h–20h, mas expande se houver consultas fora desse intervalo
+  const aptHours = appointments.map(a => dayjs(a.appointment_date).hour());
+  const startHour = aptHours.length > 0 ? Math.min(DEFAULT_START_HOUR, Math.min(...aptHours)) : DEFAULT_START_HOUR;
+  const endHour   = aptHours.length > 0 ? Math.max(DEFAULT_END_HOUR,   Math.max(...aptHours)) : DEFAULT_END_HOUR;
+  const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => i + startHour);
 
   const statusColor = {
     scheduled: 'badge-blue',
