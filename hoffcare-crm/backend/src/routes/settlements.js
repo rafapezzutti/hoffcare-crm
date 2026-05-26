@@ -145,14 +145,28 @@ router.get('/statement/:professional_id', auth, async (req, res) => {
     const settlements = settlementsRes.rows;
     const rentals = rentalsRes.rows;
 
-    const totalRecords = records.reduce((s, r) => s + parseFloat(r.total_value), 0);
-    const totalSettlementsOut = settlements
+    const totalRecordsGross = records.reduce((s, r) => s + parseFloat(r.total_value), 0);
+
+    // Aplica repasse % se configurado (dentistas e outros com % negociado)
+    // repasse_percentual = % que o profissional recebe sobre os procedimentos
+    const repassePercent = professional.repasse_percentual != null
+      ? parseFloat(professional.repasse_percentual)
+      : 100; // sem repasse configurado = recebe 100%
+    const totalRecords = totalRecordsGross * repassePercent / 100;
+
+    // a_pagar: clínica paga ao profissional → profissional RECEBE → soma
+    const totalSettlementsIn = settlements
       .filter(s => s.type === 'a_pagar')
       .reduce((s, r) => s + parseFloat(r.value), 0);
-    const totalSettlementsIn = settlements
+
+    // a_receber: profissional paga à clínica → profissional PAGA → subtrai
+    const totalSettlementsOut = settlements
       .filter(s => s.type === 'a_receber')
       .reduce((s, r) => s + parseFloat(r.value), 0);
+
     const totalRentals = rentals.reduce((s, r) => s + parseFloat(r.value), 0);
+
+    // Líquido do profissional = repasse dos procedimentos + o que clínica paga - o que prof paga - aluguéis
     const netTotal = totalRecords + totalSettlementsIn - totalSettlementsOut - totalRentals;
 
     res.json({
@@ -163,9 +177,11 @@ router.get('/statement/:professional_id', auth, async (req, res) => {
       settlements,
       rentals,
       summary: {
-        total_records: totalRecords,
-        total_settlements_out: totalSettlementsOut,
-        total_settlements_in: totalSettlementsIn,
+        total_records_gross: totalRecordsGross,
+        repasse_percent: repassePercent,
+        total_records: totalRecords,       // já com repasse aplicado
+        total_settlements_in: totalSettlementsIn,   // clínica paga prof
+        total_settlements_out: totalSettlementsOut,  // prof paga clínica
         total_rentals: totalRentals,
         net_total: netTotal,
       }

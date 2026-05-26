@@ -319,7 +319,19 @@ export default function ProfessionalStatement() {
                   <div className="stat-value" style={{ fontSize: 20, color: 'var(--success)' }}>
                     R$ {fmt(data.summary.total_records)}
                   </div>
-                  <div className="stat-label">{data.records.length} atendimento(s)</div>
+                  <div className="stat-label">
+                    {data.records.length} atendimento(s)
+                    {data.summary.repasse_percent < 100 && (
+                      <span style={{ marginLeft: 6, background: 'rgba(77,184,232,0.15)', color: '#1a7fad', borderRadius: 4, padding: '1px 6px', fontSize: 11, fontWeight: 600 }}>
+                        {data.summary.repasse_percent}% repasse
+                      </span>
+                    )}
+                  </div>
+                  {data.summary.repasse_percent < 100 && (
+                    <div style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 2 }}>
+                      Bruto R$ {fmt(data.summary.total_records_gross)}
+                    </div>
+                  )}
                 </div>
               </div>
               {data.rentals.length > 0 && (
@@ -337,7 +349,9 @@ export default function ProfessionalStatement() {
                 <div className="stat-card">
                   <div className="stat-icon blue"><i className="fas fa-handshake" /></div>
                   <div>
-                    <div className="stat-value" style={{ fontSize: 20 }}>
+                    <div className="stat-value" style={{ fontSize: 20,
+                      color: data.summary.total_settlements_in - data.summary.total_settlements_out >= 0 ? 'var(--success)' : '#dc3545'
+                    }}>
                       R$ {fmt(data.summary.total_settlements_in - data.summary.total_settlements_out)}
                     </div>
                     <div className="stat-label">{data.settlements.length} acerto(s)</div>
@@ -483,9 +497,10 @@ export default function ProfessionalStatement() {
                 R$ {fmt(data.summary.net_total)}
               </div>
               <div style={{ fontSize: 12, color: '#6c757d', marginTop: 8 }}>
-                Atendimentos R$ {fmt(data.summary.total_records)}
+                Procedimentos R$ {fmt(data.summary.total_records)}
+                {data.summary.repasse_percent < 100 && ` (${data.summary.repasse_percent}% de R$ ${fmt(data.summary.total_records_gross)})`}
                 {data.rentals.length > 0 && ` − Locações R$ ${fmt(data.summary.total_rentals)}`}
-                {data.settlements.length > 0 && ` ± Acertos R$ ${fmt(data.summary.total_settlements_in - data.summary.total_settlements_out)}`}
+                {data.settlements.length > 0 && ` ± Acertos R$ ${fmt(Math.abs(data.summary.total_settlements_in - data.summary.total_settlements_out))}`}
               </div>
             </div>
           </div>

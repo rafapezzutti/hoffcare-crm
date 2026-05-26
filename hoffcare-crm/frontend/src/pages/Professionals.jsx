@@ -6,12 +6,13 @@ import { PROF_TYPES, getProfType } from '../config/professionalTypes';
 import { useAuth } from '../context/AuthContext';
 import { formatPhone, formatCPF } from '../utils/format';
 
-const empty = { type: 'medico', name: '', cpf: '', crm_cro: '', birthdate: '', email: '', phone: '' };
+const empty = { type: 'medico', name: '', cpf: '', crm_cro: '', birthdate: '', email: '', phone: '', repasse_percentual: '' };
 
 export default function Professionals() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const isAutonomous = !!user?.is_autonomous;
+  const canEditRepasse = ['responsavel', 'admin'].includes(user?.role);
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState(empty);
@@ -153,6 +154,45 @@ export default function Professionals() {
           <div className="form-grid form-grid-2">
             <div className="form-group"><label className="form-label">Email</label><input className="form-control" type="email" {...f('email')} /></div>
             <div className="form-group"><label className="form-label">Telefone</label><input className="form-control" {...f('phone')} placeholder="(00) 00000-0000" /></div>
+          </div>
+
+          {/* Repasse % — visível para todos, editável só por responsavel/admin */}
+          <div className="form-group" style={{
+            background: canEditRepasse ? 'rgba(77,184,232,0.06)' : 'var(--gray-50)',
+            border: '1px solid',
+            borderColor: canEditRepasse ? 'rgba(77,184,232,0.3)' : 'var(--gray-200)',
+            borderRadius: 8, padding: '12px 16px'
+          }}>
+            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <i className="fas fa-percent" style={{ color: canEditRepasse ? 'var(--blue)' : 'var(--gray-400)', fontSize: 12 }} />
+              Repasse ao profissional (%)
+              {!canEditRepasse && (
+                <span style={{ marginLeft: 4, fontSize: 11, color: 'var(--gray-400)', fontWeight: 400 }}>
+                  <i className="fas fa-lock" style={{ marginRight: 3 }} />restrito a responsável/admin
+                </span>
+              )}
+            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                className="form-control"
+                type="number"
+                min="0"
+                max="100"
+                step="0.5"
+                placeholder={canEditRepasse ? 'Ex: 70 (para 70%)' : '—'}
+                style={{ maxWidth: 160 }}
+                disabled={!canEditRepasse}
+                {...f('repasse_percentual')}
+              />
+              {form.repasse_percentual && (
+                <span style={{ fontSize: 13, color: 'var(--gray-500)' }}>
+                  Profissional recebe <strong style={{ color: 'var(--blue)' }}>{form.repasse_percentual}%</strong> dos procedimentos
+                </span>
+              )}
+              {!form.repasse_percentual && canEditRepasse && (
+                <span style={{ fontSize: 12, color: 'var(--gray-400)' }}>Vazio = recebe 100%</span>
+              )}
+            </div>
           </div>
         </form>
       </Modal>
