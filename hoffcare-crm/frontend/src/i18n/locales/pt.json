@@ -320,16 +320,25 @@
     "subtitle": "Gerenciar profissionais com acesso independente",
     "newAutonomous": "Novo Autônomo",
     "specialty": "Especialidade",
+    "type": "Especialidade",
     "name": "Nome",
     "cpf": "CPF",
+    "crmCro": "Registro",
     "registry": "Registro",
     "email": "Email",
+    "emailLogin": "Email de Login",
+    "loginEmail": "Email de Login",
     "actions": "Ações",
     "empty": "Nenhum profissional autônomo cadastrado",
+    "edit": "Editar",
     "editAutonomous": "Editar Autônomo",
     "fullName": "Nome Completo",
+    "birthdate": "Data de Nascimento",
+    "phone": "Telefone",
     "accessEmail": "Email de Acesso",
+    "accessPassword": "Senha de Acesso",
     "password": "Senha",
+    "newPassword": "Nova Senha",
     "passwordHint": "Deixe em branco para manter",
     "nationality": "Nacionalidade",
     "brazilian": "Brasileiro",
@@ -338,8 +347,10 @@
     "emailConfirmations": "Confirmações de consulta",
     "emailReminders": "Lembretes de consulta",
     "emailRecall": "Recall de pacientes",
+    "systemAccess": "Acesso ao Sistema",
     "cancel": "Cancelar",
-    "save": "Salvar"
+    "save": "Salvar",
+    "saving": "Salvando..."
   },
   "profTypes": {
     "medico": "Médico",
@@ -353,7 +364,9 @@
     "biomedico": "Biomédico",
     "farmaceutico": "Farmacêutico",
     "quiropraxista": "Quiropraxista",
-    "esteticista": "Esteticista"
+    "esteticista": "Esteticista",
+    "professor_educacao_fisica": "Prof. Educação Física",
+    "professor_particular": "Professor Particular"
   },
   "common": {
     "loading": "Carregando...",

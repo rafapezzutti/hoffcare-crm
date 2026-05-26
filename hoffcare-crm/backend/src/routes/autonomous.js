@@ -38,11 +38,11 @@ router.post('/', auth, adminOnly, async (req, res) => {
   const nat = (nationality === 'estrangeiro') ? 'estrangeiro' : 'brasileiro';
   const isForeign = nat === 'estrangeiro';
 
-  // Validações básicas (CPF e CRM/CRO só são obrigatórios para brasileiros)
+  // Validações básicas — CRM/CRO é sempre opcional para autônomos
   if (!type || !name || !email || !password)
     return res.status(400).json({ error: 'Tipo, nome, e-mail e senha são obrigatórios' });
-  if (!isForeign && (!cpf || !crm_cro))
-    return res.status(400).json({ error: 'CPF e CRM/CRO são obrigatórios para profissionais brasileiros' });
+  if (!isForeign && !cpf)
+    return res.status(400).json({ error: 'CPF é obrigatório para profissionais brasileiros' });
   if (password.length < 6)
     return res.status(400).json({ error: 'A senha deve ter pelo menos 6 caracteres' });
 
@@ -103,9 +103,9 @@ router.put('/:clinicId', auth, adminOnly, async (req, res) => {
   const nat = (nationality === 'estrangeiro') ? 'estrangeiro' : 'brasileiro';
   const isForeign = nat === 'estrangeiro';
 
-  // Para brasileiros, CPF e CRM/CRO continuam obrigatórios
-  if (!isForeign && (!cpf || !crm_cro))
-    return res.status(400).json({ error: 'CPF e CRM/CRO são obrigatórios para profissionais brasileiros' });
+  // CRM/CRO é opcional para autônomos — apenas CPF é obrigatório para brasileiros
+  if (!isForeign && !cpf)
+    return res.status(400).json({ error: 'CPF é obrigatório para profissionais brasileiros' });
 
   const client = await pool.connect();
   try {
