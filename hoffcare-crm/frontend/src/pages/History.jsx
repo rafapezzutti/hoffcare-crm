@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import dayjs from 'dayjs';
+import { formatCPF } from '../utils/format';
 import { getProfType } from '../config/professionalTypes';
 
 export default function History() {
@@ -82,7 +83,7 @@ export default function History() {
           <div className="card-header">
             <div>
               <h2 style={{ fontSize: 16, fontWeight: 700 }}>{group.name}</h2>
-              <p style={{ fontSize: 12, color: 'var(--gray-500)' }}>CPF: {group.cpf} — {group.records.length} {t('history.records')}</p>
+              <p style={{ fontSize: 12, color: 'var(--gray-500)' }}>CPF: {formatCPF(group.cpf)} — {group.records.length} {t('history.records')}</p>
             </div>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--success)' }}>
               {t('history.total')}: R$ {group.records.reduce((s, r) => s + Number(r.total_value), 0).toFixed(2)}

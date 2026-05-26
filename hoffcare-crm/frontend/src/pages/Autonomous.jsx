@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Modal from '../components/Modal';
 import { PROF_TYPES, getProfType } from '../config/professionalTypes';
+import { formatCPF } from '../utils/format';
 
 const empty = {
   type: 'dentista', nationality: 'brasileiro',
@@ -230,7 +231,7 @@ export default function Autonomous() {
                       }}>🌎 {t('autonomous.foreigner')}</span>
                     )}
                   </td>
-                  <td>{p.cpf || <span style={{ color: 'var(--gray-300)' }}>—</span>}</td>
+                  <td>{formatCPF(p.cpf)}</td>
                   <td>
                     {p.crm_cro
                       ? <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{p.crm_cro}</span>

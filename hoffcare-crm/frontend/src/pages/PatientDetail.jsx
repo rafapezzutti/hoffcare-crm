@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Modal from '../components/Modal';
 import dayjs from 'dayjs';
+import { formatPhone, formatCPF } from '../utils/format';
 
 const emptyHD = { has_diabetes: false, is_smoker: false, has_cardiac_history: false, has_surgeries: false, has_other_conditions: false, other_conditions_comment: '', comment: '', declaration_date: dayjs().format('YYYY-MM-DD') };
 const emptyForm = { name: '', cpf: '', birthdate: '', phone: '', email: '', health_declaration: emptyHD };
@@ -91,7 +92,7 @@ export default function PatientDetail() {
           <button className="btn btn-outline btn-sm" onClick={() => navigate('/patients')}><i className="fas fa-arrow-left" /></button>
           <div>
             <h1 className="page-title">{isNew ? 'Novo Paciente' : patient?.name}</h1>
-            {!isNew && <p className="page-subtitle">CPF: {patient?.cpf}</p>}
+            {!isNew && <p className="page-subtitle">CPF: {formatCPF(patient?.cpf)}</p>}
           </div>
         </div>
         {!isNew && (
@@ -112,9 +113,9 @@ export default function PatientDetail() {
           <div>
             <div className="card" style={{ marginBottom: 20 }}>
               <div className="card-header"><span className="card-title"><i className="fas fa-user" style={{ color: 'var(--blue)', marginRight: 8 }} />Dados Pessoais</span></div>
-              <InfoRow label="CPF" value={patient.cpf} />
+              <InfoRow label="CPF" value={formatCPF(patient.cpf)} />
               <InfoRow label="Data de Nascimento" value={patient.birthdate ? dayjs(patient.birthdate).format('DD/MM/YYYY') : '-'} />
-              <InfoRow label="Telefone" value={patient.phone || '-'} />
+              <InfoRow label="Telefone" value={formatPhone(patient.phone)} />
               <InfoRow label="Email" value={patient.email || '-'} />
             </div>
 

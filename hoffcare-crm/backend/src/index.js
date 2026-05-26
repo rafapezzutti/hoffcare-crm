@@ -40,6 +40,8 @@ app.use('/api/records', require('./routes/records'));
 app.use('/api/cron', require('./routes/cron'));
 app.use('/api/autonomous', require('./routes/autonomous'));
 app.use('/api/whatsapp', require('./routes/whatsapp'));
+app.use('/api/rentals', require('./routes/rentals'));
+app.use('/api/settlements', require('./routes/settlements'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));
 

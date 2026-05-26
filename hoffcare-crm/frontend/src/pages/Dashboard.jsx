@@ -209,12 +209,34 @@ export default function Dashboard() {
                 <div className="stat-card">
                   <div className="stat-icon green"><i className="fas fa-dollar-sign" /></div>
                   <div>
-                    <div className="stat-value" style={{ fontSize: 22 }}>
+                    <div className="stat-value" style={{ fontSize: 20 }}>
                       R$ {parseFloat(monthly?.total_revenue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </div>
-                    <div className="stat-label">{t('dashboard.monthRevenueFull')}</div>
+                    <div className="stat-label">Receita de Atendimentos</div>
                   </div>
                 </div>
+                {parseFloat(monthly?.total_rentals || 0) > 0 && (
+                  <div className="stat-card">
+                    <div className="stat-icon orange"><i className="fas fa-key" /></div>
+                    <div>
+                      <div className="stat-value" style={{ fontSize: 20 }}>
+                        R$ {parseFloat(monthly.total_rentals).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </div>
+                      <div className="stat-label">Locações ({monthly.count_rentals})</div>
+                    </div>
+                  </div>
+                )}
+                {parseFloat(monthly?.total_settlements_in || 0) > 0 && (
+                  <div className="stat-card">
+                    <div className="stat-icon blue"><i className="fas fa-handshake" /></div>
+                    <div>
+                      <div className="stat-value" style={{ fontSize: 20 }}>
+                        R$ {parseFloat(monthly.total_settlements_in).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </div>
+                      <div className="stat-label">Acertos a receber</div>
+                    </div>
+                  </div>
+                )}
                 <div className="stat-card">
                   <div className="stat-icon blue"><i className="fas fa-file-medical" /></div>
                   <div>
@@ -229,15 +251,15 @@ export default function Dashboard() {
                     <div className="stat-label">{t('dashboard.proceduresCount')}</div>
                   </div>
                 </div>
-                <div className="stat-card">
-                  <div className="stat-icon purple"><i className="fas fa-calculator" /></div>
+                <div className="stat-card" style={{ background: 'var(--gray-800)' }}>
+                  <div className="stat-icon" style={{ background: '#4DB8E820' }}>
+                    <i className="fas fa-calculator" style={{ color: '#4DB8E8' }} />
+                  </div>
                   <div>
-                    <div className="stat-value" style={{ fontSize: 20 }}>
-                      R$ {monthly?.total_records > 0
-                        ? (parseFloat(monthly.total_revenue) / parseInt(monthly.total_records)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
-                        : '0,00'}
+                    <div className="stat-value" style={{ fontSize: 20, color: '#4DB8E8' }}>
+                      R$ {parseFloat(monthly?.grand_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </div>
-                    <div className="stat-label">{t('dashboard.avgTicket')}</div>
+                    <div className="stat-label" style={{ color: '#adb5bd' }}>Total Geral</div>
                   </div>
                 </div>
               </div>

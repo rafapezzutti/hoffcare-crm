@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Modal from '../components/Modal';
+import { formatPhone } from '../utils/format';
 
 const empty = {
   name: '', responsible_name: '', responsible_cpf: '', cep: '', street: '',
@@ -105,7 +106,7 @@ export default function Clinics() {
                 <tr key={c.id}>
                   <td><strong>{c.name}</strong></td>
                   <td>{c.responsible_name || '-'}</td>
-                  <td>{c.phone || '-'}</td>
+                  <td>{formatPhone(c.phone)}</td>
                   <td>{c.email || '-'}</td>
                   <td><div className="table-actions">
                     <button className="btn btn-outline btn-sm" onClick={() => handleOpen(c)}><i className="fas fa-pen" /></button>

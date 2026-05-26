@@ -44,7 +44,7 @@ router.get('/monthly', auth, async (req, res) => {
   const m = parseInt(req.query.month) || new Date().getMonth() + 1;
 
   try {
-    const [summary, byDay, byType] = await Promise.all([
+    const [summary, byDay, byType, rentals, settlements] = await Promise.all([
       pool.query(`
         SELECT
           COUNT(DISTINCT mr.id) as total_records,
@@ -84,9 +84,47 @@ router.get('/monthly', auth, async (req, res) => {
         GROUP BY mr.type
         ORDER BY revenue DESC
       `, [clinic_id, y, m]),
+
+      // Aluguéis ativos no mês
+      pool.query(`
+        SELECT COALESCE(SUM(value), 0) as total_rentals, COUNT(*) as count_rentals
+        FROM rentals
+        WHERE clinic_id = $1 AND status = 'active'
+          AND start_date <= $2::date
+          AND (end_date IS NULL OR end_date >= $3::date)
+      `, [clinic_id,
+          `${y}-${String(m).padStart(2,'0')}-28`,
+          `${y}-${String(m).padStart(2,'0')}-01`]),
+
+      // Acertos do mês
+      pool.query(`
+        SELECT
+          COALESCE(SUM(CASE WHEN type = 'a_receber' THEN value ELSE 0 END), 0) as total_in,
+          COALESCE(SUM(CASE WHEN type = 'a_pagar'   THEN value ELSE 0 END), 0) as total_out,
+          COUNT(*) as count_settlements
+        FROM financial_settlements
+        WHERE clinic_id = $1
+          AND EXTRACT(YEAR FROM date) = $2
+          AND EXTRACT(MONTH FROM date) = $3
+      `, [clinic_id, y, m]),
     ]);
 
-    res.json({ ...summary.rows[0], by_day: byDay.rows, by_type: byType.rows });
+    const totalRevenue = parseFloat(summary.rows[0].total_revenue);
+    const totalRentals = parseFloat(rentals.rows[0].total_rentals);
+    const totalIn = parseFloat(settlements.rows[0].total_in);
+    const totalOut = parseFloat(settlements.rows[0].total_out);
+
+    res.json({
+      ...summary.rows[0],
+      by_day: byDay.rows,
+      by_type: byType.rows,
+      total_rentals: totalRentals,
+      count_rentals: parseInt(rentals.rows[0].count_rentals),
+      total_settlements_in: totalIn,
+      total_settlements_out: totalOut,
+      count_settlements: parseInt(settlements.rows[0].count_settlements),
+      grand_total: totalRevenue + totalRentals + totalIn - totalOut,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

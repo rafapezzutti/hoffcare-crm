@@ -4,6 +4,7 @@ import api from '../services/api';
 import Modal from '../components/Modal';
 import { PROF_TYPES, getProfType } from '../config/professionalTypes';
 import { useAuth } from '../context/AuthContext';
+import { formatPhone, formatCPF } from '../utils/format';
 
 const empty = { type: 'medico', name: '', cpf: '', crm_cro: '', birthdate: '', email: '', phone: '' };
 
@@ -97,13 +98,13 @@ export default function Professionals() {
                       </span>
                     </td>
                     <td><strong>{p.name}</strong></td>
-                    <td>{p.cpf || '—'}</td>
+                    <td>{formatCPF(p.cpf)}</td>
                     <td>
                       <span style={{ fontFamily: 'monospace', fontSize: 12 }}>
                         {p.crm_cro ? <><span style={{ color: 'var(--gray-400)', fontSize: 11 }}>{profType.council} </span>{p.crm_cro}</> : '—'}
                       </span>
                     </td>
-                    <td>{p.phone || '—'}</td>
+                    <td>{formatPhone(p.phone)}</td>
                     <td>{p.email || '—'}</td>
                     <td><div className="table-actions">
                       <button className="btn btn-outline btn-sm" onClick={() => handleOpen(p)}><i className="fas fa-pen" /></button>

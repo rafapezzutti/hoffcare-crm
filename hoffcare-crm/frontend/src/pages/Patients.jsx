@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
+import { formatPhone, formatCPF } from '../utils/format';
 
 export default function Patients() {
   const { t } = useTranslation();
@@ -57,9 +58,9 @@ export default function Patients() {
                 {items.map(p => (
                   <tr key={p.id}>
                     <td><strong style={{ cursor: 'pointer', color: 'var(--blue-dark)' }} onClick={() => navigate(`/patients/${p.id}`)}>{p.name}</strong></td>
-                    <td>{p.cpf}</td>
+                    <td>{formatCPF(p.cpf)}</td>
                     <td>{calcAge(p.birthdate)}</td>
-                    <td>{p.phone || '-'}</td>
+                    <td>{formatPhone(p.phone)}</td>
                     <td>{p.email || '-'}</td>
                     <td><div className="table-actions">
                       <button className="btn btn-outline btn-sm" onClick={() => navigate(`/patients/${p.id}`)}><i className="fas fa-eye" /></button>

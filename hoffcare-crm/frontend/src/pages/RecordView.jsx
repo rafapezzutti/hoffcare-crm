@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import dayjs from 'dayjs';
 import { getProfType } from '../config/professionalTypes';
+import { formatCPF } from '../utils/format';
 
 export default function RecordView() {
   const { t } = useTranslation();
@@ -93,7 +94,7 @@ export default function RecordView() {
           <div>
             <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--gray-500)', marginBottom: 10 }}>{t('recordView.patient')}</h3>
             <PrintRow label={t('recordView.name')} value={record.patient_name} />
-            <PrintRow label={t('recordView.cpf')} value={record.patient_cpf} />
+            <PrintRow label={t('recordView.cpf')} value={formatCPF(record.patient_cpf)} />
             {record.patient_birthdate && <PrintRow label={t('recordView.birthdate')} value={dayjs(record.patient_birthdate).format('DD/MM/YYYY')} />}
           </div>
           <div>

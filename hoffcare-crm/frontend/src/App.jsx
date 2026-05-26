@@ -22,6 +22,9 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import AppointmentRespond from './pages/AppointmentRespond';
 import Autonomous from './pages/Autonomous';
+import Rentals from './pages/Rentals';
+import Settlements from './pages/Settlements';
+import ProfessionalStatement from './pages/ProfessionalStatement';
 
 function ProtectedRoute({ children, adminOnly }) {
   const { user } = useAuth();
@@ -57,6 +60,9 @@ export default function App() {
             <Route path="records/:id/edit" element={<RecordForm />} />
             <Route path="records/:id/view" element={<RecordView />} />
             <Route path="history" element={<History />} />
+            <Route path="rentals" element={<Rentals />} />
+            <Route path="settlements" element={<Settlements />} />
+            <Route path="statement" element={<ProfessionalStatement />} />
           </Route>
         </Routes>
       </BrowserRouter>

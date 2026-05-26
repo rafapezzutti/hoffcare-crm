@@ -27,6 +27,11 @@ export default function Layout() {
     { to: '/records/new', icon: 'fa-file-medical', label: t('nav.newRecord') },
     { to: '/records', icon: 'fa-clipboard-list', label: t('nav.records') },
     { to: '/history', icon: 'fa-clock-rotate-left', label: t('nav.history') },
+
+    { section: 'Financeiro' },
+    { to: '/rentals', icon: 'fa-key', label: 'Locações' },
+    { to: '/settlements', icon: 'fa-handshake', label: 'Acertos' },
+    { to: '/statement', icon: 'fa-file-invoice-dollar', label: 'Extrato Mensal' },
   ];
 
   const adminItems = [
