@@ -6,6 +6,45 @@ import dayjs from 'dayjs';
 import { formatCPF } from '../utils/format';
 import { getProfType } from '../config/professionalTypes';
 
+function ExcelExportButton() {
+  const [month, setMonth] = useState(dayjs().format('YYYY-MM'));
+  const [loading, setLoading] = useState(false);
+
+  const handleExport = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('psaude_token');
+      const clinic = localStorage.getItem('psaude_clinic');
+      const clinicId = clinic ? JSON.parse(clinic)?.id : null;
+      const baseUrl = import.meta.env.VITE_API_URL || '/api';
+      const url = `${baseUrl}/reports/monthly-excel?month=${month}`;
+      const res = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          ...(clinicId ? { 'X-Clinic-Id': clinicId } : {}),
+        },
+      });
+      if (!res.ok) throw new Error('Erro ao gerar relatório');
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `relatorio_${month}.xlsx`;
+      a.click();
+    } catch (err) { alert(err.message); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <input type="month" className="form-control" style={{ width: 160 }} value={month}
+        onChange={e => setMonth(e.target.value)} />
+      <button className="btn btn-outline" onClick={handleExport} disabled={loading} title="Exportar relatório mensal em Excel">
+        <i className="fas fa-file-excel" style={{ color: '#217346' }} /> {loading ? 'Gerando...' : 'Exportar Excel'}
+      </button>
+    </div>
+  );
+}
+
 export default function History() {
   const { t } = useTranslation();
   const [searchName, setSearchName] = useState('');
@@ -42,6 +81,7 @@ export default function History() {
     <div className="page">
       <div className="page-header">
         <div><h1 className="page-title">{t('history.title')}</h1><p className="page-subtitle">{t('history.subtitle')}</p></div>
+        <ExcelExportButton />
       </div>
 
       <div className="card" style={{ marginBottom: 24 }}>

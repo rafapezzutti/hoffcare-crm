@@ -48,14 +48,25 @@ router.post('/login', async (req, res) => {
     const isAutonomous = !!user.is_autonomous;
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role, clinic_id: user.clinic_id, is_autonomous: isAutonomous },
+      {
+        id: user.id, email: user.email, role: user.role, clinic_id: user.clinic_id,
+        is_autonomous: isAutonomous,
+        is_trial: !!user.is_trial, trial_expires_at: user.trial_expires_at || null,
+      },
       process.env.JWT_SECRET,
       { expiresIn: '12h' }
     );
 
     res.json({
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, clinic_id: user.clinic_id, is_autonomous: isAutonomous }
+      user: {
+        id: user.id, name: user.name, email: user.email, role: user.role,
+        clinic_id: user.clinic_id, is_autonomous: isAutonomous,
+        is_trial: !!user.is_trial,
+        trial_starts_at: user.trial_starts_at || null,
+        trial_expires_at: user.trial_expires_at || null,
+        trial_blocked_at: user.trial_blocked_at || null,
+      }
     });
   } catch (err) {
     console.error(err);
@@ -166,7 +177,8 @@ router.get('/me', auth, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT u.id, u.name, u.email, u.role, u.clinic_id,
-              COALESCE(c.is_autonomous, false) as is_autonomous
+              COALESCE(c.is_autonomous, false) as is_autonomous,
+              u.is_trial, u.trial_starts_at, u.trial_expires_at, u.trial_blocked_at
        FROM users u
        LEFT JOIN clinics c ON c.id = u.clinic_id
        WHERE u.id = $1`,

@@ -55,6 +55,9 @@ router.post('/reminders', cronAuth, async (req, res) => {
         AND a.status NOT IN ('cancelled', 'completed')
         AND c.email_reminders = true
         AND p.email IS NOT NULL AND p.email != ''
+        AND NOT EXISTS (
+          SELECT 1 FROM users u WHERE u.clinic_id = c.id AND u.is_trial = true AND u.trial_expires_at > NOW()
+        )
     `);
 
     for (const apt of upcoming.rows) {
@@ -108,6 +111,9 @@ router.post('/reminders', cronAuth, async (req, res) => {
         AND c.email_recall = true
         AND p.email IS NOT NULL AND p.email != ''
         AND (p.recall_sent_at IS NULL OR p.recall_sent_at < NOW() - INTERVAL '6 months')
+        AND NOT EXISTS (
+          SELECT 1 FROM users u WHERE u.clinic_id = c.id AND u.is_trial = true AND u.trial_expires_at > NOW()
+        )
       GROUP BY p.id, p.name, p.email, p.clinic_id, c.name, c.email_recall
       HAVING MAX(a.appointment_date) < NOW() - INTERVAL '6 months'
          AND MAX(a.appointment_date) > NOW() - INTERVAL '7 months'
@@ -150,6 +156,90 @@ router.post('/reminders', cronAuth, async (req, res) => {
     res.json({ ok: true, ...results, timestamp: new Date().toISOString() });
   } catch (err) {
     console.error('Cron error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/cron/trial-cleanup — chamado diariamente pelo cron-job.org
+router.post('/trial-cleanup', cronAuth, async (req, res) => {
+  const results = { blocked: 0, deleted: 0, errors: [] };
+
+  try {
+    // ── 1. BLOQUEAR usuários trial com mais de 10 dias (se ainda não bloqueados) ──
+    // O bloqueio de acesso à API já ocorre via middleware de autenticação
+    // Aqui marcamos trial_blocked_at para rastreamento e auditoria
+    const toBlock = await pool.query(`
+      SELECT id, name, email, trial_expires_at
+      FROM users
+      WHERE is_trial = true
+        AND trial_expires_at IS NOT NULL
+        AND trial_expires_at < NOW()
+        AND trial_blocked_at IS NULL
+    `);
+
+    for (const u of toBlock.rows) {
+      try {
+        await pool.query(
+          `UPDATE users SET trial_blocked_at = NOW() WHERE id = $1`,
+          [u.id]
+        );
+        results.blocked++;
+      } catch (e) {
+        results.errors.push(`Bloquear trial#${u.id}: ${e.message}`);
+      }
+    }
+
+    // ── 2. EXCLUIR usuários trial bloqueados há mais de 10 dias (20d total) ──
+    const toDelete = await pool.query(`
+      SELECT id, name, email, clinic_id
+      FROM users
+      WHERE is_trial = true
+        AND trial_blocked_at IS NOT NULL
+        AND trial_blocked_at < NOW() - INTERVAL '10 days'
+    `);
+
+    for (const u of toDelete.rows) {
+      try {
+        // Deletar todos os dados do usuário/clínica em cascata
+        // Os dados são vinculados à clínica, não ao usuário diretamente.
+        // Verificar se há outros usuários não-trial na mesma clínica antes de deletar dados.
+        const otherUsers = await pool.query(
+          `SELECT COUNT(*) FROM users WHERE clinic_id = $1 AND id != $2 AND is_trial = false`,
+          [u.clinic_id, u.id]
+        );
+
+        const hasOtherUsers = parseInt(otherUsers.rows[0].count) > 0;
+
+        if (!hasOtherUsers && u.clinic_id) {
+          // Sem outros usuários permanentes — remover todos os dados da clínica
+          await pool.query(`DELETE FROM appointments WHERE clinic_id = $1`, [u.clinic_id]);
+          await pool.query(`DELETE FROM records WHERE clinic_id = $1`, [u.clinic_id]);
+          await pool.query(`DELETE FROM patient_before_after WHERE clinic_id = $1`, [u.clinic_id]);
+          await pool.query(`
+            DELETE FROM patient_anamnesis WHERE patient_id IN (
+              SELECT id FROM patients WHERE clinic_id = $1
+            )`, [u.clinic_id]);
+          await pool.query(`
+            DELETE FROM patient_anthropometry WHERE patient_id IN (
+              SELECT id FROM patients WHERE clinic_id = $1
+            )`, [u.clinic_id]);
+          await pool.query(`DELETE FROM patients WHERE clinic_id = $1`, [u.clinic_id]);
+          await pool.query(`DELETE FROM professionals WHERE clinic_id = $1`, [u.clinic_id]);
+          await pool.query(`DELETE FROM rooms WHERE clinic_id = $1`, [u.clinic_id]);
+          await pool.query(`DELETE FROM procedures WHERE clinic_id = $1`, [u.clinic_id]);
+        }
+
+        // Deletar o usuário trial
+        await pool.query(`DELETE FROM users WHERE id = $1`, [u.id]);
+        results.deleted++;
+      } catch (e) {
+        results.errors.push(`Deletar trial#${u.id}: ${e.message}`);
+      }
+    }
+
+    res.json({ ok: true, ...results, timestamp: new Date().toISOString() });
+  } catch (err) {
+    console.error('Trial cleanup cron error:', err);
     res.status(500).json({ error: err.message });
   }
 });

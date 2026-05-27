@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Modal from '../components/Modal';
 
-const empty = { name: '', email: '', password: '', role: 'responsavel', clinic_id: '' };
+const empty = { name: '', email: '', password: '', role: 'responsavel', clinic_id: '', is_trial: false };
 
 function PasswordField({ label, value, onChange, required, placeholder, autoComplete }) {
   const [show, setShow] = useState(false);
@@ -104,18 +104,37 @@ export default function Users() {
             <thead><tr><th>{t('users.name')}</th><th>{t('users.email')}</th><th>{t('users.role')}</th><th>{t('users.clinic')}</th><th>{t('users.actions')}</th></tr></thead>
             <tbody>
               {items.length === 0 && <tr><td colSpan={5}><div className="empty-state"><i className="fas fa-users" /><p>{t('users.empty')}</p></div></td></tr>}
-              {items.map(u => (
-                <tr key={u.id}>
-                  <td>{u.name}</td>
-                  <td>{u.email}</td>
-                  <td><span className={`badge ${u.role === 'admin' ? 'badge-orange' : 'badge-blue'}`}>{u.role === 'admin' ? t('users.admin') : t('users.responsible')}</span></td>
-                  <td>{u.clinic_name || '-'}</td>
-                  <td><div className="table-actions">
-                    <button className="btn btn-outline btn-sm" onClick={() => handleOpen(u)}><i className="fas fa-pen" /></button>
-                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(u.id)}><i className="fas fa-trash" /></button>
-                  </div></td>
-                </tr>
-              ))}
+              {items.map(u => {
+                const trialExpired = u.is_trial && u.trial_expires_at && new Date() > new Date(u.trial_expires_at);
+                const trialDaysLeft = u.is_trial && u.trial_expires_at
+                  ? Math.max(0, Math.ceil((new Date(u.trial_expires_at) - new Date()) / 86400000))
+                  : null;
+                return (
+                  <tr key={u.id}>
+                    <td>
+                      {u.name}
+                      {u.is_trial && (
+                        <span className={`badge ${trialExpired ? 'badge-red' : 'badge-orange'}`} style={{ marginLeft: 8, fontSize: 10 }}>
+                          {trialExpired ? 'Trial Expirado' : `Trial (${trialDaysLeft}d)`}
+                        </span>
+                      )}
+                    </td>
+                    <td>{u.email}</td>
+                    <td><span className={`badge ${u.role === 'admin' ? 'badge-orange' : 'badge-blue'}`}>{u.role === 'admin' ? t('users.admin') : t('users.responsible')}</span></td>
+                    <td>{u.clinic_name || '-'}</td>
+                    <td><div className="table-actions">
+                      {u.is_trial && (
+                        <button className="btn btn-outline btn-sm" title="Converter para definitivo"
+                          onClick={async () => { if (confirm(`Converter ${u.name} para usuário definitivo?`)) { await api.post(`/users/${u.id}/convert-trial`); load(); } }}>
+                          <i className="fas fa-user-check" />
+                        </button>
+                      )}
+                      <button className="btn btn-outline btn-sm" onClick={() => handleOpen(u)}><i className="fas fa-pen" /></button>
+                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(u.id)}><i className="fas fa-trash" /></button>
+                    </div></td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -175,6 +194,16 @@ export default function Users() {
               </select>
             </div>
           </div>
+          {!editing && (
+            <div style={{ padding: '12px 16px', background: '#fffbeb', borderRadius: 8, border: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <input type="checkbox" id="is_trial" checked={!!form.is_trial}
+                onChange={e => setForm(p => ({ ...p, is_trial: e.target.checked }))} />
+              <label htmlFor="is_trial" style={{ cursor: 'pointer', marginBottom: 0, fontSize: 14 }}>
+                <strong>Usuário Trial</strong> — acesso gratuito por 10 dias, sem envio de e-mail/WhatsApp.
+                Após 10 dias o acesso é bloqueado automaticamente.
+              </label>
+            </div>
+          )}
         </form>
       </Modal>
     </div>

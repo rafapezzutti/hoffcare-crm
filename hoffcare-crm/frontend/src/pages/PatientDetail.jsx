@@ -96,7 +96,16 @@ export default function PatientDetail() {
           </div>
         </div>
         {!isNew && (
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn btn-outline" onClick={() => navigate(`/patients/${id}/before-after`)} title="Antes e Depois">
+              <i className="fas fa-images" /> Antes/Depois
+            </button>
+            <button className="btn btn-outline" onClick={() => navigate(`/patients/${id}/anamnesis`)} title="Anamnese Digital">
+              <i className="fas fa-clipboard-list" /> Anamnese
+            </button>
+            <button className="btn btn-outline" onClick={() => navigate(`/patients/${id}/anthropometry`)} title="Antropometria">
+              <i className="fas fa-weight-scale" /> Antropometria
+            </button>
             <button className="btn btn-outline" onClick={() => setEditOpen(true)}><i className="fas fa-pen" /> Editar</button>
             <button className="btn btn-primary" onClick={() => navigate(`/records/new?patient_id=${id}`)}><i className="fas fa-file-medical" /> Novo Registro</button>
           </div>

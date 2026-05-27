@@ -157,7 +157,9 @@ export default function Layout() {
             </div>
             <div style={{ overflow: 'hidden' }}>
               <div style={{ fontSize: 12, color: '#dee2e6', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</div>
-              <div style={{ fontSize: 10, color: '#6c757d', textTransform: 'capitalize' }}>{user?.role}</div>
+              <div style={{ fontSize: 10, color: user?.is_trial ? '#f59e0b' : '#6c757d', textTransform: 'capitalize' }}>
+                {user?.is_trial ? '⏳ Trial' : user?.role}
+              </div>
             </div>
           </div>
           <button onClick={handleLogout} className="sidebar-link" style={{ padding: '8px 0', color: '#dc3545' }}>
@@ -167,6 +169,35 @@ export default function Layout() {
       </aside>
 
       <main className="main-content">
+        {/* Banner de aviso para usuários trial */}
+        {user?.is_trial && (() => {
+          const expires = user.trial_expires_at ? new Date(user.trial_expires_at) : null;
+          const daysLeft = expires ? Math.max(0, Math.ceil((expires - new Date()) / 86400000)) : 0;
+          const expired = expires && new Date() > expires;
+          return (
+            <div style={{
+              background: expired ? '#fef2f2' : '#fffbeb',
+              border: `1px solid ${expired ? '#fecaca' : '#fde68a'}`,
+              borderRadius: 8, padding: '10px 16px', marginBottom: 16,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+              fontSize: 13,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <i className={`fas ${expired ? 'fa-circle-xmark' : 'fa-clock'}`}
+                   style={{ color: expired ? '#dc3545' : '#f59e0b' }} />
+                {expired
+                  ? <span><strong>Período trial expirado.</strong> Seu acesso foi bloqueado. Entre em contato para contratar o plano.</span>
+                  : <span><strong>Você está no período trial.</strong> Restam <strong>{daysLeft} dia{daysLeft !== 1 ? 's' : ''}</strong>. Envio de e-mail e WhatsApp bloqueados durante o trial.</span>
+                }
+              </div>
+              {!expired && (
+                <span style={{ fontSize: 11, color: '#92400e', whiteSpace: 'nowrap' }}>
+                  Expira em {expires?.toLocaleDateString('pt-BR')}
+                </span>
+              )}
+            </div>
+          );
+        })()}
         {user?.role === 'admin' && !selectedClinic ? (
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',

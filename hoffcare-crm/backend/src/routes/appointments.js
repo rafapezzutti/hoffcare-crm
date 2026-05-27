@@ -102,8 +102,8 @@ router.post('/', auth, async (req, res) => {
     );
     const apt = result.rows[0];
 
-    // Envia e-mail de confirmação se: clínica habilitou + paciente tem e-mail
-    if (clinic?.email_confirmations && patient?.email) {
+    // Envia e-mail de confirmação se: clínica habilitou + paciente tem e-mail + não é trial
+    if (!req.user?.is_trial && clinic?.email_confirmations && patient?.email) {
       const confirmLink = `${FRONTEND_URL}/appointment/respond?token=${confirmToken}&action=confirm`;
       const cancelLink = `${FRONTEND_URL}/appointment/respond?token=${cancelToken}&action=cancel`;
       const dateStr = formatDate(appointment_date);
@@ -133,8 +133,8 @@ router.post('/', auth, async (req, res) => {
       }).catch(e => console.error('Erro e-mail confirmação:', e.message));
     }
 
-    // WhatsApp: confirmação de agendamento
-    if (clinic?.whatsapp_enabled && clinic?.whatsapp_confirm &&
+    // WhatsApp: confirmação de agendamento (bloqueado para trial)
+    if (!req.user?.is_trial && clinic?.whatsapp_enabled && clinic?.whatsapp_confirm &&
         clinic?.whatsapp_instance_id && clinic?.whatsapp_token && patient?.phone) {
       const dateStr = new Date(appointment_date).toLocaleString('pt-BR', {
         day: '2-digit', month: '2-digit', year: 'numeric',

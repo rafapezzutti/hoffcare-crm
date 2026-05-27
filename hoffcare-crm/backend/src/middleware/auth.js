@@ -10,9 +10,19 @@ const auth = (req, res, next) => {
     // Admin pode trocar de clínica via header X-Clinic-Id
     if (decoded.role === 'admin' && req.headers['x-clinic-id'] !== undefined) {
       const clinicId = parseInt(req.headers['x-clinic-id']);
-      // clinic_id 0 = sem clínica selecionada, retorna null para filtrar tudo
       req.user = { ...decoded, clinic_id: clinicId === 0 ? null : clinicId };
     }
+
+    // Bloqueia usuário trial expirado (exceto admin)
+    if (decoded.is_trial && decoded.trial_expires_at && decoded.role !== 'admin') {
+      if (new Date() > new Date(decoded.trial_expires_at)) {
+        return res.status(403).json({
+          error: 'Período de teste encerrado. Entre em contato para contratar o plano.',
+          code: 'TRIAL_EXPIRED',
+        });
+      }
+    }
+
     next();
   } catch {
     res.status(401).json({ error: 'Token inválido' });

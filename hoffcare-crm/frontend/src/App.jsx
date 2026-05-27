@@ -25,6 +25,10 @@ import Autonomous from './pages/Autonomous';
 import Rentals from './pages/Rentals';
 import Settlements from './pages/Settlements';
 import ProfessionalStatement from './pages/ProfessionalStatement';
+import BeforeAfter from './pages/BeforeAfter';
+import Anamnesis from './pages/Anamnesis';
+import AnamnesisForm from './pages/AnamnesisForm';
+import Anthropometry from './pages/Anthropometry';
 
 function ProtectedRoute({ children, adminOnly }) {
   const { user } = useAuth();
@@ -43,6 +47,7 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/appointment/respond" element={<AppointmentRespond />} />
+          <Route path="/anamnesis/form/:token" element={<AnamnesisForm />} />
           <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route index element={<Dashboard />} />
             <Route path="clinics" element={<ProtectedRoute adminOnly><Clinics /></ProtectedRoute>} />
@@ -53,6 +58,9 @@ export default function App() {
             <Route path="procedures" element={<Procedures />} />
             <Route path="patients" element={<Patients />} />
             <Route path="patients/:id" element={<PatientDetail />} />
+            <Route path="patients/:id/before-after" element={<BeforeAfter />} />
+            <Route path="patients/:id/anamnesis" element={<Anamnesis />} />
+            <Route path="patients/:id/anthropometry" element={<Anthropometry />} />
             <Route path="calendar/daily" element={<CalendarDaily />} />
             <Route path="calendar/monthly" element={<CalendarMonthly />} />
             <Route path="records" element={<Records />} />

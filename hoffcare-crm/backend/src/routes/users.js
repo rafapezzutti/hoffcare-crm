@@ -8,7 +8,8 @@ const router = express.Router();
 router.get('/', auth, adminOnly, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT u.id, u.name, u.email, u.role, u.clinic_id, c.name as clinic_name, u.created_at
+      `SELECT u.id, u.name, u.email, u.role, u.clinic_id, c.name as clinic_name, u.created_at,
+              u.is_trial, u.trial_starts_at, u.trial_expires_at, u.trial_blocked_at
        FROM users u LEFT JOIN clinics c ON u.clinic_id = c.id
        ORDER BY u.name`
     );
@@ -20,7 +21,7 @@ router.get('/', auth, adminOnly, async (req, res) => {
 
 // Create user (admin only)
 router.post('/', auth, adminOnly, async (req, res) => {
-  const { name, email, password, role, clinic_id } = req.body;
+  const { name, email, password, role, clinic_id, is_trial } = req.body;
   if (!name || !email || !password || !role)
     return res.status(400).json({ error: 'Campos obrigatórios: nome, email, senha, perfil' });
 
@@ -29,16 +30,33 @@ router.post('/', auth, adminOnly, async (req, res) => {
 
   try {
     const hashed = await bcrypt.hash(password, 10);
+    const trialStartsAt = is_trial ? new Date() : null;
+    const trialExpiresAt = is_trial ? new Date(Date.now() + 10 * 24 * 60 * 60 * 1000) : null;
+
     const result = await pool.query(
-      `INSERT INTO users (name, email, password, role, clinic_id)
-       VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, role, clinic_id`,
-      [name, email, hashed, role, clinic_id || null]
+      `INSERT INTO users (name, email, password, role, clinic_id, is_trial, trial_starts_at, trial_expires_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id, name, email, role, clinic_id, is_trial, trial_starts_at, trial_expires_at`,
+      [name, email, hashed, role, clinic_id || null, !!is_trial, trialStartsAt, trialExpiresAt]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
     if (err.code === '23505') return res.status(400).json({ error: 'Email já cadastrado' });
     res.status(500).json({ error: err.message });
   }
+});
+
+// POST /users/:id/convert-trial — converte trial em usuário definitivo
+router.post('/:id/convert-trial', auth, adminOnly, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `UPDATE users SET is_trial=FALSE, trial_expires_at=NULL, trial_starts_at=NULL, trial_blocked_at=NULL
+       WHERE id=$1 RETURNING id, name, email, role, is_trial`,
+      [req.params.id]
+    );
+    if (!result.rows[0]) return res.status(404).json({ error: 'Usuário não encontrado' });
+    res.json({ ok: true, user: result.rows[0] });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // Update user (admin only)
