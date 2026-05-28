@@ -82,7 +82,11 @@ export default function Clinics() {
     if (!testPhone) return;
     setTestLoading(true); setTestResult(null);
     try {
-      const res = await api.post('/whatsapp/test', { phone: testPhone, clinic_id: editing?.id });
+      const res = await api.post('/whatsapp/test', {
+        phone: testPhone,
+        clinic_id: editing?.id,
+        api_token: form.whatsapp_token, // envia token do form diretamente
+      });
       setTestResult({ ok: true, msg: res.data.message });
     } catch (err) {
       const data = err.response?.data;

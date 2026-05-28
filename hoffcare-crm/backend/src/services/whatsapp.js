@@ -1,5 +1,3 @@
-const axios = require('axios');
-
 const SOCIALHUB_API = 'https://apinew.socialhub.pro/api/sendMessage';
 
 /**
@@ -12,25 +10,31 @@ function normalizePhone(phone) {
 
 /**
  * Envia mensagem de texto via SocialHub API (multipart/form-data)
- * @param {string} apiToken - token da integração (gerado no painel SocialHub)
- * @param {string} phone    - número do destinatário
- * @param {string} message  - texto da mensagem
+ * Usa fetch nativo (Node 18+) para garantir compatibilidade com FormData
  */
 async function sendText(apiToken, phone, message) {
   const number = normalizePhone(phone);
 
-  // FormData nativo do Node 18+ (sem dependência externa)
   const form = new FormData();
-  form.append('api_token', apiToken);
+  form.append('api_token', apiToken.trim());
   form.append('phone', number);
   form.append('message', message);
 
   try {
-    const res = await axios.post(SOCIALHUB_API, form, { timeout: 15000 });
-    return { ok: true, data: res.data };
+    const res = await fetch(SOCIALHUB_API, {
+      method: 'POST',
+      body: form,
+      signal: AbortSignal.timeout(15000),
+    });
+    const data = await res.json();
+    console.log('[SocialHub] Resposta:', JSON.stringify(data));
+    if (data.success === false) {
+      return { ok: false, error: data };
+    }
+    return { ok: true, data };
   } catch (err) {
-    console.error('[SocialHub] Erro ao enviar mensagem:', err.response?.data || err.message);
-    return { ok: false, error: err.response?.data || err.message };
+    console.error('[SocialHub] Erro ao enviar mensagem:', err.message);
+    return { ok: false, error: err.message };
   }
 }
 

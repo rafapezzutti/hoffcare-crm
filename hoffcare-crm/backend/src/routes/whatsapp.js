@@ -55,24 +55,33 @@ router.put('/settings', auth, async (req, res) => {
 });
 
 // ── POST /api/whatsapp/test
+// Aceita token direto no body (sem precisar salvar antes) ou lê do banco como fallback
 router.post('/test', auth, async (req, res) => {
-  const { phone, clinic_id } = req.body;
+  const { phone, clinic_id, api_token } = req.body;
   if (!phone) return res.status(400).json({ error: 'Número obrigatório' });
 
-  const targetClinicId = clinic_id || req.user.clinic_id;
-
   try {
-    const result = await pool.query(
-      'SELECT whatsapp_token FROM clinics WHERE id = $1',
-      [targetClinicId]
-    );
-    const { whatsapp_token } = result.rows[0] || {};
-    if (!whatsapp_token)
+    let token = api_token?.trim();
+
+    // Se não veio token no body, lê do banco
+    if (!token || token === '***') {
+      const targetClinicId = clinic_id || req.user.clinic_id;
+      const result = await pool.query(
+        'SELECT whatsapp_token FROM clinics WHERE id = $1',
+        [targetClinicId]
+      );
+      token = result.rows[0]?.whatsapp_token;
+    }
+
+    if (!token) {
       return res.status(400).json({ error: 'Configure o API Token do SocialHub antes de testar.' });
+    }
+
+    console.log(`[WhatsApp Test] Usando token: ${token.substring(0, 8)}... para ${phone}`);
 
     const { sendText } = require('../services/whatsapp');
     const msg = `✅ *P. Soluções para Saúde*\n\nTeste de integração WhatsApp realizado com sucesso! 🎉`;
-    const r = await sendText(whatsapp_token, phone, msg);
+    const r = await sendText(token, phone, msg);
 
     if (r.ok) res.json({ ok: true, message: 'Mensagem enviada com sucesso!' });
     else {
