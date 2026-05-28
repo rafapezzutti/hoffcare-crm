@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import dayjs from 'dayjs';
 import 'dayjs/locale/pt-br';
+import { dayjs, toClinicTz } from '../utils/timezone';
 import api from '../services/api';
 
 dayjs.locale('pt-br');
@@ -10,6 +10,7 @@ const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 export default function CalendarMonthly() {
   const [currentMonth, setCurrentMonth] = useState(dayjs().startOf('month'));
+  const [clinicTz, setClinicTz] = useState('America/Sao_Paulo');
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
@@ -22,6 +23,7 @@ export default function CalendarMonthly() {
       const end = month.endOf('month').format('YYYY-MM-DD');
       const res = await api.get(`/appointments?start=${start}T00:00:00&end=${end}T23:59:59`);
       setAppointments(res.data || []);
+      if (res.data?.[0]?.clinic_timezone) setClinicTz(res.data[0].clinic_timezone);
     } catch (err) {
       console.error('Erro ao carregar consultas:', err);
       setAppointments([]);
@@ -49,8 +51,8 @@ export default function CalendarMonthly() {
     if (!day) return [];
     const dateStr = currentMonth.date(day).format('YYYY-MM-DD');
     return appointments.filter(a =>
-      dayjs(a.appointment_date).format('YYYY-MM-DD') === dateStr
-    ).sort((a, b) => dayjs(a.appointment_date).diff(dayjs(b.appointment_date)));
+      toClinicTz(a.appointment_date, clinicTz).format('YYYY-MM-DD') === dateStr
+    ).sort((a, b) => toClinicTz(a.appointment_date, clinicTz).diff(toClinicTz(b.appointment_date, clinicTz)));
   };
 
   const isToday = (day) => day && currentMonth.date(day).isSame(today, 'day');
@@ -126,9 +128,9 @@ export default function CalendarMonthly() {
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                           {apts.slice(0, 3).map(a => (
-                            <div key={a.id} title={`${dayjs(a.appointment_date).format('HH:mm')} - ${a.patient_name}`}
+                            <div key={a.id} title={`${toClinicTz(a.appointment_date, clinicTz).format('HH:mm')} - ${a.patient_name}`}
                               style={{ background: a.type === 'medico' ? 'var(--orange)' : 'var(--blue)', color: 'white', borderRadius: 3, fontSize: 10, padding: '2px 5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {dayjs(a.appointment_date).format('HH:mm')} {a.patient_name}
+                              {toClinicTz(a.appointment_date, clinicTz).format('HH:mm')} {a.patient_name}
                             </div>
                           ))}
                           {apts.length > 3 && <div style={{ fontSize: 10, color: 'var(--gray-500)', paddingLeft: 4 }}>+{apts.length - 3} mais</div>}
@@ -164,7 +166,7 @@ export default function CalendarMonthly() {
                 <tbody>
                   {selectedApts.map(a => (
                     <tr key={a.id}>
-                      <td><strong>{dayjs(a.appointment_date).format('HH:mm')}</strong></td>
+                      <td><strong>{toClinicTz(a.appointment_date, clinicTz).format('HH:mm')}</strong></td>
                       <td>{a.patient_name}</td>
                       <td>{a.professional_name}</td>
                       <td><span className={`badge ${a.type === 'medico' ? 'badge-orange' : 'badge-blue'}`}>{a.type === 'medico' ? '🩺 Médico' : '🦷 Odonto'}</span></td>

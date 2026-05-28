@@ -4,6 +4,7 @@ import api from '../services/api';
 import Modal from '../components/Modal';
 import { formatPhone, formatCPF } from '../utils/format';
 import { PROF_TYPES } from '../config/professionalTypes';
+import { TIMEZONES } from '../utils/timezone';
 
 const emptyClinic = {
   name: '', responsible_name: '', responsible_cpf: '', cep: '', street: '',
@@ -12,6 +13,7 @@ const emptyClinic = {
   whatsapp_enabled: false, whatsapp_confirm: false, whatsapp_reminder: false,
   whatsapp_cancel: false, whatsapp_reminder_hours: 24,
   whatsapp_instance_id: '', whatsapp_token: '', whatsapp_security_token: '',
+  timezone: 'America/Sao_Paulo',
   // autônomo
   is_autonomous: false,
   prof_type: 'medico', nationality: 'brasileiro',
@@ -333,6 +335,23 @@ export default function Clinics() {
                 <input className="form-control" type="email" {...f('email')} />
               </div>
             )}
+          </div>
+
+          {/* ── Fuso horário ── */}
+          <div className="form-group" style={{ marginTop: 4 }}>
+            <label className="form-label">
+              <i className="fas fa-globe" style={{ marginRight: 6, color: '#6366f1' }} />
+              Fuso horário (timezone)
+            </label>
+            <select className="form-control" value={form.timezone || 'America/Sao_Paulo'}
+              onChange={e => setForm(p => ({ ...p, timezone: e.target.value }))}>
+              {TIMEZONES.map(tz => (
+                <option key={tz.value} value={tz.value}>{tz.label}</option>
+              ))}
+            </select>
+            <div style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 4 }}>
+              Define como os horários da agenda são exibidos para este consultório
+            </div>
           </div>
 
           {/* ── Notificações e-mail ── */}

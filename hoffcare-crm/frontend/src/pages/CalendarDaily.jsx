@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Modal from '../components/Modal';
-import dayjs from 'dayjs';
 import 'dayjs/locale/pt-br';
+import { dayjs, toClinicTz, fromClinicTz } from '../utils/timezone';
 import { PROF_TYPES, getProfType } from '../config/professionalTypes';
 dayjs.locale('pt-br');
 
@@ -29,9 +29,14 @@ export default function CalendarDaily() {
   const [patientSearch, setPatientSearch] = useState('');
   const [dateTimeLocked, setDateTimeLocked] = useState(false);
 
+  const [clinicTz, setClinicTz] = useState('America/Sao_Paulo');
+
   const loadDay = async (d) => {
-    const res = await api.get(`/appointments?start=${d}T00:00:00&end=${d}T23:59:59`);
+    const startUtc = dayjs.tz(`${d}T00:00:00`, clinicTz).utc().toISOString();
+    const endUtc   = dayjs.tz(`${d}T23:59:59`, clinicTz).utc().toISOString();
+    const res = await api.get(`/appointments?start=${encodeURIComponent(startUtc)}&end=${encodeURIComponent(endUtc)}`);
     setAppointments(res.data);
+    if (res.data[0]?.clinic_timezone) setClinicTz(res.data[0].clinic_timezone);
   };
 
   useEffect(() => {
@@ -48,8 +53,8 @@ export default function CalendarDaily() {
   const handleOpen = (apt = null, hour = null) => {
     setEditing(apt);
     if (apt) {
-      // Converte para timezone local do PC ao abrir edição
-      const localDt = dayjs(apt.appointment_date).format('YYYY-MM-DDTHH:mm');
+      // Converte UTC → timezone da clínica ao abrir edição
+      const localDt = toClinicTz(apt.appointment_date, clinicTz).format('YYYY-MM-DDTHH:mm');
       setForm({ ...apt, appointment_date: localDt });
       setPatientSearch(apt.patient_name || '');
       setDateTimeLocked(true); // trava data/hora ao editar
@@ -65,8 +70,9 @@ export default function CalendarDaily() {
   const handleSubmit = async (e) => {
     e.preventDefault(); setError('');
     try {
-      if (editing) await api.put(`/appointments/${editing.id}`, form);
-      else await api.post('/appointments', form);
+      const payload = { ...form, appointment_date: fromClinicTz(form.appointment_date, clinicTz) };
+      if (editing) await api.put(`/appointments/${editing.id}`, payload);
+      else await api.post('/appointments', payload);
       setOpen(false); loadDay(date);
     } catch (err) { setError(err.response?.data?.error || 'Erro ao salvar'); }
   };
@@ -78,10 +84,10 @@ export default function CalendarDaily() {
 
   const f = (field) => ({ value: form[field] || '', onChange: e => setForm(p => ({ ...p, [field]: e.target.value })) });
 
-  const getAptAtHour = (h) => appointments.filter(a => dayjs(a.appointment_date).hour() === h);
+  const getAptAtHour = (h) => appointments.filter(a => toClinicTz(a.appointment_date, clinicTz).hour() === h);
 
   // Grade de horas: sempre mostra 7h–20h, mas expande se houver consultas fora desse intervalo
-  const aptHours = appointments.map(a => dayjs(a.appointment_date).hour());
+  const aptHours = appointments.map(a => toClinicTz(a.appointment_date, clinicTz).hour());
   const startHour = aptHours.length > 0 ? Math.min(DEFAULT_START_HOUR, Math.min(...aptHours)) : DEFAULT_START_HOUR;
   const endHour   = aptHours.length > 0 ? Math.max(DEFAULT_END_HOUR,   Math.max(...aptHours)) : DEFAULT_END_HOUR;
   const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => i + startHour);
@@ -108,7 +114,17 @@ export default function CalendarDaily() {
   return (
     <div className="page">
       <div className="page-header">
-        <div><h1 className="page-title">Agenda do Dia</h1><p className="page-subtitle">{dayjs(date).format('dddd, DD [de] MMMM [de] YYYY')}</p></div>
+        <div>
+            <h1 className="page-title">Agenda do Dia</h1>
+            <p className="page-subtitle">
+              {dayjs(date).format('dddd, DD [de] MMMM [de] YYYY')}
+              {clinicTz !== 'America/Sao_Paulo' && (
+                <span style={{ marginLeft: 8, fontSize: 11, color: '#6366f1', fontWeight: 600, background: '#eef2ff', padding: '2px 8px', borderRadius: 10 }}>
+                  <i className="fas fa-globe" style={{ marginRight: 4 }} />{clinicTz}
+                </span>
+              )}
+            </p>
+          </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button className="btn btn-outline" onClick={() => setDate(dayjs(date).subtract(1, 'day').format('YYYY-MM-DD'))}><i className="fas fa-chevron-left" /></button>
           <input type="date" className="form-control" value={date} onChange={e => setDate(e.target.value)} style={{ width: 160 }} />
@@ -137,7 +153,7 @@ export default function CalendarDaily() {
                       borderRadius: 8, padding: '6px 12px', minWidth: 200, cursor: 'pointer'
                     }} onClick={e => { e.stopPropagation(); handleOpen(a); }}>
                       <div style={{ fontWeight: 600, fontSize: 13 }}>{a.patient_name}</div>
-                      <div style={{ fontSize: 11, color: 'var(--gray-500)' }}>{dayjs(a.appointment_date).format('HH:mm')} • {a.professional_name} • {a.room_name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--gray-500)' }}>{toClinicTz(a.appointment_date, clinicTz).format('HH:mm')} • {a.professional_name} • {a.room_name}</div>
                       <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
                         <span className={`badge ${statusColor[a.status]}`} style={{ fontSize: 10 }}>{statusLabel[a.status]}</span>
                         <button className="btn btn-danger" style={{ padding: '2px 8px', fontSize: 11 }} onClick={e => { e.stopPropagation(); handleDelete(a.id); }}><i className="fas fa-trash" /></button>
