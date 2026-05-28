@@ -80,7 +80,7 @@ router.post('/', auth, async (req, res) => {
     const [patientRes, clinicRes, profRes] = await Promise.all([
       pool.query('SELECT name, email, phone FROM patients WHERE id = $1', [patient_id]),
       pool.query(`SELECT name, email, email_confirmations,
-                         whatsapp_enabled, whatsapp_confirm, whatsapp_instance_id, whatsapp_token
+                         whatsapp_enabled, whatsapp_confirm, whatsapp_token
                   FROM clinics WHERE id = $1`, [clinic_id]),
       pool.query('SELECT name FROM professionals WHERE id = $1', [professional_id]),
     ]);
@@ -135,14 +135,13 @@ router.post('/', auth, async (req, res) => {
 
     // WhatsApp: confirmação de agendamento (bloqueado para trial)
     if (!req.user?.is_trial && clinic?.whatsapp_enabled && clinic?.whatsapp_confirm &&
-        clinic?.whatsapp_instance_id && clinic?.whatsapp_token && patient?.phone) {
+        clinic?.whatsapp_token && patient?.phone) {
       const dateStr = new Date(appointment_date).toLocaleString('pt-BR', {
         day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo'
       });
       sendConfirmation({
-        instanceId: clinic.whatsapp_instance_id,
-        token: clinic.whatsapp_token,
+        apiToken: clinic.whatsapp_token,
         patientName: patient.name,
         patientPhone: patient.phone,
         professionalName: professional?.name || 'profissional',
@@ -203,7 +202,7 @@ router.get('/respond', async (req, res) => {
       `SELECT a.*, p.name as patient_name, p.email as patient_email, p.phone as patient_phone,
               pr.name as professional_name,
               c.name as clinic_name, c.email as clinic_email, c.email_confirmations,
-              c.whatsapp_enabled, c.whatsapp_cancel, c.whatsapp_instance_id, c.whatsapp_token
+              c.whatsapp_enabled, c.whatsapp_cancel, c.whatsapp_token
        FROM appointments a
        LEFT JOIN patients p ON a.patient_id = p.id
        LEFT JOIN professionals pr ON a.professional_id = pr.id
@@ -261,11 +260,10 @@ router.get('/respond', async (req, res) => {
 
       // WhatsApp: aviso de cancelamento ao paciente
       if (apt.whatsapp_enabled && apt.whatsapp_cancel &&
-          apt.whatsapp_instance_id && apt.whatsapp_token && apt.patient_phone) {
+          apt.whatsapp_token && apt.patient_phone) {
         const dateStr = formatDate(apt.appointment_date);
         sendCancellation({
-          instanceId: apt.whatsapp_instance_id,
-          token: apt.whatsapp_token,
+          apiToken: apt.whatsapp_token,
           patientName: apt.patient_name,
           patientPhone: apt.patient_phone,
           professionalName: apt.professional_name,
