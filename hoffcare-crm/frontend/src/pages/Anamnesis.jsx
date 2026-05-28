@@ -193,7 +193,7 @@ export default function Anamnesis() {
               </thead>
               <tbody>
                 {list.map(a => {
-                  const qs = (() => { try { return JSON.parse(a.custom_questions); } catch { return []; } })();
+                  const qs = Array.isArray(a.custom_questions) ? a.custom_questions : (() => { try { return JSON.parse(a.custom_questions); } catch { return []; } })();
                   return (
                     <tr key={a.id}>
                       <td>{dayjs(a.created_at).format('DD/MM/YYYY')}</td>
@@ -371,27 +371,53 @@ export default function Anamnesis() {
         footer={
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-outline" onClick={() => {
-              const qs = (() => { try { return JSON.parse(viewing?.custom_questions); } catch { return []; } })();
+              const qs = Array.isArray(viewing?.custom_questions) ? viewing.custom_questions
+                : (() => { try { return JSON.parse(viewing?.custom_questions); } catch { return []; } })();
               printAnamnesis(patient?.name || '', qs);
             }}><i className="fas fa-print" style={{ marginRight: 6 }} />Imprimir</button>
             <button className="btn btn-primary" onClick={() => setViewOpen(false)}>Fechar</button>
           </div>
         }>
         {viewing && (() => {
-          const qs = (() => { try { return JSON.parse(viewing.custom_questions); } catch { return []; } })();
+          const qs = Array.isArray(viewing.custom_questions) ? viewing.custom_questions
+            : (() => { try { return JSON.parse(viewing.custom_questions); } catch { return []; } })();
+          const resp = viewing.responses || {};
           return (
             <div>
               <p style={{ marginBottom: 16, color: 'var(--gray-500)', fontSize: 13 }}>
                 Respondida em {dayjs(viewing.completed_at).format('DD/MM/YYYY HH:mm')}
               </p>
-              {qs.map((q, i) => (
-                <div key={i} style={{ marginBottom: 16, padding: '12px 16px', background: 'var(--gray-50)', borderRadius: 8 }}>
-                  <p style={{ fontWeight: 600, marginBottom: 6, fontSize: 13 }}>{i + 1}. {q}</p>
-                  <p style={{ fontSize: 14, color: 'var(--gray-700)' }}>
-                    {viewing.responses?.[i] || viewing.responses?.[q] || <em style={{ color: 'var(--gray-400)' }}>Sem resposta</em>}
-                  </p>
+              {qs.length === 0 && (
+                <div className="empty-state" style={{ padding: 24 }}>
+                  <i className="fas fa-clipboard" />
+                  <p>Esta anamnese não contém perguntas registradas.</p>
                 </div>
-              ))}
+              )}
+              {qs.map((q, i) => {
+                const answer = resp[i] ?? resp[String(i)] ?? resp[q];
+                const detail = resp[`${i}_detail`] ?? resp[`${String(i)}_detail`];
+                return (
+                  <div key={i} style={{ marginBottom: 12, padding: '12px 16px', background: 'var(--gray-50)', borderRadius: 8, border: '1px solid var(--gray-100)' }}>
+                    <p style={{ fontWeight: 600, marginBottom: 6, fontSize: 13, color: 'var(--gray-700)' }}>{i + 1}. {q}</p>
+                    <p style={{ fontSize: 14, color: answer ? 'var(--gray-900)' : 'var(--gray-400)', fontStyle: answer ? 'normal' : 'italic' }}>
+                      {answer || 'Sem resposta'}
+                    </p>
+                    {detail && (
+                      <p style={{ fontSize: 13, color: 'var(--gray-600)', marginTop: 4, paddingLeft: 8, borderLeft: '2px solid #4DB8E8' }}>
+                        {detail}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+              {resp['observacoes'] && (
+                <div style={{ marginTop: 16, padding: '12px 16px', background: '#fffbeb', borderRadius: 8, border: '1px solid #fde68a' }}>
+                  <p style={{ fontWeight: 600, fontSize: 12, color: '#92400e', marginBottom: 6 }}>
+                    <i className="fas fa-comment" style={{ marginRight: 6 }} />Observações do paciente
+                  </p>
+                  <p style={{ fontSize: 14, color: '#78350f' }}>{resp['observacoes']}</p>
+                </div>
+              )}
             </div>
           );
         })()}
