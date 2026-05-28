@@ -38,7 +38,6 @@ export default function Layout() {
     { section: t('nav.admin') },
     { to: '/clinics', icon: 'fa-hospital', label: t('nav.clinics') },
     { to: '/users', icon: 'fa-users-gear', label: t('nav.users') },
-    { to: '/autonomous', icon: 'fa-user-doctor', label: t('nav.autonomous') },
   ];
 
   const handleLogout = () => { logout(); navigate('/login'); };

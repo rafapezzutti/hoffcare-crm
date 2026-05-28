@@ -5,7 +5,17 @@ const router = express.Router();
 
 router.get('/', auth, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM clinics ORDER BY name');
+    const result = await pool.query(`
+      SELECT c.*,
+        pr.id   AS prof_id,   pr.type AS prof_type, pr.name AS prof_name,
+        pr.cpf  AS prof_cpf,  pr.crm_cro,           pr.nationality,
+        pr.birthdate,         pr.email AS prof_email, pr.phone AS prof_phone,
+        u.id    AS user_id,   u.email  AS login_email
+      FROM clinics c
+      LEFT JOIN professionals pr ON pr.clinic_id = c.id AND c.is_autonomous = true
+      LEFT JOIN users u           ON u.clinic_id  = c.id AND c.is_autonomous = true
+      ORDER BY c.name
+    `);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -14,7 +24,17 @@ router.get('/', auth, async (req, res) => {
 
 router.get('/:id', auth, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM clinics WHERE id = $1', [req.params.id]);
+    const result = await pool.query(`
+      SELECT c.*,
+        pr.id   AS prof_id,   pr.type AS prof_type, pr.name AS prof_name,
+        pr.cpf  AS prof_cpf,  pr.crm_cro,           pr.nationality,
+        pr.birthdate,         pr.email AS prof_email, pr.phone AS prof_phone,
+        u.id    AS user_id,   u.email  AS login_email
+      FROM clinics c
+      LEFT JOIN professionals pr ON pr.clinic_id = c.id AND c.is_autonomous = true
+      LEFT JOIN users u           ON u.clinic_id  = c.id AND c.is_autonomous = true
+      WHERE c.id = $1
+    `, [req.params.id]);
     if (!result.rows[0]) return res.status(404).json({ error: 'Consultório não encontrado' });
     res.json(result.rows[0]);
   } catch (err) {
