@@ -152,79 +152,50 @@ export default function Clinics() {
             <Toggle label={t('clinics.emailRecall')} hint="Paciente recebe e-mail após 6 meses sem consulta para remarcar" checked={!!form.email_recall} onChange={v => setForm(p => ({ ...p, email_recall: v }))} />
           </div>
 
-          {/* ── WhatsApp ── */}
+          {/* ── WhatsApp — temporariamente desabilitado ── */}
           <div className="form-group" style={{ marginTop: 16 }}>
-            <label className="form-label" style={{ marginBottom: 8 }}>
+            <label className="form-label" style={{ marginBottom: 8, opacity: 0.5 }}>
               <i className="fab fa-whatsapp" style={{ marginRight: 6, color: '#25D366' }} />
               Notificações via WhatsApp
             </label>
 
-            <Toggle
-              label="Habilitar WhatsApp"
-              hint="Ativa o envio de mensagens pelo WhatsApp Business API"
-              checked={!!form.whatsapp_enabled}
-              onChange={v => setForm(p => ({ ...p, whatsapp_enabled: v }))}
-            />
+            <div style={{ pointerEvents: 'none', opacity: 0.45, userSelect: 'none' }}>
+              <Toggle
+                label="Habilitar WhatsApp"
+                hint="Ativa o envio de mensagens pelo WhatsApp Business API"
+                checked={false}
+                onChange={() => {}}
+              />
 
-            {form.whatsapp_enabled && (
-              <>
-                <div style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 8, padding: 16, marginTop: 12 }}>
-                  <div className="form-group" style={{ marginBottom: 12 }}>
-                    <label className="form-label" style={{ fontSize: 12 }}>Instance ID <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>— obtido no painel Z-API</span></label>
-                    <input className="form-control" style={{ fontSize: 13 }} placeholder="ex: 3ABC1D2E3F..." {...f('whatsapp_instance_id')} />
-                  </div>
-                  <div className="form-group" style={{ marginBottom: 12 }}>
-                    <label className="form-label" style={{ fontSize: 12 }}>Token <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>— token da instância (painel Z-API)</span></label>
-                    <input className="form-control" style={{ fontSize: 13 }} type="password" placeholder="Cole o token aqui..." {...f('whatsapp_token')} />
-                  </div>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" style={{ fontSize: 12 }}>Security Token <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>— Client-Token da sua conta Z-API</span></label>
-                    <input className="form-control" style={{ fontSize: 13 }} type="password" placeholder="Cole o Security Token aqui..." {...f('whatsapp_security_token')} />
-                  </div>
+              <div style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 8, padding: 16, marginTop: 12 }}>
+                <div className="form-group" style={{ marginBottom: 12 }}>
+                  <label className="form-label" style={{ fontSize: 12 }}>Instance ID <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>— obtido no painel Z-API</span></label>
+                  <input className="form-control" style={{ fontSize: 13 }} placeholder="ex: 3ABC1D2E3F..." disabled value="" onChange={() => {}} />
                 </div>
+                <div className="form-group" style={{ marginBottom: 12 }}>
+                  <label className="form-label" style={{ fontSize: 12 }}>Token <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>— token da instância (painel Z-API)</span></label>
+                  <input className="form-control" style={{ fontSize: 13 }} type="password" placeholder="Cole o token aqui..." disabled value="" onChange={() => {}} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontSize: 12 }}>Security Token <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>— Client-Token da sua conta Z-API</span></label>
+                  <input className="form-control" style={{ fontSize: 13 }} type="password" placeholder="Cole o Security Token aqui..." disabled value="" onChange={() => {}} />
+                </div>
+              </div>
 
-                <div style={{ marginTop: 12 }}>
-                  <Toggle label="Confirmação de agendamento" hint="Mensagem enviada ao paciente quando a consulta é agendada" checked={!!form.whatsapp_confirm} onChange={v => setForm(p => ({ ...p, whatsapp_confirm: v }))} />
-                  <Toggle label="Lembrete de consulta" hint="Mensagem enviada X horas antes da consulta" checked={!!form.whatsapp_reminder} onChange={v => setForm(p => ({ ...p, whatsapp_reminder: v }))} />
-                  {form.whatsapp_reminder && (
-                    <div style={{ padding: '8px 0 8px 16px', borderBottom: '1px solid var(--gray-100)' }}>
-                      <label className="form-label" style={{ fontSize: 12 }}>Enviar lembrete quantas horas antes?</label>
-                      <select className="form-control" style={{ width: 160, fontSize: 13 }} value={form.whatsapp_reminder_hours || 24}
-                        onChange={e => setForm(p => ({ ...p, whatsapp_reminder_hours: Number(e.target.value) }))}>
-                        <option value={1}>1 hora antes</option>
-                        <option value={2}>2 horas antes</option>
-                        <option value={6}>6 horas antes</option>
-                        <option value={12}>12 horas antes</option>
-                        <option value={24}>24 horas antes</option>
-                        <option value={48}>48 horas antes</option>
-                      </select>
-                    </div>
-                  )}
-                  <Toggle label="Aviso de cancelamento" hint="Mensagem enviada ao paciente quando a consulta é cancelada" checked={!!form.whatsapp_cancel} onChange={v => setForm(p => ({ ...p, whatsapp_cancel: v }))} />
-                </div>
+              <div style={{ marginTop: 12 }}>
+                <Toggle label="Confirmação de agendamento" hint="Mensagem enviada ao paciente quando a consulta é agendada" checked={false} onChange={() => {}} />
+                <Toggle label="Lembrete de consulta" hint="Mensagem enviada X horas antes da consulta" checked={false} onChange={() => {}} />
+                <Toggle label="Aviso de cancelamento" hint="Mensagem enviada ao paciente quando a consulta é cancelada" checked={false} onChange={() => {}} />
+              </div>
+            </div>
 
-                {/* Teste de envio */}
-                <div style={{ marginTop: 16, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#15803d', marginBottom: 8 }}>
-                    <i className="fab fa-whatsapp" style={{ marginRight: 6 }} />Enviar mensagem de teste
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <input className="form-control" style={{ fontSize: 13 }} placeholder="5511999999999" value={testPhone} onChange={e => setTestPhone(e.target.value)} />
-                    <button type="button" className="btn btn-outline btn-sm" style={{ whiteSpace: 'nowrap', borderColor: '#25D366', color: '#25D366' }} onClick={handleTest} disabled={testLoading}>
-                      {testLoading ? 'Enviando...' : 'Testar'}
-                    </button>
-                  </div>
-                  {testResult && (
-                    <div style={{ marginTop: 8, fontSize: 12, color: testResult.ok ? '#15803d' : '#dc2626', fontWeight: 600 }}>
-                      {testResult.ok ? '✓' : '✗'} {testResult.msg}
-                    </div>
-                  )}
-                  <div style={{ fontSize: 11, color: '#6b7280', marginTop: 6 }}>
-                    Salve as configurações antes de testar. Use o formato <strong>5511999999999</strong> (DDI + DDD + número).
-                  </div>
-                </div>
-              </>
-            )}
+            {/* Aviso de indisponibilidade */}
+            <div style={{ marginTop: 12, background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 8, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <i className="fas fa-clock" style={{ color: '#f97316', fontSize: 14, flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: '#9a3412' }}>
+                <strong>Disponível em breve.</strong> A integração via WhatsApp está temporariamente desabilitada e será reativada em uma próxima atualização.
+              </span>
+            </div>
           </div>
         </form>
       </Modal>
