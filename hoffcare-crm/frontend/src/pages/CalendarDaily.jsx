@@ -9,7 +9,8 @@ dayjs.locale('pt-br');
 
 const emptyForm = {
   type: 'medico', patient_id: '', professional_id: '', room_id: '',
-  appointment_date: '', duration_minutes: 30, notes: '', status: 'pending_confirmation'
+  appointment_date: '', duration_minutes: 30, notes: '', status: 'pending_confirmation',
+  repasse_type: null, repasse_value: '', repasse_note: ''
 };
 
 const DEFAULT_START_HOUR = 7;
@@ -55,7 +56,10 @@ export default function CalendarDaily() {
     if (apt) {
       // Converte UTC → timezone da clínica ao abrir edição
       const localDt = toClinicTz(apt.appointment_date, clinicTz).format('YYYY-MM-DDTHH:mm');
-      setForm({ ...apt, appointment_date: localDt });
+      setForm({ ...apt, appointment_date: localDt,
+        repasse_type: apt.repasse_type || null,
+        repasse_value: apt.repasse_value ?? '',
+        repasse_note: apt.repasse_note || '' });
       setPatientSearch(apt.patient_name || '');
       setDateTimeLocked(true); // trava data/hora ao editar
     } else {
@@ -259,6 +263,40 @@ export default function CalendarDaily() {
               </select>
             </div>
           )}
+          {/* ── Repasse desta consulta ── */}
+          <div className="form-group" style={{ background: 'rgba(77,184,232,0.05)', border: '1px solid rgba(77,184,232,0.2)', borderRadius: 8, padding: '10px 14px' }}>
+            <label className="form-label" style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <i className="fas fa-handshake-simple" style={{ color: 'var(--blue)', fontSize: 12 }} />
+              Repasse desta consulta
+              <span style={{ fontSize: 11, color: 'var(--gray-400)', fontWeight: 400 }}>
+                {form.repasse_type ? '(ajuste manual)' : '(padrão do profissional)'}
+              </span>
+            </label>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+              {[{v:null,l:'Padrão'},{v:'percent',l:'% Percentual'},{v:'fixed',l:'R$ Fixo'}].map(opt => (
+                <button key={opt.v ?? 'null'} type="button"
+                  onClick={() => setForm(p => ({ ...p, repasse_type: opt.v, repasse_value: '' }))}
+                  style={{
+                    padding: '4px 10px', borderRadius: 6, border: '1px solid', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                    background: form.repasse_type === opt.v ? '#4DB8E8' : 'white',
+                    color: form.repasse_type === opt.v ? 'white' : 'var(--gray-500)',
+                    borderColor: form.repasse_type === opt.v ? '#4DB8E8' : 'var(--gray-200)',
+                  }}>{opt.l}</button>
+              ))}
+            </div>
+            {form.repasse_type && (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {form.repasse_type === 'percent' && <span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 13 }}>%</span>}
+                {form.repasse_type === 'fixed'   && <span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 13 }}>R$</span>}
+                <input className="form-control" type="number" min="0" step={form.repasse_type === 'percent' ? '0.5' : '0.01'}
+                  max={form.repasse_type === 'percent' ? '100' : undefined}
+                  placeholder={form.repasse_type === 'percent' ? 'Ex: 70' : 'Ex: 150.00'} style={{ maxWidth: 120 }}
+                  {...f('repasse_value')} />
+                <input className="form-control" placeholder="Motivo (ex: paciente indicado)" style={{ flex: 1 }}
+                  {...f('repasse_note')} />
+              </div>
+            )}
+          </div>
           <div className="form-group"><label className="form-label">Observações</label><textarea className="form-control" {...f('notes')} rows={2} /></div>
         </form>
       </Modal>

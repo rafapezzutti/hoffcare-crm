@@ -20,7 +20,9 @@ export default function RecordForm() {
     patient_id: params.get('patient_id') || '',
     professional_id: '',
     consultation_date: dayjs().format('YYYY-MM-DD'),
-    procedures: []
+    procedures: [],
+    repasse_type: null,
+    repasse_value: '',
   });
 
   const [patients, setPatients] = useState([]);
@@ -335,6 +337,51 @@ export default function RecordForm() {
               <span style={{ fontSize: 20 }}>R$ {total.toFixed(2)}</span>
             </div>
           )}
+
+          {/* ── Ajuste de repasse desta consulta ── */}
+          <div style={{ marginTop: 16, background: 'rgba(77,184,232,0.05)', border: '1px solid rgba(77,184,232,0.2)', borderRadius: 8, padding: '10px 14px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: 13, marginBottom: 8, color: 'var(--gray-700)' }}>
+              <i className="fas fa-handshake-simple" style={{ color: 'var(--blue)', fontSize: 12 }} />
+              Repasse desta consulta
+              <span style={{ fontSize: 11, color: 'var(--gray-400)', fontWeight: 400 }}>
+                {form.repasse_type ? '(ajuste manual)' : '(padrão do profissional)'}
+              </span>
+            </label>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+              {[{v:null,l:'Padrão'},{v:'percent',l:'% Percentual'},{v:'fixed',l:'R$ Fixo'}].map(opt => (
+                <button key={opt.v ?? 'null'} type="button"
+                  onClick={() => setForm(f => ({ ...f, repasse_type: opt.v, repasse_value: '' }))}
+                  style={{
+                    padding: '4px 10px', borderRadius: 6, border: '1px solid', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                    background: form.repasse_type === opt.v ? '#4DB8E8' : 'white',
+                    color: form.repasse_type === opt.v ? 'white' : 'var(--gray-500)',
+                    borderColor: form.repasse_type === opt.v ? '#4DB8E8' : 'var(--gray-200)',
+                  }}>{opt.l}</button>
+              ))}
+            </div>
+            {form.repasse_type && (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 13 }}>
+                  {form.repasse_type === 'percent' ? '%' : 'R$'}
+                </span>
+                <input className="form-control" type="number" min="0"
+                  step={form.repasse_type === 'percent' ? '0.5' : '0.01'}
+                  max={form.repasse_type === 'percent' ? '100' : undefined}
+                  placeholder={form.repasse_type === 'percent' ? 'Ex: 70' : 'Ex: 150.00'}
+                  style={{ maxWidth: 130 }}
+                  value={form.repasse_value}
+                  onChange={e => setForm(f => ({ ...f, repasse_value: e.target.value }))} />
+                {form.repasse_value && form.repasse_type === 'percent' && total > 0 && (
+                  <span style={{ fontSize: 12, color: 'var(--gray-400)' }}>
+                    = R$ {(total * parseFloat(form.repasse_value || 0) / 100).toFixed(2)} desta consulta
+                  </span>
+                )}
+                {form.repasse_value && form.repasse_type === 'fixed' && (
+                  <span style={{ fontSize: 12, color: 'var(--gray-400)' }}>fixo por consulta</span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

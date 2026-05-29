@@ -71,7 +71,7 @@ router.get('/', auth, async (req, res) => {
 
 // Create appointment
 router.post('/', auth, async (req, res) => {
-  const { type, patient_id, professional_id, room_id, appointment_date, duration_minutes, notes } = req.body;
+  const { type, patient_id, professional_id, room_id, appointment_date, duration_minutes, notes, repasse_type, repasse_value, repasse_note } = req.body;
   if (!type || !patient_id || !professional_id || !appointment_date)
     return res.status(400).json({ error: 'Tipo, paciente, profissional e data são obrigatórios' });
 
@@ -85,7 +85,7 @@ router.post('/', auth, async (req, res) => {
       pool.query(`SELECT name, email, email_confirmations,
                          whatsapp_enabled, whatsapp_confirm
                   FROM clinics WHERE id = $1`, [clinic_id]),
-      pool.query('SELECT name FROM professionals WHERE id = $1', [professional_id]),
+      pool.query('SELECT name, repasse_percentual, repasse_type, repasse_fixed FROM professionals WHERE id = $1', [professional_id]),
     ]);
     const patient = patientRes.rows[0];
     const clinic = clinicRes.rows[0];
@@ -98,10 +98,14 @@ router.post('/', auth, async (req, res) => {
     const result = await pool.query(
       `INSERT INTO appointments
          (type, patient_id, professional_id, room_id, clinic_id, appointment_date,
-          duration_minutes, notes, status, confirmation_token, cancel_token)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'pending_confirmation',$9,$10) RETURNING *`,
+          duration_minutes, notes, status, confirmation_token, cancel_token,
+          repasse_type, repasse_value, repasse_note)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'pending_confirmation',$9,$10,$11,$12,$13) RETURNING *`,
       [type, patient_id, professional_id, room_id || null, clinic_id, appointment_date,
-       duration_minutes || 30, notes, confirmToken, cancelToken]
+       duration_minutes || 30, notes, confirmToken, cancelToken,
+       repasse_type || professional?.repasse_type || 'percent',
+       repasse_value != null ? parseFloat(repasse_value) : (professional?.repasse_fixed ?? professional?.repasse_percentual ?? null),
+       repasse_note || null]
     );
     const apt = result.rows[0];
 
@@ -161,15 +165,18 @@ router.post('/', auth, async (req, res) => {
 
 // Update appointment
 router.put('/:id', auth, async (req, res) => {
-  const { type, patient_id, professional_id, room_id, appointment_date, duration_minutes, notes, status } = req.body;
+  const { type, patient_id, professional_id, room_id, appointment_date, duration_minutes, notes, status, repasse_type, repasse_value, repasse_note } = req.body;
   const clinic_id = req.user.clinic_id;
   try {
     const result = await pool.query(
       `UPDATE appointments SET type=$1, patient_id=$2, professional_id=$3, room_id=$4,
-       appointment_date=$5, duration_minutes=$6, notes=$7, status=$8
-       WHERE id=$9 AND clinic_id=$10 RETURNING *`,
+       appointment_date=$5, duration_minutes=$6, notes=$7, status=$8,
+       repasse_type=$9, repasse_value=$10, repasse_note=$11
+       WHERE id=$12 AND clinic_id=$13 RETURNING *`,
       [type, patient_id, professional_id, room_id || null, appointment_date,
-       duration_minutes || 30, notes, status || 'pending_confirmation', req.params.id, clinic_id]
+       duration_minutes || 30, notes, status || 'pending_confirmation',
+       repasse_type || null, repasse_value != null ? parseFloat(repasse_value) : null, repasse_note || null,
+       req.params.id, clinic_id]
     );
     if (!result.rows[0]) return res.status(404).json({ error: 'Consulta não encontrada' });
     res.json(result.rows[0]);

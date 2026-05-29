@@ -103,19 +103,23 @@ router.get('/statement/:professional_id', auth, async (req, res) => {
                   LEFT JOIN clinics c ON c.id = $2
                   WHERE p.id = $1`, [professional_id, clinic_id]),
 
-      // Registros/procedimentos do profissional no mês
+      // Registros/procedimentos do profissional no mês (com override de repasse)
       pool.query(`
         SELECT mr.consultation_date, mr.id as record_id,
                pat.name as patient_name,
                COALESCE(SUM(mrp.value), 0) as total_value,
-               ARRAY_AGG(mrp.procedure_name ORDER BY mrp.id) FILTER (WHERE mrp.id IS NOT NULL) as procedures
+               ARRAY_AGG(mrp.procedure_name ORDER BY mrp.id) FILTER (WHERE mrp.id IS NOT NULL) as procedures,
+               mr.repasse_type as mr_repasse_type, mr.repasse_value as mr_repasse_value,
+               apt.repasse_type as apt_repasse_type, apt.repasse_value as apt_repasse_value, apt.repasse_note
         FROM medical_records mr
         LEFT JOIN patients pat ON pat.id = mr.patient_id
         LEFT JOIN medical_record_procedures mrp ON mrp.record_id = mr.id
+        LEFT JOIN appointments apt ON apt.id = mr.appointment_id
         WHERE mr.clinic_id = $1 AND mr.professional_id = $2
           AND EXTRACT(YEAR FROM mr.consultation_date) = $3
           AND EXTRACT(MONTH FROM mr.consultation_date) = $4
-        GROUP BY mr.id, mr.consultation_date, pat.name
+        GROUP BY mr.id, mr.consultation_date, pat.name,
+                 mr.repasse_type, mr.repasse_value, apt.repasse_type, apt.repasse_value, apt.repasse_note
         ORDER BY mr.consultation_date
       `, [clinic_id, professional_id, y, m]),
 
@@ -147,9 +151,33 @@ router.get('/statement/:professional_id', auth, async (req, res) => {
 
     const totalRecordsGross = records.reduce((s, r) => s + parseFloat(r.total_value), 0);
 
-    const repassePercent = professional.repasse_percentual != null
-      ? parseFloat(professional.repasse_percentual)
-      : 100; // sem repasse configurado = recebe 100%
+    // Padrão do profissional
+    const profRepasseType = professional.repasse_type || 'percent';
+    const profRepassePercent = professional.repasse_percentual != null ? parseFloat(professional.repasse_percentual) : 100;
+    const profRepasseFixed  = professional.repasse_fixed != null ? parseFloat(professional.repasse_fixed) : null;
+
+    // Calcula repasse por prontuário usando a hierarquia: prontuário > agendamento > profissional
+    let totalRepasse = 0;
+    const recordsWithRepasse = records.map(r => {
+      const gross = parseFloat(r.total_value);
+      // Prioridade: 1) prontuário override  2) agendamento override  3) padrão do profissional
+      const activeType  = r.mr_repasse_type  || r.apt_repasse_type  || profRepasseType;
+      const activeValue = r.mr_repasse_value != null ? parseFloat(r.mr_repasse_value)
+                        : r.apt_repasse_value != null ? parseFloat(r.apt_repasse_value)
+                        : (profRepasseType === 'fixed' ? profRepasseFixed : null);
+      let repasse;
+      if (activeType === 'fixed' && activeValue != null) {
+        repasse = activeValue; // valor fixo independe do bruto
+      } else {
+        const pct = activeValue != null ? activeValue : profRepassePercent;
+        repasse = gross * pct / 100;
+      }
+      totalRepasse += repasse;
+      return { ...r, repasse_type: activeType, repasse_calculated: repasse, repasse_note: r.repasse_note };
+    });
+
+    // Alias para compatibilidade: % médio ponderado (para exibição)
+    const repassePercent = totalRecordsGross > 0 ? (totalRepasse / totalRecordsGross * 100) : profRepassePercent;
 
     // a_pagar: clínica paga ao profissional → soma à base
     const totalSettlementsIn = settlements
@@ -163,28 +191,23 @@ router.get('/statement/:professional_id', auth, async (req, res) => {
 
     const totalRentals = rentals.reduce((s, r) => s + parseFloat(r.value), 0);
 
-    // Acertos entram ANTES do repasse %:
-    // base = procedimentos + acertos da clínica − acertos do profissional
-    // líquido = base × (repasse% / 100) − aluguéis
-    const baseBeforeRepasse = totalRecordsGross + totalSettlementsIn - totalSettlementsOut;
-    const totalAfterRepasse = baseBeforeRepasse * repassePercent / 100;
-    const netTotal = totalAfterRepasse - totalRentals;
+    // líquido = repasse calculado por registro + acertos − aluguéis
+    const netTotal = totalRepasse + totalSettlementsIn - totalSettlementsOut - totalRentals;
 
     res.json({
       professional,
       year: y,
       month: m,
-      records,
+      records: recordsWithRepasse,
       settlements,
       rentals,
       summary: {
         total_records_gross: totalRecordsGross,
         repasse_percent: repassePercent,
+        total_repasse: totalRepasse,
         total_settlements_in: totalSettlementsIn,
         total_settlements_out: totalSettlementsOut,
-        base_before_repasse: baseBeforeRepasse,   // base antes de aplicar o %
-        total_after_repasse: totalAfterRepasse,    // base × %
-        total_records: totalAfterRepasse,          // alias para compatibilidade com o frontend
+        total_records: totalRepasse,               // alias para compatibilidade com o frontend
         total_rentals: totalRentals,
         net_total: netTotal,
       }

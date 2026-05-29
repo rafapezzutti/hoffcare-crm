@@ -34,7 +34,7 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 router.post('/', auth, async (req, res) => {
-  const { type, name, cpf, crm_cro, birthdate, email, phone, repasse_percentual } = req.body;
+  const { type, name, cpf, crm_cro, birthdate, email, phone, repasse_percentual, repasse_type, repasse_fixed } = req.body;
   if (!name)
     return res.status(400).json({ error: 'Nome é obrigatório' });
 
@@ -48,9 +48,10 @@ router.post('/', auth, async (req, res) => {
 
   try {
     const result = await pool.query(
-      `INSERT INTO professionals (type, name, cpf, crm_cro, birthdate, email, phone, clinic_id, repasse_percentual)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
-      [type, name, cpf || null, crm_cro || null, birthdate || null, email || null, phone || null, clinic_id, repasseValue]
+      `INSERT INTO professionals (type, name, cpf, crm_cro, birthdate, email, phone, clinic_id, repasse_percentual, repasse_type, repasse_fixed)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      [type, name, cpf || null, crm_cro || null, birthdate || null, email || null, phone || null, clinic_id, repasseValue,
+       repasse_type || 'percent', repasse_type === 'fixed' ? (parseFloat(repasse_fixed) || null) : null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -60,7 +61,7 @@ router.post('/', auth, async (req, res) => {
 });
 
 router.put('/:id', auth, async (req, res) => {
-  const { type, name, cpf, crm_cro, birthdate, email, phone, repasse_percentual } = req.body;
+  const { type, name, cpf, crm_cro, birthdate, email, phone, repasse_percentual, repasse_type, repasse_fixed } = req.body;
   const clinic_id = req.user.clinic_id;
   const canEditRepasse = ['responsavel', 'admin'].includes(req.user.role);
 
@@ -79,10 +80,13 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     const result = await pool.query(
-      `UPDATE professionals SET type=$1, name=$2, cpf=$3, crm_cro=$4, birthdate=$5, email=$6, phone=$7, repasse_percentual=$8
-       WHERE id=$9 AND clinic_id=$10 RETURNING *`,
+      `UPDATE professionals SET type=$1, name=$2, cpf=$3, crm_cro=$4, birthdate=$5, email=$6, phone=$7,
+       repasse_percentual=$8, repasse_type=$9, repasse_fixed=$10
+       WHERE id=$11 AND clinic_id=$12 RETURNING *`,
       [type, name, cpf || null, crm_cro || null, birthdate || null, email || null, phone || null,
-       repasseValue, req.params.id, clinic_id]
+       repasseValue, repasse_type || 'percent',
+       repasse_type === 'fixed' ? (parseFloat(repasse_fixed) || null) : null,
+       req.params.id, clinic_id]
     );
     if (!result.rows[0]) return res.status(404).json({ error: 'Profissional não encontrado' });
     res.json(result.rows[0]);
