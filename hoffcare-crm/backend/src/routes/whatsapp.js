@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../config/db');
 const { auth } = require('../middleware/auth');
 const { sendText, getQRCode, getConnectionState } = require('../services/whatsapp');
+const { logMessage } = require('../services/messageLog');
 
 // ── GET /api/whatsapp/settings
 // Retorna configurações por clínica (apenas toggles — token é global via env vars)
@@ -54,7 +55,7 @@ router.post('/test', auth, async (req, res) => {
     const msg = `✅ *P. Soluções para Saúde*\n\nTeste de integração WhatsApp realizado com sucesso! 🎉`;
     const r = await sendText(phone, msg);
 
-    if (r.ok) res.json({ ok: true, message: 'Mensagem enviada com sucesso!' });
+    if (r.ok) { logMessage({ clinic_id: req.user.clinic_id, user_id: req.user.id, channel: 'whatsapp', type: 'test', recipient_phone: phone }); res.json({ ok: true, message: 'Mensagem enviada com sucesso!' }); }
     else {
       const detail = typeof r.error === 'object' ? JSON.stringify(r.error) : String(r.error);
       res.status(400).json({ error: 'Falha ao enviar. Verifique a conexão da Evolution API.', detail });

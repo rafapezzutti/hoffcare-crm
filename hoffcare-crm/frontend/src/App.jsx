@@ -25,6 +25,9 @@ import AppointmentRespond from './pages/AppointmentRespond';
 import Rentals from './pages/Rentals';
 import Settlements from './pages/Settlements';
 import ProfessionalStatement from './pages/ProfessionalStatement';
+import BankStatement from './pages/BankStatement';
+import Permissions from './pages/Permissions';
+import MessageCounter from './pages/MessageCounter';
 import BeforeAfter from './pages/BeforeAfter';
 import Anamnesis from './pages/Anamnesis';
 import AnamnesisForm from './pages/AnamnesisForm';
@@ -71,6 +74,9 @@ export default function App() {
             <Route path="rentals" element={<Rentals />} />
             <Route path="settlements" element={<Settlements />} />
             <Route path="statement" element={<ProfessionalStatement />} />
+            <Route path="bank-statement" element={<BankStatement />} />
+            <Route path="permissions" element={<Permissions />} />
+            <Route path="message-counter" element={<MessageCounter />} />
           </Route>
         </Routes>
       </BrowserRouter>

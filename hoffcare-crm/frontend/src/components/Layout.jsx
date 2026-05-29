@@ -32,12 +32,15 @@ export default function Layout() {
     { to: '/rentals', icon: 'fa-key', label: 'Locações' },
     { to: '/settlements', icon: 'fa-handshake', label: 'Acertos' },
     { to: '/statement', icon: 'fa-file-invoice-dollar', label: 'Extrato Mensal' },
+    { to: '/bank-statement', icon: 'fa-table-list', label: 'Extrato Bancário' },
+    { to: '/message-counter', icon: 'fa-chart-bar', label: 'Contador Mensagens' },
   ];
 
   const adminItems = [
     { section: t('nav.admin') },
     { to: '/clinics', icon: 'fa-hospital', label: t('nav.clinics') },
     { to: '/users', icon: 'fa-users-gear', label: t('nav.users') },
+    { to: '/permissions', icon: 'fa-shield-halved', label: 'Permissões' },
   ];
 
   const handleLogout = () => { logout(); navigate('/login'); };

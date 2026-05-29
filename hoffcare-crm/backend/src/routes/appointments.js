@@ -4,6 +4,7 @@ const { Resend } = require('resend');
 const pool = require('../config/db');
 const { auth } = require('../middleware/auth');
 const { sendConfirmation, sendCancellation } = require('../services/whatsapp');
+const { logMessage } = require('../services/messageLog');
 const router = express.Router();
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -148,7 +149,8 @@ router.post('/', auth, async (req, res) => {
         professionalName: professional?.name || 'profissional',
         clinicName: clinic.name,
         dateStr
-      }).catch(e => console.error('[WhatsApp] Erro confirmação:', e.message));
+      }).then(() => logMessage({ clinic_id, user_id: req.user.id, channel: 'whatsapp', type: 'appointment_confirmation', recipient_phone: patient.phone }))
+        .catch(e => console.error('[WhatsApp] Erro confirmação:', e.message));
     }
 
     res.status(201).json(apt);

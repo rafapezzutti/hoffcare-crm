@@ -237,6 +237,61 @@ router.post('/trial-cleanup', cronAuth, async (req, res) => {
       }
     }
 
+    // ── 3. AVISOS de trial expirando (dias 7 e 9) ────────────────────────────
+    const toWarn = await pool.query(`
+      SELECT id, name, email, trial_starts_at, trial_expires_at,
+        EXTRACT(DAY FROM (NOW() - trial_starts_at)) AS days_elapsed
+      FROM users
+      WHERE is_trial = true
+        AND trial_blocked_at IS NULL
+        AND trial_expires_at IS NOT NULL
+        AND trial_expires_at > NOW()
+        AND trial_starts_at IS NOT NULL
+        AND EXTRACT(DAY FROM (NOW() - trial_starts_at)) IN (7, 9)
+    `);
+
+    for (const u of toWarn.rows) {
+      try {
+        const daysLeft = 10 - Math.floor(u.days_elapsed);
+        await resend.emails.send({
+          from: 'P. Soluções para Saúde <noreply@psaude.ia.br>',
+          to: u.email,
+          subject: `Seu período de avaliação expira em ${daysLeft} dia${daysLeft > 1 ? 's' : ''}`,
+          html: `
+            <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#333">
+              <div style="background:#1a2535;padding:24px;border-radius:8px 8px 0 0;text-align:center">
+                <div style="font-size:22px;font-weight:800;color:#4DB8E8">P. Soluções</div>
+                <div style="font-size:13px;font-weight:600;color:#E8841A">para Saúde</div>
+              </div>
+              <div style="background:#fff;border:1px solid #e9ecef;border-top:none;padding:32px;border-radius:0 0 8px 8px">
+                <h2 style="margin:0 0 8px;font-size:18px;color:#1a2535">Olá, ${u.name}!</h2>
+                <p style="color:#495057;font-size:14px;line-height:1.6">
+                  Seu período de avaliação gratuita do <strong>CRM Saúde</strong> expira em
+                  <strong style="color:#dc3545">${daysLeft} dia${daysLeft > 1 ? 's' : ''}</strong>.
+                </p>
+                <p style="color:#495057;font-size:14px;line-height:1.6">
+                  Para continuar usando todas as funcionalidades sem interrupção, entre em contato
+                  conosco e ative seu plano.
+                </p>
+                <div style="text-align:center;margin:28px 0">
+                  <a href="${FRONTEND_URL}" style="background:#4DB8E8;color:white;text-decoration:none;
+                    padding:13px 32px;border-radius:6px;font-size:15px;font-weight:700;display:inline-block">
+                    Acessar o sistema
+                  </a>
+                </div>
+                <p style="color:#868e96;font-size:12px">
+                  Se já entrou em contato, ignore este e-mail.
+                </p>
+              </div>
+            </div>
+          `
+        });
+        results.warned = (results.warned || 0) + 1;
+      } catch(e) {
+        results.errors.push(`Aviso trial#${u.id}: ${e.message}`);
+      }
+    }
+
     res.json({ ok: true, ...results, timestamp: new Date().toISOString() });
   } catch (err) {
     console.error('Trial cleanup cron error:', err);
