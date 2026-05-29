@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Modal from '../components/Modal';
 import dayjs from 'dayjs';
+
+const API_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
 import { formatPhone, formatCPF } from '../utils/format';
 
 const emptyHD = { has_diabetes: false, is_smoker: false, has_cardiac_history: false, has_surgeries: false, has_other_conditions: false, other_conditions_comment: '', comment: '', declaration_date: dayjs().format('YYYY-MM-DD') };
@@ -157,7 +159,7 @@ export default function PatientDetail() {
                   <div key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--gray-100)' }}>
                     <span style={{ fontSize: 13 }}><i className="fas fa-file" style={{ marginRight: 8, color: 'var(--gray-400)' }} />{a.original_name}</span>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <a href={`/uploads/${a.filename}`} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm"><i className="fas fa-eye" /></a>
+                      <a href={`${API_URL}/uploads/${a.filename}`} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm"><i className="fas fa-eye" /></a>
                       <button className="btn btn-danger btn-sm" onClick={() => handleDeleteAttachment(a.id)}><i className="fas fa-trash" /></button>
                     </div>
                   </div>
