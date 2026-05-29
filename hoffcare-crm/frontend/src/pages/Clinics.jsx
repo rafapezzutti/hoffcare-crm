@@ -12,7 +12,6 @@ const emptyClinic = {
   email_confirmations: false, email_reminders: false, email_recall: false,
   whatsapp_enabled: false, whatsapp_confirm: false, whatsapp_reminder: false,
   whatsapp_cancel: false, whatsapp_reminder_hours: 24,
-  whatsapp_instance_id: '', whatsapp_token: '', whatsapp_security_token: '',
   timezone: 'America/Sao_Paulo',
   // autônomo
   is_autonomous: false,
@@ -372,26 +371,11 @@ export default function Clinics() {
                 <i className="fab fa-whatsapp" style={{ marginRight: 6, color: '#25D366' }} />
                 Notificações via WhatsApp
               </label>
-              <Toggle label="Habilitar WhatsApp" hint="Ativa o envio via WhatsApp Business API (Z-API)"
+              <Toggle label="Habilitar WhatsApp" hint="Mensagens enviadas pelo número da Pezzutti Soluções via gateway compartilhado"
                 checked={!!form.whatsapp_enabled} onChange={set('whatsapp_enabled')} />
 
               {form.whatsapp_enabled && (
                 <>
-                  <div style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 8, padding: 16, marginTop: 12 }}>
-                    <div className="form-group" style={{ marginBottom: 12 }}>
-                      <label className="form-label" style={{ fontSize: 12 }}>Instance ID <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>— painel Z-API</span></label>
-                      <input className="form-control" style={{ fontSize: 13 }} placeholder="ex: 3ABC1D2E3F..." {...f('whatsapp_instance_id')} />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: 12 }}>
-                      <label className="form-label" style={{ fontSize: 12 }}>Token <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>— token da instância</span></label>
-                      <input className="form-control" style={{ fontSize: 13 }} type="password" placeholder="Cole o token aqui..." {...f('whatsapp_token')} />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label" style={{ fontSize: 12 }}>Security Token <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>— Client-Token da conta Z-API</span></label>
-                      <input className="form-control" style={{ fontSize: 13 }} type="password" placeholder="Cole o Security Token aqui..." {...f('whatsapp_security_token')} />
-                    </div>
-                  </div>
-
                   <div style={{ marginTop: 12 }}>
                     <Toggle label="Confirmação de agendamento" hint="Mensagem ao paciente quando a consulta é agendada" checked={!!form.whatsapp_confirm} onChange={set('whatsapp_confirm')} />
                     <Toggle label="Lembrete de consulta" hint="Mensagem X horas antes da consulta" checked={!!form.whatsapp_reminder} onChange={set('whatsapp_reminder')} />
@@ -430,7 +414,7 @@ export default function Clinics() {
                       </div>
                     )}
                     <div style={{ fontSize: 11, color: '#6b7280', marginTop: 6 }}>
-                      Salve antes de testar. Formato: <strong>5511999999999</strong> (DDI + DDD + número).
+                      Formato: <strong>5511999999999</strong> (DDI + DDD + número). Mensagem enviada pelo número da Pezzutti Soluções.
                     </div>
                   </div>
                 </>
