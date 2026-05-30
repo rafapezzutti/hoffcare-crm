@@ -44,6 +44,7 @@ app.use('/api/rentals', require('./routes/rentals'));
 app.use('/api/settlements', require('./routes/settlements'));
 app.use('/api/permissions', require('./routes/permissions'));
 app.use('/api/message-log', require('./routes/message_log'));
+app.use('/api/aesthetics', require('./routes/aesthetics'));
 app.use('/api/before-after', require('./routes/before_after'));
 app.use('/api/anamnesis', require('./routes/anamnesis'));
 app.use('/api/anthropometry', require('./routes/anthropometry'));
