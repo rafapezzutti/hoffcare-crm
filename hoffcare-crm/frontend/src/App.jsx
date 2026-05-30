@@ -32,6 +32,7 @@ import BeforeAfter from './pages/BeforeAfter';
 import Anamnesis from './pages/Anamnesis';
 import AnamnesisForm from './pages/AnamnesisForm';
 import Anthropometry from './pages/Anthropometry';
+import Aesthetics from './pages/Aesthetics';
 
 function ProtectedRoute({ children, adminOnly }) {
   const { user } = useAuth();
@@ -77,6 +78,7 @@ export default function App() {
             <Route path="bank-statement" element={<BankStatement />} />
             <Route path="permissions" element={<Permissions />} />
             <Route path="message-counter" element={<MessageCounter />} />
+            <Route path="aesthetics" element={<Aesthetics />} />
           </Route>
         </Routes>
       </BrowserRouter>

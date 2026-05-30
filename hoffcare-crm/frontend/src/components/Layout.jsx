@@ -28,6 +28,9 @@ export default function Layout() {
     { to: '/records', icon: 'fa-clipboard-list', label: t('nav.records') },
     { to: '/history', icon: 'fa-clock-rotate-left', label: t('nav.history') },
 
+    { section: 'Estética' },
+    { to: '/aesthetics', icon: 'fa-face-smile', label: 'Estética Facial' },
+
     { section: 'Financeiro' },
     { to: '/rentals', icon: 'fa-key', label: 'Locações' },
     { to: '/settlements', icon: 'fa-handshake', label: 'Acertos' },
