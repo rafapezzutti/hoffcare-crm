@@ -171,6 +171,7 @@ export default function BankStatement() {
           {/* Cards resumo */}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
             <SummaryCard label="Receita Bruta" value={fmt(data.totals.gross)} color="#1a5276" />
+            {data.totals.aesthetics_gross > 0 && <SummaryCard label="Estética Facial" value={fmt(data.totals.aesthetics_gross)} color="#e91e8c" />}
             <SummaryCard label="Repasse Profissionais" value={fmt(data.totals.repasse)} color="#7d3c98" />
             <SummaryCard label="Acertos Entrada" value={fmt(data.totals.settlements_in)} color="#1e8449" />
             <SummaryCard label="Acertos Saída" value={fmt(data.totals.settlements_out)} color="#c0392b" />
@@ -208,6 +209,7 @@ export default function BankStatement() {
                       <th style={{ textAlign: 'left' }}>Data</th>
                       <th style={{ textAlign: 'right' }}>Atend.</th>
                       <th style={{ textAlign: 'right' }}>Receita Bruta</th>
+                      <th style={{ textAlign: 'right', color: '#e91e8c' }}>Estética</th>
                       <th style={{ textAlign: 'right' }}>Repasse</th>
                       <th style={{ textAlign: 'right' }}>Acertos +</th>
                       <th style={{ textAlign: 'right' }}>Acertos −</th>
@@ -216,13 +218,14 @@ export default function BankStatement() {
                   </thead>
                   <tbody>
                     {data.days.length === 0 && (
-                      <tr><td colSpan={7}><div className="empty-state"><i className="fas fa-file-invoice" /><p>Nenhum movimento no período</p></div></td></tr>
+                      <tr><td colSpan={8}><div className="empty-state"><i className="fas fa-file-invoice" /><p>Nenhum movimento no período</p></div></td></tr>
                     )}
                     {data.days.map((row, i) => (
                       <tr key={row.day} style={{ background: i % 2 === 0 ? '#f8f9fa' : 'white' }}>
                         <td style={{ padding: '8px 12px', fontWeight: 500 }}>{dayjs(row.day).format('DD/MM/YYYY')}</td>
                         <td style={{ padding: '8px 12px', textAlign: 'right' }}>{row.by_professional.reduce((s,p)=>s+p.count,0)}</td>
                         <td style={{ padding: '8px 12px', textAlign: 'right', color: '#1a5276', fontWeight: 600 }}>{fmt(row.gross)}</td>
+                        <td style={{ padding: '8px 12px', textAlign: 'right', color: '#e91e8c', fontWeight: 600 }}>{row.aesthetics_gross > 0 ? fmt(row.aesthetics_gross) : '—'}</td>
                         <td style={{ padding: '8px 12px', textAlign: 'right', color: '#7d3c98' }}>{fmt(row.repasse)}</td>
                         <td style={{ padding: '8px 12px', textAlign: 'right', color: '#1e8449' }}>{row.settlements_in > 0 ? fmt(row.settlements_in) : '—'}</td>
                         <td style={{ padding: '8px 12px', textAlign: 'right', color: '#c0392b' }}>{row.settlements_out > 0 ? fmt(row.settlements_out) : '—'}</td>
@@ -231,13 +234,14 @@ export default function BankStatement() {
                     ))}
                     {data.totals.rentals > 0 && (
                       <tr style={{ background: '#fffbeb' }}>
-                        <td style={{ padding: '8px 12px', fontStyle: 'italic', color: '#e67e22' }} colSpan={6}>Aluguéis do mês</td>
+                        <td style={{ padding: '8px 12px', fontStyle: 'italic', color: '#e67e22' }} colSpan={7}>Aluguéis do mês</td>
                         <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: '#e67e22' }}>− {fmt(data.totals.rentals)}</td>
                       </tr>
                     )}
                     <tr style={{ background: '#1e8449' }}>
                       <td style={{ padding: '10px 12px', fontWeight: 800, color: 'white' }} colSpan={2}>TOTAL DO MÊS</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: 'white' }}>{fmt(data.totals.gross)}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: 'white' }}>{fmt(data.totals.aesthetics_gross)}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: 'white' }}>{fmt(data.totals.repasse)}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: 'white' }}>{fmt(data.totals.settlements_in)}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: 'white' }}>{fmt(data.totals.settlements_out)}</td>

@@ -226,7 +226,7 @@ router.get('/bank-statement', auth, async (req, res) => {
   const monthEnd   = new Date(y, m, 0).toISOString().split('T')[0]; // last day
 
   try {
-    const [profRes, recordsRes, settlementsRes, rentalsRes] = await Promise.all([
+    const [profRes, recordsRes, settlementsRes, rentalsRes, aestheticsRes] = await Promise.all([
       // Profissionais ativos da clínica
       pool.query(
         `SELECT id, name, repasse_percentual FROM professionals WHERE clinic_id=$1 ORDER BY name`,
@@ -258,6 +258,15 @@ router.get('/bank-statement', auth, async (req, res) => {
         WHERE clinic_id=$1 AND status='active'
           AND start_date <= $3 AND (end_date IS NULL OR end_date >= $2)
       `, [clinic_id, monthStart, monthEnd]),
+      // Estética facial com valor cobrado
+      pool.query(`
+        SELECT treatment_date::date as day, COALESCE(SUM(valor), 0) as aesthetic_gross
+        FROM aesthetic_treatments
+        WHERE clinic_id=$1 AND valor IS NOT NULL AND valor > 0
+          AND treatment_date::date BETWEEN $2 AND $3
+        GROUP BY treatment_date::date
+        ORDER BY treatment_date::date
+      `, [clinic_id, monthStart, monthEnd]),
     ]);
 
     const professionals = profRes.rows;
@@ -267,6 +276,7 @@ router.get('/bank-statement', auth, async (req, res) => {
     const daySet = new Set();
     recordsRes.rows.forEach(r => daySet.add(r.day));
     settlementsRes.rows.forEach(r => daySet.add(r.day));
+    aestheticsRes.rows.forEach(r => daySet.add(r.day));
     const days = Array.from(daySet).sort();
 
     const totalRentals = rentalsRes.rows.reduce((s, r) => s + parseFloat(r.value), 0);
@@ -275,6 +285,8 @@ router.get('/bank-statement', auth, async (req, res) => {
     const rows = days.map(day => {
       const dayRecords = recordsRes.rows.filter(r => String(r.day).slice(0,10) === String(day).slice(0,10));
       const daySettlements = settlementsRes.rows.filter(r => String(r.day).slice(0,10) === String(day).slice(0,10));
+      const dayAesthetic = aestheticsRes.rows.find(r => String(r.day).slice(0,10) === String(day).slice(0,10));
+      const aestheticGross = parseFloat(dayAesthetic?.aesthetic_gross || 0);
 
       const gross = dayRecords.reduce((s, r) => s + parseFloat(r.gross), 0);
       const settlementsIn  = daySettlements.filter(s => s.type === 'a_pagar').reduce((s,r) => s + parseFloat(r.value), 0);
@@ -288,7 +300,7 @@ router.get('/bank-statement', auth, async (req, res) => {
         repasse += parseFloat(r.gross) * pct / 100;
       });
 
-      const net = gross - repasse + settlementsIn - settlementsOut;
+      const net = gross + aestheticGross - repasse + settlementsIn - settlementsOut;
 
       const byProfessional = dayRecords.map(r => {
         const prof = profMap[r.professional_id];
@@ -304,7 +316,7 @@ router.get('/bank-statement', auth, async (req, res) => {
         };
       });
 
-      return { day, gross, repasse, settlements_in: settlementsIn, settlements_out: settlementsOut, net, by_professional: byProfessional };
+      return { day, gross, aesthetics_gross: aestheticGross, repasse, settlements_in: settlementsIn, settlements_out: settlementsOut, net, by_professional: byProfessional };
     });
 
     // Totais por profissional (para aba individual)
@@ -331,12 +343,13 @@ router.get('/bank-statement', auth, async (req, res) => {
     }).filter(p => p.gross > 0 || p.settlements_in > 0 || p.settlements_out > 0);
 
     const totals = {
-      gross:          rows.reduce((s,r)=>s+r.gross, 0),
-      repasse:        rows.reduce((s,r)=>s+r.repasse, 0),
-      settlements_in: rows.reduce((s,r)=>s+r.settlements_in, 0),
-      settlements_out:rows.reduce((s,r)=>s+r.settlements_out, 0),
-      rentals:        totalRentals,
-      net:            rows.reduce((s,r)=>s+r.net, 0) - totalRentals,
+      gross:            rows.reduce((s,r)=>s+r.gross, 0),
+      aesthetics_gross: rows.reduce((s,r)=>s+(r.aesthetics_gross||0), 0),
+      repasse:          rows.reduce((s,r)=>s+r.repasse, 0),
+      settlements_in:   rows.reduce((s,r)=>s+r.settlements_in, 0),
+      settlements_out:  rows.reduce((s,r)=>s+r.settlements_out, 0),
+      rentals:          totalRentals,
+      net:              rows.reduce((s,r)=>s+r.net, 0) - totalRentals,
     };
 
     res.json({ year: y, month: m, days: rows, by_professional: byProfessional, totals, rentals: rentalsRes.rows });

@@ -44,19 +44,19 @@ router.get('/:id', auth, async (req, res) => {
 // POST /api/aesthetics
 router.post('/', auth, async (req, res) => {
   const { patient_id, professional_id, treatment_date, points, product_brand,
-          product_lot, product_validity, total_units, observations } = req.body;
+          product_lot, product_validity, total_units, observations, valor } = req.body;
   if (!patient_id) return res.status(400).json({ error: 'Paciente obrigatório' });
   try {
     const { rows } = await pool.query(
       `INSERT INTO aesthetic_treatments
          (clinic_id, patient_id, professional_id, treatment_date, points,
-          product_brand, product_lot, product_validity, total_units, observations)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+          product_brand, product_lot, product_validity, total_units, observations, valor)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
       [req.user.clinic_id, patient_id, professional_id || null,
        treatment_date || new Date().toISOString().split('T')[0],
        JSON.stringify(points || []),
        product_brand || null, product_lot || null, product_validity || null,
-       total_units || null, observations || null]
+       total_units || null, observations || null, valor || null]
     );
     res.status(201).json(rows[0]);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -65,18 +65,18 @@ router.post('/', auth, async (req, res) => {
 // PUT /api/aesthetics/:id
 router.put('/:id', auth, async (req, res) => {
   const { patient_id, professional_id, treatment_date, points, product_brand,
-          product_lot, product_validity, total_units, observations } = req.body;
+          product_lot, product_validity, total_units, observations, valor } = req.body;
   try {
     const { rows } = await pool.query(
       `UPDATE aesthetic_treatments SET
          patient_id=$1, professional_id=$2, treatment_date=$3, points=$4,
          product_brand=$5, product_lot=$6, product_validity=$7,
-         total_units=$8, observations=$9
-       WHERE id=$10 AND clinic_id=$11 RETURNING *`,
+         total_units=$8, observations=$9, valor=$10
+       WHERE id=$11 AND clinic_id=$12 RETURNING *`,
       [patient_id, professional_id || null,
        treatment_date, JSON.stringify(points || []),
        product_brand || null, product_lot || null, product_validity || null,
-       total_units || null, observations || null,
+       total_units || null, observations || null, valor || null,
        req.params.id, req.user.clinic_id]
     );
     if (!rows[0]) return res.status(404).json({ error: 'Não encontrado' });

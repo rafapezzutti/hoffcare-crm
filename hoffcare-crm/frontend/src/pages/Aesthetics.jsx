@@ -6,93 +6,210 @@ import dayjs from 'dayjs';
 // ── SVG Face ─────────────────────────────────────────────────────────────────
 const FaceSVG = () => (
   <g>
-    {/* Pescoço */}
-    <path d="M172,388 L160,440 L240,440 L228,388" fill="#F5DEB3" stroke="#C8A882" strokeWidth="1.5"/>
-    {/* Cabeça */}
-    <ellipse cx="200" cy="215" rx="148" ry="178" fill="#FEF0E0" stroke="#C8A882" strokeWidth="2"/>
-    {/* Cabelo */}
-    <path d="M52,215 C52,100 348,100 348,215 C348,150 320,52 200,52 C80,52 52,150 52,215Z"
-          fill="#8B6914" stroke="#7A5C10" strokeWidth="1.5"/>
-    {/* Têmporas cabelo */}
-    <path d="M52,215 C45,245 48,280 55,295 C65,275 68,255 52,215Z" fill="#8B6914"/>
-    <path d="M348,215 C355,245 352,280 345,295 C335,275 332,255 348,215Z" fill="#8B6914"/>
-    {/* Orelhas */}
-    <ellipse cx="52" cy="245" rx="16" ry="24" fill="#F5DEB3" stroke="#C8A882" strokeWidth="1.5"/>
-    <path d="M56,232 Q60,245 56,258" stroke="#C8A882" strokeWidth="1" fill="none"/>
-    <ellipse cx="348" cy="245" rx="16" ry="24" fill="#F5DEB3" stroke="#C8A882" strokeWidth="1.5"/>
-    <path d="M344,232 Q340,245 344,258" stroke="#C8A882" strokeWidth="1" fill="none"/>
+    <defs>
+      <radialGradient id="skinGrad" cx="50%" cy="38%" r="58%">
+        <stop offset="0%"   stopColor="#FDEBD0"/>
+        <stop offset="55%"  stopColor="#F5CBA7"/>
+        <stop offset="100%" stopColor="#D4956A"/>
+      </radialGradient>
+      <radialGradient id="skinNeck" cx="50%" cy="30%" r="70%">
+        <stop offset="0%"   stopColor="#F5CBA7"/>
+        <stop offset="100%" stopColor="#C8926A"/>
+      </radialGradient>
+      <radialGradient id="cheekL" cx="25%" cy="58%" r="38%">
+        <stop offset="0%"  stopColor="#F1948A" stopOpacity="0.35"/>
+        <stop offset="100%" stopColor="#F5CBA7" stopOpacity="0"/>
+      </radialGradient>
+      <radialGradient id="cheekR" cx="75%" cy="58%" r="38%">
+        <stop offset="0%"  stopColor="#F1948A" stopOpacity="0.35"/>
+        <stop offset="100%" stopColor="#F5CBA7" stopOpacity="0"/>
+      </radialGradient>
+      <radialGradient id="irisGrad" cx="35%" cy="35%" r="65%">
+        <stop offset="0%"   stopColor="#A9770E"/>
+        <stop offset="55%"  stopColor="#6E4C0C"/>
+        <stop offset="100%" stopColor="#3B2506"/>
+      </radialGradient>
+      <linearGradient id="hairGrad" x1="0%" y1="0%" x2="20%" y2="100%">
+        <stop offset="0%"   stopColor="#C49A2A"/>
+        <stop offset="40%"  stopColor="#9A7D0A"/>
+        <stop offset="100%" stopColor="#5C4208"/>
+      </linearGradient>
+      <linearGradient id="lipTopGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%"   stopColor="#B03060"/>
+        <stop offset="100%" stopColor="#8B1A40"/>
+      </linearGradient>
+      <linearGradient id="lipBotGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%"   stopColor="#D04070"/>
+        <stop offset="60%"  stopColor="#B03060"/>
+        <stop offset="100%" stopColor="#8B1A40"/>
+      </linearGradient>
+      <clipPath id="eyeL">
+        <path d="M126,200 Q152,181 178,200 Q152,219 126,200Z"/>
+      </clipPath>
+      <clipPath id="eyeR">
+        <path d="M222,200 Q248,181 274,200 Q248,219 222,200Z"/>
+      </clipPath>
+    </defs>
 
-    {/* ── Zona guias (linhas anatômicas muito suaves) ── */}
-    {/* Frontal - linhas horizontais */}
-    <line x1="100" y1="120" x2="300" y2="120" stroke="#E0C8A0" strokeWidth="0.8" strokeDasharray="4,4"/>
-    <line x1="88"  y1="145" x2="312" y2="145" stroke="#E0C8A0" strokeWidth="0.8" strokeDasharray="4,4"/>
-    <line x1="80"  y1="165" x2="320" y2="165" stroke="#E0C8A0" strokeWidth="0.8" strokeDasharray="4,4"/>
-    {/* Linhas glabela */}
-    <line x1="185" y1="168" x2="185" y2="190" stroke="#E0C8A0" strokeWidth="0.8" strokeDasharray="2,2"/>
-    <line x1="215" y1="168" x2="215" y2="190" stroke="#E0C8A0" strokeWidth="0.8" strokeDasharray="2,2"/>
+    {/* ── Pescoço ── */}
+    <path d="M176,390 Q168,418 162,448 L238,448 Q232,418 224,390Z"
+          fill="url(#skinNeck)" stroke="#C8A882" strokeWidth="1.2"/>
+    <path d="M176,390 Q172,418 170,448 L180,448 Q178,418 182,390Z"
+          fill="rgba(0,0,0,0.06)"/>
+
+    {/* ── Cabeça ── */}
+    <path d="M200,40
+             C136,40 62,96 57,192
+             C52,268 68,334 105,368
+             C136,398 168,412 200,414
+             C232,412 264,398 295,368
+             C332,334 348,268 343,192
+             C338,96 264,40 200,40Z"
+          fill="url(#skinGrad)" stroke="#C8A882" strokeWidth="1.5"/>
+
+    {/* ── Sombra lateral face ── */}
+    <path d="M57,192 C52,268 68,334 105,368 C80,320 72,268 76,200Z"
+          fill="rgba(0,0,0,0.05)"/>
+    <path d="M343,192 C348,268 332,334 295,368 C320,320 328,268 324,200Z"
+          fill="rgba(0,0,0,0.05)"/>
+
+    {/* ── Orelhas ── */}
+    <ellipse cx="57" cy="246" rx="18" ry="27" fill="#F0C095" stroke="#C8A882" strokeWidth="1.5"/>
+    <path d="M61,231 Q67,246 61,261" stroke="#B08060" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
+    <ellipse cx="343" cy="246" rx="18" ry="27" fill="#F0C095" stroke="#C8A882" strokeWidth="1.5"/>
+    <path d="M339,231 Q333,246 339,261" stroke="#B08060" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
+
+    {/* ── Cabelo ── */}
+    <path d="M57,192
+             C57,124 82,58 144,42
+             C168,35 186,38 200,40
+             C214,38 232,35 256,42
+             C318,58 343,124 343,192
+             C330,148 312,72 278,58
+             C254,48 228,50 200,50
+             C172,50 146,48 122,58
+             C88,72 70,148 57,192Z"
+          fill="url(#hairGrad)" stroke="#7A5C10" strokeWidth="1"/>
+    {/* Têmporas */}
+    <path d="M57,192 C49,218 47,255 54,288 C62,270 66,242 57,192Z" fill="url(#hairGrad)"/>
+    <path d="M343,192 C351,218 353,255 346,288 C338,270 334,242 343,192Z" fill="url(#hairGrad)"/>
+    {/* Highlight cabelo */}
+    <path d="M148,46 Q200,40 252,46 Q200,43 148,46Z"
+          fill="rgba(255,230,130,0.35)"/>
+
+    {/* ── Blush ── */}
+    <ellipse cx="112" cy="298" rx="46" ry="28" fill="url(#cheekL)"/>
+    <ellipse cx="288" cy="298" rx="46" ry="28" fill="url(#cheekR)"/>
+
+    {/* ── Linhas anatômicas guia ── */}
+    <line x1="106" y1="118" x2="294" y2="118" stroke="#E0C8A0" strokeWidth="0.8" strokeDasharray="4,4"/>
+    <line x1="92"  y1="143" x2="308" y2="143" stroke="#E0C8A0" strokeWidth="0.8" strokeDasharray="4,4"/>
+    <line x1="84"  y1="163" x2="316" y2="163" stroke="#E0C8A0" strokeWidth="0.8" strokeDasharray="4,4"/>
+    <line x1="185" y1="167" x2="185" y2="190" stroke="#E0C8A0" strokeWidth="0.7" strokeDasharray="2,2"/>
+    <line x1="215" y1="167" x2="215" y2="190" stroke="#E0C8A0" strokeWidth="0.7" strokeDasharray="2,2"/>
     {/* Pés de galinha */}
-    <path d="M178,196 L158,182 M178,202 L155,202 M178,210 L158,220" stroke="#E8D5B5" strokeWidth="0.8" fill="none"/>
-    <path d="M222,196 L242,182 M222,202 L245,202 M222,210 L242,220" stroke="#E8D5B5" strokeWidth="0.8" fill="none"/>
+    <path d="M176,196 L156,181 M176,202 L153,202 M176,210 L157,220" stroke="#E0C8A0" strokeWidth="0.8" fill="none"/>
+    <path d="M224,196 L244,181 M224,202 L247,202 M224,210 L243,220" stroke="#E0C8A0" strokeWidth="0.8" fill="none"/>
     {/* Sulcos nasogenianos */}
-    <path d="M168,278 Q158,300 165,320" stroke="#E0C8A0" strokeWidth="1" strokeDasharray="3,2" fill="none"/>
-    <path d="M232,278 Q242,300 235,320" stroke="#E0C8A0" strokeWidth="1" strokeDasharray="3,2" fill="none"/>
-    {/* Linha mandíbula */}
-    <path d="M68,270 Q82,330 148,368 Q200,380 252,368 Q318,330 332,270"
+    <path d="M167,280 Q156,302 164,324" stroke="#D8C0A0" strokeWidth="1.1" strokeDasharray="3,2" fill="none"/>
+    <path d="M233,280 Q244,302 236,324" stroke="#D8C0A0" strokeWidth="1.1" strokeDasharray="3,2" fill="none"/>
+    {/* Mandíbula */}
+    <path d="M72,272 Q88,334 150,372 Q200,386 250,372 Q312,334 328,272"
           stroke="#E0C8A0" strokeWidth="0.8" fill="none" strokeDasharray="4,3"/>
+    {/* Linha central */}
+    <line x1="200" y1="76" x2="200" y2="394" stroke="#E8D8C0" strokeWidth="0.6" strokeDasharray="6,4"/>
 
     {/* ── Sobrancelhas ── */}
-    <path d="M130,172 Q153,158 178,164" stroke="#6B4510" strokeWidth="4" fill="none" strokeLinecap="round"/>
-    <path d="M222,164 Q247,158 270,172" stroke="#6B4510" strokeWidth="4" fill="none" strokeLinecap="round"/>
+    <path d="M126,172 Q148,157 168,159 Q178,160 182,167"
+          stroke="#5C3A08" strokeWidth="4.5" fill="none" strokeLinecap="round"/>
+    <path d="M126,173 Q148,159 168,161 Q178,162 182,168"
+          stroke="#8B6520" strokeWidth="2" fill="none" strokeLinecap="round" strokeOpacity="0.5"/>
+    <path d="M218,167 Q222,160 232,159 Q252,157 274,172"
+          stroke="#5C3A08" strokeWidth="4.5" fill="none" strokeLinecap="round"/>
+    <path d="M218,168 Q222,161 232,161 Q252,159 274,173"
+          stroke="#8B6520" strokeWidth="2" fill="none" strokeLinecap="round" strokeOpacity="0.5"/>
 
-    {/* ── Olhos ── */}
-    {/* Olho esquerdo */}
-    <path d="M132,200 Q154,183 178,200 Q154,217 132,200Z" fill="white" stroke="#A0856A" strokeWidth="1.5"/>
-    <circle cx="155" cy="200" r="10" fill="#5C3A1E"/>
-    <circle cx="155" cy="200" r="5.5" fill="#1a1a1a"/>
-    <circle cx="158" cy="196" r="2" fill="white"/>
-    <path d="M132,200 Q154,183 178,200" stroke="#6B4510" strokeWidth="1.5" fill="none"/>
-    {/* Olho direito */}
-    <path d="M222,200 Q246,183 268,200 Q246,217 222,200Z" fill="white" stroke="#A0856A" strokeWidth="1.5"/>
-    <circle cx="245" cy="200" r="10" fill="#5C3A1E"/>
-    <circle cx="245" cy="200" r="5.5" fill="#1a1a1a"/>
-    <circle cx="248" cy="196" r="2" fill="white"/>
-    <path d="M222,200 Q246,183 268,200" stroke="#6B4510" strokeWidth="1.5" fill="none"/>
+    {/* ── Olho esquerdo ── */}
+    {/* Branco */}
+    <path d="M126,200 Q152,181 178,200 Q152,219 126,200Z" fill="white" stroke="#B09878" strokeWidth="1"/>
+    {/* Íris */}
+    <circle cx="152" cy="200" r="11.5" fill="url(#irisGrad)" clipPath="url(#eyeL)"/>
+    {/* Pupila */}
+    <circle cx="152" cy="200" r="6.5" fill="#080808" clipPath="url(#eyeL)"/>
+    {/* Reflexo principal */}
+    <circle cx="155.5" cy="196.5" r="2.8" fill="white" clipPath="url(#eyeL)"/>
+    {/* Reflexo secundário */}
+    <circle cx="148" cy="204" r="1.2" fill="rgba(255,255,255,0.55)" clipPath="url(#eyeL)"/>
+    {/* Pálpebra superior */}
+    <path d="M126,200 Q152,181 178,200" stroke="#3A2008" strokeWidth="2.2" fill="none" strokeLinecap="round"/>
+    {/* Prega palpebral */}
+    <path d="M130,197 Q152,185 174,197" stroke="#C0906A" strokeWidth="0.9" fill="none"/>
+    {/* Cílios */}
+    <path d="M128,198 L124,192 M136,189 L133,183 M146,185 L146,178 M157,185 L159,178 M167,188 L170,182 M176,195 L181,190"
+          stroke="#1A0A02" strokeWidth="1.3" strokeLinecap="round"/>
+
+    {/* ── Olho direito ── */}
+    <path d="M222,200 Q248,181 274,200 Q248,219 222,200Z" fill="white" stroke="#B09878" strokeWidth="1"/>
+    <circle cx="248" cy="200" r="11.5" fill="url(#irisGrad)" clipPath="url(#eyeR)"/>
+    <circle cx="248" cy="200" r="6.5" fill="#080808" clipPath="url(#eyeR)"/>
+    <circle cx="251.5" cy="196.5" r="2.8" fill="white" clipPath="url(#eyeR)"/>
+    <circle cx="244" cy="204" r="1.2" fill="rgba(255,255,255,0.55)" clipPath="url(#eyeR)"/>
+    <path d="M222,200 Q248,181 274,200" stroke="#3A2008" strokeWidth="2.2" fill="none" strokeLinecap="round"/>
+    <path d="M226,197 Q248,185 270,197" stroke="#C0906A" strokeWidth="0.9" fill="none"/>
+    <path d="M224,198 L220,192 M232,189 L229,183 M242,185 L242,178 M253,185 L255,178 M263,188 L266,182 M272,195 L277,190"
+          stroke="#1A0A02" strokeWidth="1.3" strokeLinecap="round"/>
 
     {/* ── Nariz ── */}
-    <path d="M200,182 L200,268" stroke="#C8A882" strokeWidth="1.2" fill="none"/>
-    <path d="M200,268 Q188,282 175,278 Q185,272 200,268 Q215,272 225,278 Q212,282 200,268Z"
-          fill="#F0D5B0" stroke="#C8A882" strokeWidth="1.2"/>
-    <path d="M178,268 Q175,275 178,282" stroke="#C8A882" strokeWidth="1.2" fill="none"/>
-    <path d="M222,268 Q225,275 222,282" stroke="#C8A882" strokeWidth="1.2" fill="none"/>
+    {/* Ponte / dorso */}
+    <path d="M196,182 Q192,220 188,250 Q185,262 183,272" stroke="#C8A882" strokeWidth="1" fill="none"/>
+    <path d="M204,182 Q208,220 212,250 Q215,262 217,272" stroke="#C8A882" strokeWidth="1" fill="none"/>
+    {/* Sombra lateral nariz */}
+    <path d="M185,240 Q180,258 181,272 Q190,280 200,278" fill="rgba(0,0,0,0.07)" stroke="none"/>
+    <path d="M215,240 Q220,258 219,272 Q210,280 200,278" fill="rgba(0,0,0,0.07)" stroke="none"/>
+    {/* Asa nasal */}
+    <path d="M183,272 Q178,284 175,282 Q182,270 200,270 Q218,270 225,282 Q222,284 217,272Z"
+          fill="#EEC098" stroke="#C8A882" strokeWidth="1.2"/>
+    {/* Narinas */}
+    <path d="M177,276 Q174,283 178,287" stroke="#A07858" strokeWidth="1.3" fill="none" strokeLinecap="round"/>
+    <path d="M223,276 Q226,283 222,287" stroke="#A07858" strokeWidth="1.3" fill="none" strokeLinecap="round"/>
+    {/* Highlight ponte */}
+    <line x1="200" y1="186" x2="200" y2="265" stroke="rgba(255,255,255,0.45)" strokeWidth="2.2" strokeLinecap="round"/>
 
     {/* ── Lábios ── */}
-    {/* Filtro */}
-    <path d="M192,292 Q196,284 200,284 Q204,284 208,292" stroke="#C8A882" strokeWidth="1" fill="none"/>
+    {/* Filtro labial */}
+    <path d="M192,295 Q196,287 200,287 Q204,287 208,295" stroke="#C0A090" strokeWidth="0.9" fill="none"/>
+    {/* Sombra acima */}
+    <path d="M166,308 Q182,295 192,301 Q200,297 208,301 Q218,295 234,308 Q217,306 200,305 Q183,306 166,308Z"
+          fill="rgba(0,0,0,0.07)"/>
     {/* Lábio superior */}
-    <path d="M163,305 Q178,291 192,298 Q200,294 208,298 Q222,291 237,305
-             Q220,316 200,314 Q180,316 163,305Z"
-          fill="#D4858A" stroke="#B06070" strokeWidth="1.2"/>
-    {/* Arco cupido */}
-    <path d="M163,305 Q178,291 192,298 Q200,294 208,298 Q222,291 237,305"
-          stroke="#B06070" strokeWidth="1.2" fill="none"/>
+    <path d="M164,308 Q180,292 192,299 Q200,295 208,299 Q220,292 236,308 Q218,320 200,318 Q182,320 164,308Z"
+          fill="url(#lipTopGrad)" stroke="#7B1A38" strokeWidth="1"/>
+    {/* Linha arco de cupido */}
+    <path d="M164,308 Q180,292 192,299 Q200,295 208,299 Q220,292 236,308"
+          stroke="#6A1530" strokeWidth="0.9" fill="none"/>
     {/* Lábio inferior */}
-    <path d="M163,305 Q175,338 200,342 Q225,338 237,305 Q220,316 200,314 Q180,316 163,305Z"
-          fill="#C87070" stroke="#B06070" strokeWidth="1.2"/>
+    <path d="M164,308 Q178,344 200,348 Q222,344 236,308 Q218,320 200,318 Q182,320 164,308Z"
+          fill="url(#lipBotGrad)" stroke="#7B1A38" strokeWidth="1"/>
+    {/* Highlight lábio inferior */}
+    <path d="M181,332 Q200,340 219,332" stroke="rgba(255,160,170,0.65)" strokeWidth="3" fill="none" strokeLinecap="round"/>
+    {/* Linha do meio */}
+    <path d="M164,308 Q200,312 236,308" stroke="#7B1A38" strokeWidth="0.7" fill="none"/>
+    {/* Comissuras */}
+    <ellipse cx="164" cy="308" rx="2.5" ry="2" fill="#8B2040"/>
+    <ellipse cx="236" cy="308" rx="2.5" ry="2" fill="#8B2040"/>
 
     {/* ── Queixo ── */}
-    <path d="M168,365 Q200,385 232,365" stroke="#C8A882" strokeWidth="1" fill="none"/>
+    <path d="M172,374 Q200,394 228,374" stroke="#C8A882" strokeWidth="1" fill="none"/>
+    <ellipse cx="200" cy="396" rx="20" ry="8" fill="rgba(0,0,0,0.04)"/>
 
-    {/* Linha central */}
-    <line x1="200" y1="80" x2="200" y2="390" stroke="#E8D8C0" strokeWidth="0.6" strokeDasharray="6,4"/>
-
-    {/* ── Marcadores de zona (texto guia muito suave) ── */}
-    <text x="200" y="105" textAnchor="middle" fontSize="9" fill="#D0B890" fontStyle="italic">Frontal</text>
-    <text x="200" y="182" textAnchor="middle" fontSize="8" fill="#D0B890" fontStyle="italic">Glabela</text>
-    <text x="102"  y="230" textAnchor="middle" fontSize="8" fill="#D0B890" fontStyle="italic" transform="rotate(-5,102,230)">Orbicular</text>
-    <text x="298"  y="230" textAnchor="middle" fontSize="8" fill="#D0B890" fontStyle="italic" transform="rotate(5,298,230)">Orbicular</text>
-    <text x="114"  y="290" textAnchor="middle" fontSize="8" fill="#D0B890" fontStyle="italic">Zigomático</text>
-    <text x="286"  y="290" textAnchor="middle" fontSize="8" fill="#D0B890" fontStyle="italic">Zigomático</text>
-    <text x="200" y="380" textAnchor="middle" fontSize="8" fill="#D0B890" fontStyle="italic">Mentual</text>
+    {/* ── Labels anatômicos ── */}
+    <text x="200" y="102" textAnchor="middle" fontSize="9" fill="#C8A060" fontStyle="italic">Frontal</text>
+    <text x="200" y="183" textAnchor="middle" fontSize="8" fill="#C8A060" fontStyle="italic">Glabela</text>
+    <text x="98"  y="234" textAnchor="middle" fontSize="8" fill="#C8A060" fontStyle="italic" transform="rotate(-5,98,234)">Orbicular</text>
+    <text x="302" y="234" textAnchor="middle" fontSize="8" fill="#C8A060" fontStyle="italic" transform="rotate(5,302,234)">Orbicular</text>
+    <text x="106" y="292" textAnchor="middle" fontSize="8" fill="#C8A060" fontStyle="italic">Zigomático</text>
+    <text x="294" y="292" textAnchor="middle" fontSize="8" fill="#C8A060" fontStyle="italic">Zigomático</text>
+    <text x="200" y="386" textAnchor="middle" fontSize="8" fill="#C8A060" fontStyle="italic">Mentual</text>
   </g>
 );
 
@@ -193,7 +310,7 @@ export default function Aesthetics() {
   const [mode, setMode] = useState('list'); // 'list' | 'new' | 'view'
   const [current, setCurrent] = useState(null);
   const [points, setPoints] = useState([]);
-  const [form, setForm] = useState({ professional_id: '', treatment_date: dayjs().format('YYYY-MM-DD'), product_brand: '', product_lot: '', product_validity: '', total_units: '', observations: '' });
+  const [form, setForm] = useState({ professional_id: '', treatment_date: dayjs().format('YYYY-MM-DD'), product_brand: '', product_lot: '', product_validity: '', total_units: '', observations: '', valor: '' });
   const [saving, setSaving] = useState(false);
 
   // Popup de ponto
@@ -223,7 +340,7 @@ export default function Aesthetics() {
 
   const startNew = () => {
     setPoints([]);
-    setForm({ professional_id: professionals[0]?.id || '', treatment_date: dayjs().format('YYYY-MM-DD'), product_brand: '', product_lot: '', product_validity: '', total_units: '', observations: '' });
+    setForm({ professional_id: professionals[0]?.id || '', treatment_date: dayjs().format('YYYY-MM-DD'), product_brand: '', product_lot: '', product_validity: '', total_units: '', observations: '', valor: '' });
     setCurrent(null);
     setMode('new');
   };
@@ -231,7 +348,7 @@ export default function Aesthetics() {
   const openTreatment = (t) => {
     const pts = Array.isArray(t.points) ? t.points : (typeof t.points === 'string' ? JSON.parse(t.points) : []);
     setPoints(pts);
-    setForm({ professional_id: t.professional_id || '', treatment_date: t.treatment_date?.split('T')[0] || '', product_brand: t.product_brand || '', product_lot: t.product_lot || '', product_validity: t.product_validity || '', total_units: t.total_units || '', observations: t.observations || '' });
+    setForm({ professional_id: t.professional_id || '', treatment_date: t.treatment_date?.split('T')[0] || '', product_brand: t.product_brand || '', product_lot: t.product_lot || '', product_validity: t.product_validity || '', total_units: t.total_units || '', observations: t.observations || '', valor: t.valor || '' });
     setCurrent(t);
     setMode('view');
   };
@@ -279,7 +396,7 @@ export default function Aesthetics() {
     if (!selectedPatient) return;
     setSaving(true);
     try {
-      const payload = { ...form, patient_id: selectedPatient.id, points, total_units: form.total_units || null };
+      const payload = { ...form, patient_id: selectedPatient.id, points, total_units: form.total_units || null, valor: form.valor ? parseFloat(form.valor) : null };
       if (current) await api.put(`/aesthetics/${current.id}`, payload);
       else await api.post('/aesthetics', payload);
       await loadTreatments(selectedPatient.id);
@@ -363,7 +480,7 @@ export default function Aesthetics() {
             <div className="table-container">
               <table className="table">
                 <thead>
-                  <tr><th>Data</th><th>Profissional</th><th>Pontos</th><th>Produto</th><th>Total UI/ml</th><th>Ações</th></tr>
+                  <tr><th>Data</th><th>Profissional</th><th>Pontos</th><th>Produto</th><th>Total UI/ml</th><th>Valor</th><th>Ações</th></tr>
                 </thead>
                 <tbody>
                   {treatments.map((t, i) => {
@@ -375,6 +492,7 @@ export default function Aesthetics() {
                         <td style={{ padding: '10px 16px' }}><span className="badge badge-blue">{pts.length} pontos</span></td>
                         <td style={{ padding: '10px 16px', fontSize: 12 }}>{t.product_brand || '—'}</td>
                         <td style={{ padding: '10px 16px', fontWeight: 600, color: '#e91e8c' }}>{t.total_units ? `${t.total_units}` : '—'}</td>
+                        <td style={{ padding: '10px 16px', fontWeight: 600, color: '#1e8449' }}>{t.valor ? `R$ ${parseFloat(t.valor).toFixed(2).replace('.',',')}` : '—'}</td>
                         <td style={{ padding: '10px 16px' }}>
                           <div className="table-actions">
                             <button className="btn btn-outline btn-sm" onClick={() => openTreatment(t)}><i className="fas fa-eye"/></button>
@@ -503,6 +621,31 @@ export default function Aesthetics() {
                   </strong> em {points.length} ponto(s)
                 </div>
               )}
+            </div>
+
+            {/* Valor cobrado */}
+            <div className="card">
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12, color: 'var(--gray-700)' }}>
+                <i className="fas fa-circle-dollar-to-slot" style={{ marginRight: 6, color: '#1e8449' }}/>Valor Cobrado
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontSize: 12 }}>Valor (R$)</label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-500)', fontSize: 13, fontWeight: 600 }}>R$</span>
+                  <input className="form-control" type="number" min="0" step="0.01"
+                    style={{ paddingLeft: 30 }}
+                    placeholder="0,00"
+                    value={form.valor}
+                    disabled={!canEdit}
+                    onChange={e => setForm(p => ({ ...p, valor: e.target.value }))}/>
+                </div>
+                {form.valor > 0 && (
+                  <div style={{ fontSize: 11, color: '#1e8449', marginTop: 4, fontWeight: 600 }}>
+                    <i className="fas fa-check-circle" style={{ marginRight: 4 }}/>
+                    Incluído no extrato financeiro
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Observações */}
