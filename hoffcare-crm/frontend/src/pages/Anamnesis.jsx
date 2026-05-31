@@ -1,33 +1,41 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Modal from '../components/Modal';
 import dayjs from 'dayjs';
 
-const CATEGORY_LABELS = {
-  geral:         { label: 'Geral / Clínico',         color: '#4DB8E8' },
-  estetica:      { label: 'Estética / Dermatologia',  color: '#a78bfa' },
-  odontologica:  { label: 'Odontológica',             color: '#34d399' },
-  personalizada: { label: 'Personalizada',            color: '#f59e0b' },
+const CATEGORY_KEYS = {
+  geral:         { tKey: 'anamnesis.catGeral',         color: '#4DB8E8' },
+  estetica:      { tKey: 'anamnesis.catEstetica',      color: '#a78bfa' },
+  odontologica:  { tKey: 'anamnesis.catOdontologica',  color: '#34d399' },
+  personalizada: { tKey: 'anamnesis.catPersonalizada', color: '#f59e0b' },
 };
 
-const STATUS_MAP = {
-  pending:   { label: 'Pendente',   badge: 'badge-orange' },
-  sent:      { label: 'Enviada',    badge: 'badge-blue' },
-  completed: { label: 'Respondida', badge: 'badge-green' },
+const STATUS_BADGE = {
+  pending:   'badge-orange',
+  sent:      'badge-blue',
+  completed: 'badge-green',
 };
 
-function printAnamnesis(patientName, questions) {
+function printAnamnesis(patientName, questions, t) {
+  const answerSpace = t ? t('anamnesis.printAnswerSpace') : '(espaço para resposta)';
+  const patientSig = t ? t('anamnesis.printPatientSignature') : 'Assinatura do paciente';
+  const profSig = t ? t('anamnesis.printProfSignature') : 'Assinatura do profissional';
+  const title = t ? t('anamnesis.printTitle') : 'Anamnese Digital';
+  const patientLabel = t ? t('anamnesis.printPatient') : 'Paciente';
+  const dateLabel = t ? t('anamnesis.printDate') : 'Data';
+
   const rows = questions.map((q, i) => `
     <div style="margin-bottom:20px;border-bottom:1px solid #eee;padding-bottom:16px">
       <p style="margin:0 0 6px;font-weight:600;color:#1a2535">${i + 1}. ${q}</p>
       <div style="border:1px solid #ccc;border-radius:4px;min-height:52px;margin-top:6px;padding:8px 10px;color:#999;font-size:12px">
-        (espaço para resposta)
+        ${answerSpace}
       </div>
     </div>`).join('');
 
   const html = `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Anamnese — ${patientName}</title>
+<html><head><meta charset="UTF-8"><title>${title} — ${patientName}</title>
 <style>
   body { font-family: Arial, sans-serif; max-width: 760px; margin: 40px auto; color: #333; }
   h1 { font-size: 22px; color: #1a2535; margin-bottom: 4px; }
@@ -35,12 +43,12 @@ function printAnamnesis(patientName, questions) {
   @media print { body { margin: 0; } }
 </style></head>
 <body>
-  <h1>Anamnese Digital</h1>
-  <p class="sub">Paciente: <strong>${patientName}</strong> &nbsp;|&nbsp; Data: ${dayjs().format('DD/MM/YYYY')}</p>
+  <h1>${title}</h1>
+  <p class="sub">${patientLabel}: <strong>${patientName}</strong> &nbsp;|&nbsp; ${dateLabel}: ${dayjs().format('DD/MM/YYYY')}</p>
   ${rows}
   <div style="margin-top:40px;border-top:2px solid #333;padding-top:12px;display:flex;justify-content:space-between">
-    <div><p style="font-size:12px;color:#666">Assinatura do paciente</p></div>
-    <div><p style="font-size:12px;color:#666">Assinatura do profissional</p></div>
+    <div><p style="font-size:12px;color:#666">${patientSig}</p></div>
+    <div><p style="font-size:12px;color:#666">${profSig}</p></div>
   </div>
   <script>window.onload = () => { window.print(); }<\/script>
 </body></html>`;
@@ -53,6 +61,7 @@ function printAnamnesis(patientName, questions) {
 export default function Anamnesis() {
   const { id: patientId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [patient, setPatient] = useState(null);
   const [list, setList] = useState([]);
   const [open, setOpen] = useState(false);
@@ -119,7 +128,7 @@ export default function Anamnesis() {
         const res = await api.post('/anamnesis/questions', { question: newQ.trim(), category: 'personalizada' });
         setAllQuestions(p => [...p, res.data]);
         setSelected(p => [...p, res.data.id]);
-      } catch { alert('Erro ao salvar pergunta'); }
+      } catch { alert(t('anamnesis.errorSaveQuestion')); }
     } else {
       // Adiciona só localmente como objeto temporário
       const tmp = { id: `tmp_${Date.now()}`, question: newQ.trim(), category: 'personalizada', is_default: false };
@@ -131,7 +140,7 @@ export default function Anamnesis() {
 
   const deleteQuestion = async (q) => {
     if (q.is_default) return;
-    if (!confirm('Remover esta pergunta do banco?')) return;
+    if (!confirm(t('anamnesis.confirmDeleteQuestion'))) return;
     if (String(q.id).startsWith('tmp_')) {
       setAllQuestions(p => p.filter(x => x.id !== q.id));
       setSelected(p => p.filter(x => x !== q.id));
@@ -143,7 +152,7 @@ export default function Anamnesis() {
   };
 
   const handleCreate = async (withEmail) => {
-    if (!selected.length) { alert('Selecione ao menos uma pergunta.'); return; }
+    if (!selected.length) { alert(t('anamnesis.selectAtLeastOne')); return; }
     setLoading(true);
     try {
       await api.post('/anamnesis', {
@@ -153,12 +162,12 @@ export default function Anamnesis() {
       });
       setOpen(false);
       load();
-    } catch (err) { alert(err.response?.data?.error || 'Erro ao criar anamnese'); }
+    } catch (err) { alert(err.response?.data?.error || t('anamnesis.errorCreate')); }
     finally { setLoading(false); }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Excluir esta anamnese?')) return;
+    if (!confirm(t('anamnesis.delete'))) return;
     await api.delete(`/anamnesis/${id}`);
     load();
   };
@@ -173,23 +182,23 @@ export default function Anamnesis() {
             <i className="fas fa-arrow-left" />
           </button>
           <div>
-            <h1 className="page-title"><i className="fas fa-clipboard-list" style={{ marginRight: 8, color: 'var(--blue)' }} />Anamnese Digital</h1>
+            <h1 className="page-title"><i className="fas fa-clipboard-list" style={{ marginRight: 8, color: 'var(--blue)' }} />{t('anamnesis.title')}</h1>
             {patient && <p className="page-subtitle">{patient.name}</p>}
           </div>
         </div>
         <button className="btn btn-primary" onClick={openModal}>
-          <i className="fas fa-paper-plane" /> Nova Anamnese
+          <i className="fas fa-paper-plane" /> {t('anamnesis.new')}
         </button>
       </div>
 
       <div className="card">
         {list.length === 0 ? (
-          <div className="empty-state"><i className="fas fa-clipboard-list" /><p>Nenhuma anamnese registrada</p></div>
+          <div className="empty-state"><i className="fas fa-clipboard-list" /><p>{t('anamnesis.noRecords')}</p></div>
         ) : (
           <div className="table-container">
             <table className="table">
               <thead>
-                <tr><th>Data</th><th>Perguntas</th><th>Status</th><th>Enviada</th><th>Respondida</th><th>Ações</th></tr>
+                <tr><th>{t('anamnesis.date')}</th><th>{t('anamnesis.questions')}</th><th>{t('anamnesis.status')}</th><th>{t('anamnesis.sent')}</th><th>{t('anamnesis.answered')}</th><th>{t('common.actions')}</th></tr>
               </thead>
               <tbody>
                 {list.map(a => {
@@ -197,19 +206,19 @@ export default function Anamnesis() {
                   return (
                     <tr key={a.id}>
                       <td>{dayjs(a.created_at).format('DD/MM/YYYY')}</td>
-                      <td>{qs.length} perguntas</td>
-                      <td><span className={`badge ${STATUS_MAP[a.status]?.badge || 'badge-blue'}`}>{STATUS_MAP[a.status]?.label || a.status}</span></td>
+                      <td>{qs.length} {t('anamnesis.questions')}</td>
+                      <td><span className={`badge ${STATUS_BADGE[a.status] || 'badge-blue'}`}>{a.status === 'pending' ? t('anamnesis.statusPending') : a.status === 'sent' ? t('anamnesis.statusSent') : a.status === 'completed' ? t('anamnesis.statusCompleted') : a.status}</span></td>
                       <td>{a.sent_at ? dayjs(a.sent_at).format('DD/MM/YYYY HH:mm') : '—'}</td>
                       <td>{a.completed_at ? dayjs(a.completed_at).format('DD/MM/YYYY HH:mm') : '—'}</td>
                       <td>
                         <div className="table-actions">
                           {a.status === 'completed' && (
                             <button className="btn btn-outline btn-sm" onClick={() => { setViewing(a); setViewOpen(true); }}>
-                              <i className="fas fa-eye" /> Ver
+                              <i className="fas fa-eye" /> {t('anamnesis.view')}
                             </button>
                           )}
-                          <button className="btn btn-outline btn-sm" title="Imprimir formulário"
-                            onClick={() => printAnamnesis(patient?.name || '', qs)}>
+                          <button className="btn btn-outline btn-sm" title={t('anamnesis.print')}
+                            onClick={() => printAnamnesis(patient?.name || '', qs, t)}>
                             <i className="fas fa-print" />
                           </button>
                           <a href={`${window.location.origin}/anamnesis/form/${a.token}`} target="_blank" rel="noreferrer"
@@ -227,23 +236,23 @@ export default function Anamnesis() {
       </div>
 
       {/* ── Modal criar ── */}
-      <Modal open={open} onClose={() => setOpen(false)} title="Nova Anamnese Digital" size="modal-xl"
+      <Modal open={open} onClose={() => setOpen(false)} title={t('anamnesis.new')} size="modal-xl"
         footer={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button className="btn btn-outline" onClick={() => setOpen(false)}>Cancelar</button>
+            <button className="btn btn-outline" onClick={() => setOpen(false)}>{t('common.cancel')}</button>
             <button className="btn btn-outline" disabled={!selected.length || loading}
-              onClick={() => { printAnamnesis(patient?.name || '', selectedQuestions.map(q => q.question)); }}>
-              <i className="fas fa-print" style={{ marginRight: 6 }} />Imprimir
+              onClick={() => { printAnamnesis(patient?.name || '', selectedQuestions.map(q => q.question), t); }}>
+              <i className="fas fa-print" style={{ marginRight: 6 }} />{t('anamnesis.print')}
             </button>
             <button className="btn btn-outline" disabled={!selected.length || loading || !patient?.email}
-              onClick={() => handleCreate(true)} title={!patient?.email ? 'Paciente sem e-mail' : ''}>
+              onClick={() => handleCreate(true)} title={!patient?.email ? t('anamnesis.noEmail') : ''}>
               <i className="fas fa-envelope" style={{ marginRight: 6 }} />
-              {loading ? 'Enviando...' : 'Enviar por E-mail'}
+              {loading ? t('anamnesis.sending') : t('anamnesis.send')}
             </button>
             <button className="btn btn-primary" disabled={!selected.length || loading}
               onClick={() => handleCreate(false)}>
               <i className="fas fa-save" style={{ marginRight: 6 }} />
-              {loading ? 'Criando...' : 'Criar sem enviar'}
+              {loading ? t('anamnesis.creating') : t('anamnesis.createWithoutSending')}
             </button>
           </div>
         }>
@@ -254,18 +263,18 @@ export default function Anamnesis() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--gray-700)', marginBottom: 2 }}>
               <i className="fas fa-database" style={{ marginRight: 6, color: '#4DB8E8' }} />
-              Banco de Perguntas
+              {t('anamnesis.questionBank')}
             </div>
 
             {/* Filtros */}
             <div style={{ display: 'flex', gap: 6 }}>
               <input className="form-control" style={{ fontSize: 12, flex: 1 }}
-                placeholder="Buscar pergunta..." value={search} onChange={e => setSearch(e.target.value)} />
+                placeholder={t('anamnesis.searchQuestion')} value={search} onChange={e => setSearch(e.target.value)} />
               <select className="form-control" style={{ fontSize: 12, width: 140 }}
                 value={filterCat} onChange={e => setFilterCat(e.target.value)}>
-                <option value="todas">Todas</option>
+                <option value="todas">{t('anamnesis.allCategories')}</option>
                 {categories.map(c => (
-                  <option key={c} value={c}>{CATEGORY_LABELS[c]?.label || c}</option>
+                  <option key={c} value={c}>{CATEGORY_KEYS[c]?.tKey ? t(CATEGORY_KEYS[c].tKey) : c}</option>
                 ))}
               </select>
             </div>
@@ -273,17 +282,17 @@ export default function Anamnesis() {
             {/* Lista por grupo */}
             <div style={{ flex: 1, overflowY: 'auto', maxHeight: 320, border: '1px solid var(--gray-200)', borderRadius: 8 }}>
               {Object.keys(grouped).length === 0 && (
-                <div style={{ padding: 20, textAlign: 'center', color: 'var(--gray-400)', fontSize: 13 }}>Nenhuma pergunta encontrada</div>
+                <div style={{ padding: 20, textAlign: 'center', color: 'var(--gray-400)', fontSize: 13 }}>{t('anamnesis.noQuestionsFound')}</div>
               )}
               {Object.entries(grouped).map(([cat, qs]) => (
                 <div key={cat}>
                   <div style={{
                     padding: '6px 12px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-                    letterSpacing: 0.5, color: CATEGORY_LABELS[cat]?.color || '#666',
+                    letterSpacing: 0.5, color: CATEGORY_KEYS[cat]?.color || '#666',
                     background: 'var(--gray-50)', borderBottom: '1px solid var(--gray-100)',
                     position: 'sticky', top: 0,
                   }}>
-                    {CATEGORY_LABELS[cat]?.label || cat}
+                    {CATEGORY_KEYS[cat]?.tKey ? t(CATEGORY_KEYS[cat].tKey) : cat}
                   </div>
                   {qs.map(q => (
                     <div key={q.id} style={{
@@ -311,11 +320,11 @@ export default function Anamnesis() {
             <div style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 8, padding: 12 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-600)', marginBottom: 8 }}>
                 <i className="fas fa-plus-circle" style={{ marginRight: 6, color: '#f59e0b' }} />
-                Adicionar pergunta
+                {t('anamnesis.addQuestion')}
               </div>
               <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
                 <input className="form-control" style={{ fontSize: 12, flex: 1 }}
-                  placeholder="Digite a pergunta..."
+                  placeholder={t('anamnesis.questionPlaceholder')}
                   value={newQ} onChange={e => setNewQ(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomQ(); } }} />
                 <button type="button" className="btn btn-outline btn-sm" onClick={addCustomQ}>
@@ -324,7 +333,7 @@ export default function Anamnesis() {
               </div>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}>
                 <input type="checkbox" checked={saveToBank} onChange={e => setSaveToBank(e.target.checked)} />
-                Salvar no banco para usar no futuro
+                {t('anamnesis.saveToBank')}
               </label>
             </div>
           </div>
@@ -333,13 +342,13 @@ export default function Anamnesis() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--gray-700)', marginBottom: 2 }}>
               <i className="fas fa-check-circle" style={{ marginRight: 6, color: '#22c55e' }} />
-              Perguntas selecionadas ({selected.length})
+              {t('anamnesis.selectedQuestions')} ({selected.length})
             </div>
             <div style={{ flex: 1, overflowY: 'auto', maxHeight: 400, border: '1px solid var(--gray-200)', borderRadius: 8 }}>
               {selectedQuestions.length === 0 ? (
                 <div style={{ padding: 24, textAlign: 'center', color: 'var(--gray-400)', fontSize: 13 }}>
                   <i className="fas fa-mouse-pointer" style={{ display: 'block', fontSize: 24, marginBottom: 8 }} />
-                  Marque as perguntas ao lado
+                  {t('anamnesis.checkQuestions')}
                 </div>
               ) : (
                 selectedQuestions.map((q, i) => (
@@ -359,7 +368,7 @@ export default function Anamnesis() {
             </div>
             {!patient?.email && sendEmail && (
               <div className="alert alert-error" style={{ fontSize: 12, padding: '8px 12px' }}>
-                Paciente sem e-mail. Somente impressão disponível.
+                {t('anamnesis.noEmailWarning')}
               </div>
             )}
           </div>
@@ -367,15 +376,15 @@ export default function Anamnesis() {
       </Modal>
 
       {/* ── Modal ver respostas ── */}
-      <Modal open={viewOpen} onClose={() => setViewOpen(false)} title="Respostas da Anamnese" size="modal-xl"
+      <Modal open={viewOpen} onClose={() => setViewOpen(false)} title={t('anamnesis.answersTitle')} size="modal-xl"
         footer={
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-outline" onClick={() => {
               const qs = Array.isArray(viewing?.custom_questions) ? viewing.custom_questions
                 : (() => { try { return JSON.parse(viewing?.custom_questions); } catch { return []; } })();
-              printAnamnesis(patient?.name || '', qs);
-            }}><i className="fas fa-print" style={{ marginRight: 6 }} />Imprimir</button>
-            <button className="btn btn-primary" onClick={() => setViewOpen(false)}>Fechar</button>
+              printAnamnesis(patient?.name || '', qs, t);
+            }}><i className="fas fa-print" style={{ marginRight: 6 }} />{t('anamnesis.print')}</button>
+            <button className="btn btn-primary" onClick={() => setViewOpen(false)}>{t('anamnesis.close')}</button>
           </div>
         }>
         {viewing && (() => {
@@ -385,12 +394,12 @@ export default function Anamnesis() {
           return (
             <div>
               <p style={{ marginBottom: 16, color: 'var(--gray-500)', fontSize: 13 }}>
-                Respondida em {dayjs(viewing.completed_at).format('DD/MM/YYYY HH:mm')}
+                {t('anamnesis.answeredAt')} {dayjs(viewing.completed_at).format('DD/MM/YYYY HH:mm')}
               </p>
               {qs.length === 0 && (
                 <div className="empty-state" style={{ padding: 24 }}>
                   <i className="fas fa-clipboard" />
-                  <p>Esta anamnese não contém perguntas registradas.</p>
+                  <p>{t('anamnesis.noQuestionsFound')}</p>
                 </div>
               )}
               {qs.map((q, i) => {
@@ -400,7 +409,7 @@ export default function Anamnesis() {
                   <div key={i} style={{ marginBottom: 12, padding: '12px 16px', background: 'var(--gray-50)', borderRadius: 8, border: '1px solid var(--gray-100)' }}>
                     <p style={{ fontWeight: 600, marginBottom: 6, fontSize: 13, color: 'var(--gray-700)' }}>{i + 1}. {q}</p>
                     <p style={{ fontSize: 14, color: answer ? 'var(--gray-900)' : 'var(--gray-400)', fontStyle: answer ? 'normal' : 'italic' }}>
-                      {answer || 'Sem resposta'}
+                      {answer || t('anamnesis.noAnswer')}
                     </p>
                     {detail && (
                       <p style={{ fontSize: 13, color: 'var(--gray-600)', marginTop: 4, paddingLeft: 8, borderLeft: '2px solid #4DB8E8' }}>
@@ -413,7 +422,7 @@ export default function Anamnesis() {
               {resp['observacoes'] && (
                 <div style={{ marginTop: 16, padding: '12px 16px', background: '#fffbeb', borderRadius: 8, border: '1px solid #fde68a' }}>
                   <p style={{ fontWeight: 600, fontSize: 12, color: '#92400e', marginBottom: 6 }}>
-                    <i className="fas fa-comment" style={{ marginRight: 6 }} />Observações do paciente
+                    <i className="fas fa-comment" style={{ marginRight: 6 }} />{t('anamnesis.patientNotes')}
                   </p>
                   <p style={{ fontSize: 14, color: '#78350f' }}>{resp['observacoes']}</p>
                 </div>

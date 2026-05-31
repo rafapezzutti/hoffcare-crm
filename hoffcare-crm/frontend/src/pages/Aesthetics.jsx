@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import dayjs from 'dayjs';
 
@@ -232,7 +233,7 @@ const Marker = ({ point, idx, onClick, selected }) => {
 };
 
 // ── Popup de ponto ────────────────────────────────────────────────────────────
-const PointPopup = ({ point, onSave, onDelete, onClose, idx }) => {
+const PointPopup = ({ point, onSave, onDelete, onClose, idx, t }) => {
   const [med, setMed] = useState(point?.medication || '');
   const [dose, setDose] = useState(point?.dose || '');
   const [unit, setUnit] = useState(point?.unit || 'UI');
@@ -249,22 +250,22 @@ const PointPopup = ({ point, onSave, onDelete, onClose, idx }) => {
         boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
       }} onClick={e => e.stopPropagation()}>
         <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16, color: '#1a2535', display: 'flex', justifyContent: 'space-between' }}>
-          <span><i className="fas fa-syringe" style={{ marginRight: 8, color: '#4DB8E8' }}/>{isNew ? 'Novo Ponto' : `Ponto ${idx+1}`}</span>
+          <span><i className="fas fa-syringe" style={{ marginRight: 8, color: '#4DB8E8' }}/>{isNew ? t('aesthetics.newPoint') : `${t('aesthetics.pointLabel')} ${idx+1}`}</span>
           <button onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#999', fontSize: 18 }}>×</button>
         </div>
         <div className="form-group">
-          <label className="form-label" style={{ fontSize: 12 }}>Medicamento / Produto</label>
+          <label className="form-label" style={{ fontSize: 12 }}>{t('aesthetics.medication')}</label>
           <input className="form-control" value={med} onChange={e => setMed(e.target.value)}
-            placeholder="Ex: Botox, Dysport, Sculptra..." autoFocus/>
+            placeholder={t('aesthetics.medicationPlaceholder')} autoFocus/>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <div className="form-group" style={{ flex: 2 }}>
-            <label className="form-label" style={{ fontSize: 12 }}>Quantidade</label>
+            <label className="form-label" style={{ fontSize: 12 }}>{t('aesthetics.quantity')}</label>
             <input className="form-control" type="number" min="0" step="0.5" value={dose}
               onChange={e => setDose(e.target.value)} placeholder="Ex: 4"/>
           </div>
           <div className="form-group" style={{ flex: 1 }}>
-            <label className="form-label" style={{ fontSize: 12 }}>Unidade</label>
+            <label className="form-label" style={{ fontSize: 12 }}>{t('aesthetics.unit')}</label>
             <select className="form-control" value={unit} onChange={e => setUnit(e.target.value)}>
               <option value="UI">UI</option>
               <option value="ml">ml</option>
@@ -274,9 +275,9 @@ const PointPopup = ({ point, onSave, onDelete, onClose, idx }) => {
           </div>
         </div>
         <div className="form-group">
-          <label className="form-label" style={{ fontSize: 12 }}>Observação (músculo / local)</label>
+          <label className="form-label" style={{ fontSize: 12 }}>{t('aesthetics.observation')}</label>
           <input className="form-control" value={note} onChange={e => setNote(e.target.value)}
-            placeholder="Ex: Frontal esquerdo, Orbicular olho..."/>
+            placeholder={t('aesthetics.observationPlaceholder')}/>
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
           {!isNew && (
@@ -284,9 +285,9 @@ const PointPopup = ({ point, onSave, onDelete, onClose, idx }) => {
               <i className="fas fa-trash"/>
             </button>
           )}
-          <button className="btn btn-outline" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-outline" onClick={onClose}>{t('aesthetics.back')}</button>
           <button className="btn btn-primary" onClick={() => onSave({ medication: med, dose: dose ? parseFloat(dose) : null, unit, note })}>
-            {isNew ? 'Adicionar' : 'Salvar'}
+            {isNew ? t('aesthetics.add') : t('aesthetics.save')}
           </button>
         </div>
       </div>
@@ -297,6 +298,7 @@ const PointPopup = ({ point, onSave, onDelete, onClose, idx }) => {
 // ── Página principal ──────────────────────────────────────────────────────────
 export default function Aesthetics() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const svgRef = useRef(null);
 
   const [patients, setPatients] = useState([]);
@@ -401,12 +403,12 @@ export default function Aesthetics() {
       else await api.post('/aesthetics', payload);
       await loadTreatments(selectedPatient.id);
       setMode('list');
-    } catch (err) { alert(err.response?.data?.error || 'Erro ao salvar'); }
+    } catch (err) { alert(err.response?.data?.error || t('aesthetics.errorSave')); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Excluir este tratamento?')) return;
+    if (!confirm(t('aesthetics.deleteMapping'))) return;
     await api.delete(`/aesthetics/${id}`);
     loadTreatments(selectedPatient.id);
     setMode('list');
@@ -426,9 +428,9 @@ export default function Aesthetics() {
         <div>
           <h1 className="page-title">
             <i className="fas fa-star-of-life" style={{ marginRight: 8, color: '#e91e8c' }}/>
-            Estética Facial
+            {t('aesthetics.title')}
           </h1>
-          <p className="page-subtitle">Mapeamento de procedimentos estéticos e aplicações</p>
+          <p className="page-subtitle">{t('aesthetics.subtitle')}</p>
         </div>
       </div>
 
@@ -436,8 +438,8 @@ export default function Aesthetics() {
       <div className="card" style={{ marginBottom: 16, padding: '14px 20px' }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 240, position: 'relative' }}>
-            <label className="form-label" style={{ fontSize: 12 }}>Paciente</label>
-            <input className="form-control" placeholder="Buscar paciente..."
+            <label className="form-label" style={{ fontSize: 12 }}>{t('aesthetics.patient')}</label>
+            <input className="form-control" placeholder={t('aesthetics.searchPatient')}
               value={patientSearch}
               onChange={e => { setPatientSearch(e.target.value); setShowPatientList(true); }}
               onFocus={() => setShowPatientList(true)} />
@@ -454,12 +456,12 @@ export default function Aesthetics() {
           </div>
           {selectedPatient && mode === 'list' && (
             <button className="btn btn-primary" onClick={startNew}>
-              <i className="fas fa-plus" style={{ marginRight: 6 }}/>Novo Mapeamento
+              <i className="fas fa-plus" style={{ marginRight: 6 }}/>{t('aesthetics.newMapping')}
             </button>
           )}
           {(mode === 'new' || mode === 'view') && (
             <button className="btn btn-outline" onClick={() => setMode('list')}>
-              <i className="fas fa-arrow-left" style={{ marginRight: 6 }}/>Voltar
+              <i className="fas fa-arrow-left" style={{ marginRight: 6 }}/>{t('aesthetics.back')}
             </button>
           )}
         </div>
@@ -471,16 +473,16 @@ export default function Aesthetics() {
           {treatments.length === 0 ? (
             <div className="empty-state">
               <i className="fas fa-star-of-life"/>
-              <p>Nenhum mapeamento estético para {selectedPatient.name}</p>
+              <p>{t('aesthetics.noMappings')} {selectedPatient.name}</p>
               <button className="btn btn-primary" onClick={startNew} style={{ marginTop: 12 }}>
-                <i className="fas fa-plus" style={{ marginRight: 6 }}/>Criar primeiro mapeamento
+                <i className="fas fa-plus" style={{ marginRight: 6 }}/>{t('aesthetics.createFirst')}
               </button>
             </div>
           ) : (
             <div className="table-container">
               <table className="table">
                 <thead>
-                  <tr><th>Data</th><th>Profissional</th><th>Pontos</th><th>Produto</th><th>Total UI/ml</th><th>Valor</th><th>Ações</th></tr>
+                  <tr><th>{t('aesthetics.date')}</th><th>{t('aesthetics.professional')}</th><th>{t('aesthetics.points')}</th><th>{t('aesthetics.product')}</th><th>{t('aesthetics.totalUnits')}</th><th>{t('aesthetics.chargedValue')}</th><th>{t('aesthetics.actions')}</th></tr>
                 </thead>
                 <tbody>
                   {treatments.map((t, i) => {
@@ -489,7 +491,7 @@ export default function Aesthetics() {
                       <tr key={t.id} style={{ background: i%2===0?'#f8f9fa':'white' }}>
                         <td style={{ padding: '10px 16px', fontWeight: 600 }}>{dayjs(t.treatment_date).format('DD/MM/YYYY')}</td>
                         <td style={{ padding: '10px 16px' }}>{t.professional_name || '—'}</td>
-                        <td style={{ padding: '10px 16px' }}><span className="badge badge-blue">{pts.length} pontos</span></td>
+                        <td style={{ padding: '10px 16px' }}><span className="badge badge-blue">{pts.length} {t('aesthetics.points')}</span></td>
                         <td style={{ padding: '10px 16px', fontSize: 12 }}>{t.product_brand || '—'}</td>
                         <td style={{ padding: '10px 16px', fontWeight: 600, color: '#e91e8c' }}>{t.total_units ? `${t.total_units}` : '—'}</td>
                         <td style={{ padding: '10px 16px', fontWeight: 600, color: '#1e8449' }}>{t.valor ? `R$ ${parseFloat(t.valor).toFixed(2).replace('.',',')}` : '—'}</td>
@@ -519,23 +521,23 @@ export default function Aesthetics() {
               <div>
                 <span style={{ fontWeight: 700, fontSize: 14 }}>
                   <i className="fas fa-map-pin" style={{ marginRight: 6, color: '#e91e8c' }}/>
-                  Mapeamento Facial — {selectedPatient.name}
+                  {t('aesthetics.facialMapping')} — {selectedPatient.name}
                 </span>
                 {canEdit && (
                   <div style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 2 }}>
-                    Clique no rosto para adicionar um ponto de aplicação
+                    {t('aesthetics.clickToAdd')}
                   </div>
                 )}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 {mode === 'view' && current && (
                   <button className="btn btn-outline btn-sm" onClick={() => setMode('new')}>
-                    <i className="fas fa-pen" style={{ marginRight: 4 }}/>Editar
+                    <i className="fas fa-pen" style={{ marginRight: 4 }}/>{t('aesthetics.edit')}
                   </button>
                 )}
                 {canEdit && (
                   <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
-                    <i className="fas fa-save" style={{ marginRight: 4 }}/>{saving ? 'Salvando...' : 'Salvar'}
+                    <i className="fas fa-save" style={{ marginRight: 4 }}/>{saving ? t('aesthetics.saving') : t('aesthetics.save')}
                   </button>
                 )}
               </div>
@@ -563,7 +565,7 @@ export default function Aesthetics() {
             {points.length > 0 && (
               <div style={{ borderTop: '1px solid var(--gray-100)', padding: '10px 18px', background: 'white' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
-                  Pontos marcados
+                  {t('aesthetics.markedPoints')}
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {points.map((pt, i) => (
@@ -585,18 +587,18 @@ export default function Aesthetics() {
             {/* Infos do profissional e data */}
             <div className="card">
               <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12, color: 'var(--gray-700)' }}>
-                <i className="fas fa-user-doctor" style={{ marginRight: 6, color: '#4DB8E8' }}/>Dados da Sessão
+                <i className="fas fa-user-doctor" style={{ marginRight: 6, color: '#4DB8E8' }}/>{t('aesthetics.sessionData')}
               </div>
               <div className="form-group">
-                <label className="form-label" style={{ fontSize: 12 }}>Profissional</label>
+                <label className="form-label" style={{ fontSize: 12 }}>{t('aesthetics.professional')}</label>
                 <select className="form-control" value={form.professional_id} disabled={!canEdit}
                   onChange={e => setForm(p => ({ ...p, professional_id: e.target.value }))}>
-                  <option value="">Selecionar...</option>
+                  <option value="">{t('aesthetics.searchPatient')}</option>
                   {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </div>
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" style={{ fontSize: 12 }}>Data do procedimento</label>
+                <label className="form-label" style={{ fontSize: 12 }}>{t('aesthetics.procedureDate')}</label>
                 <input className="form-control" type="date" value={form.treatment_date} disabled={!canEdit}
                   onChange={e => setForm(p => ({ ...p, treatment_date: e.target.value }))}/>
               </div>
@@ -605,9 +607,9 @@ export default function Aesthetics() {
             {/* Produto */}
             <div className="card">
               <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12, color: 'var(--gray-700)' }}>
-                <i className="fas fa-vial" style={{ marginRight: 6, color: '#e91e8c' }}/>Produto Utilizado
+                <i className="fas fa-vial" style={{ marginRight: 6, color: '#e91e8c' }}/>{t('aesthetics.productUsed')}
               </div>
-              {[['product_brand','Marca / Produto','Ex: Botox Allergan'],['product_lot','Lote/Série',''],['product_validity','Validade',''],['total_units','Total UI/ml','']].map(([field, label, ph]) => (
+              {[['product_brand', t('aesthetics.productBrand'), t('aesthetics.productBrandPlaceholder')],['product_lot', t('aesthetics.productLot'), ''],['product_validity', t('aesthetics.productValidity'), ''],['total_units', t('aesthetics.totalUnitsLabel'), '']].map(([field, label, ph]) => (
                 <div className="form-group" key={field} style={{ marginBottom: 10 }}>
                   <label className="form-label" style={{ fontSize: 12 }}>{label}</label>
                   <input className="form-control" placeholder={ph} value={form[field]} disabled={!canEdit}
@@ -616,9 +618,9 @@ export default function Aesthetics() {
               ))}
               {points.length > 0 && (
                 <div style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 4 }}>
-                  Aplicado: <strong style={{ color: '#e91e8c' }}>
+                  {t('aesthetics.appliedUnits')}: <strong style={{ color: '#e91e8c' }}>
                     {points.reduce((s,p) => s + (parseFloat(p.dose)||0), 0).toFixed(1)} UI/ml
-                  </strong> em {points.length} ponto(s)
+                  </strong> {t('aesthetics.inPoints').replace('(s)', '')} {points.length} {t('aesthetics.inPoints')}
                 </div>
               )}
             </div>
@@ -626,15 +628,15 @@ export default function Aesthetics() {
             {/* Valor cobrado */}
             <div className="card">
               <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12, color: 'var(--gray-700)' }}>
-                <i className="fas fa-circle-dollar-to-slot" style={{ marginRight: 6, color: '#1e8449' }}/>Valor Cobrado
+                <i className="fas fa-circle-dollar-to-slot" style={{ marginRight: 6, color: '#1e8449' }}/>{t('aesthetics.chargedValueLabel')}
               </div>
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" style={{ fontSize: 12 }}>Valor (R$)</label>
+                <label className="form-label" style={{ fontSize: 12 }}>{t('aesthetics.chargedValue')} (R$)</label>
                 <div style={{ position: 'relative' }}>
                   <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-500)', fontSize: 13, fontWeight: 600 }}>R$</span>
                   <input className="form-control" type="number" min="0" step="0.01"
                     style={{ paddingLeft: 30 }}
-                    placeholder="0,00"
+                    placeholder={t('aesthetics.valuePlaceholder')}
                     value={form.valor}
                     disabled={!canEdit}
                     onChange={e => setForm(p => ({ ...p, valor: e.target.value }))}/>
@@ -642,7 +644,7 @@ export default function Aesthetics() {
                 {form.valor > 0 && (
                   <div style={{ fontSize: 11, color: '#1e8449', marginTop: 4, fontWeight: 600 }}>
                     <i className="fas fa-check-circle" style={{ marginRight: 4 }}/>
-                    Incluído no extrato financeiro
+                    {t('aesthetics.includedInStatement')}
                   </div>
                 )}
               </div>
@@ -651,10 +653,10 @@ export default function Aesthetics() {
             {/* Observações */}
             <div className="card">
               <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10, color: 'var(--gray-700)' }}>
-                <i className="fas fa-note-sticky" style={{ marginRight: 6, color: '#f59e0b' }}/>Observações
+                <i className="fas fa-note-sticky" style={{ marginRight: 6, color: '#f59e0b' }}/>{t('aesthetics.observations')}
               </div>
               <textarea className="form-control" rows={4} value={form.observations} disabled={!canEdit}
-                placeholder="Reações, recomendações, próxima sessão..."
+                placeholder={t('aesthetics.observationsPlaceholder')}
                 onChange={e => setForm(p => ({ ...p, observations: e.target.value }))}/>
             </div>
 
@@ -662,7 +664,7 @@ export default function Aesthetics() {
             <div className="card" style={{ padding: '14px 18px' }}>
               <div style={{ borderTop: '2px solid var(--gray-200)', paddingTop: 10, marginTop: 4 }}>
                 <div style={{ fontSize: 11, color: 'var(--gray-400)', textAlign: 'center' }}>
-                  Assinatura do profissional
+                  {t('aesthetics.professionalSignature')}
                 </div>
               </div>
             </div>
@@ -674,7 +676,7 @@ export default function Aesthetics() {
         <div className="card">
           <div className="empty-state">
             <i className="fas fa-star-of-life" style={{ color: '#e91e8c' }}/>
-            <p>Selecione um paciente para iniciar o mapeamento estético</p>
+            <p>{t('aesthetics.selectPatientHint')}</p>
           </div>
         </div>
       )}
@@ -685,7 +687,8 @@ export default function Aesthetics() {
           point={popup.point} idx={popup.idx}
           onSave={savePoint}
           onDelete={popup.isNew ? null : deletePoint}
-          onClose={() => { setPopup(null); setPendingCoord(null); }}/>
+          onClose={() => { setPopup(null); setPendingCoord(null); }}
+          t={t}/>
       )}
     </div>
   );

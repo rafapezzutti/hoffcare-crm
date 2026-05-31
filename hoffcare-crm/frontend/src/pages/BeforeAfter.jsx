@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 
 const API_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
@@ -7,6 +8,7 @@ const API_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
 export default function BeforeAfter() {
   const { id: patientId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [patient, setPatient] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -44,12 +46,12 @@ export default function BeforeAfter() {
       fileRef.current.value = '';
       load();
     } catch (err) {
-      alert(err.response?.data?.error || 'Erro ao enviar foto');
+      alert(err.response?.data?.error || t('beforeAfter.upload'));
     } finally { setUploading(false); }
   };
 
   const handleDelete = async (photoId) => {
-    if (!confirm('Remover esta foto?')) return;
+    if (!confirm(t('beforeAfter.delete'))) return;
     await api.delete(`/before-after/${photoId}`);
     load();
   };
@@ -69,40 +71,40 @@ export default function BeforeAfter() {
             <i className="fas fa-arrow-left" />
           </button>
           <div>
-            <h1 className="page-title"><i className="fas fa-images" style={{ marginRight: 8, color: 'var(--blue)' }} />Antes e Depois</h1>
+            <h1 className="page-title"><i className="fas fa-images" style={{ marginRight: 8, color: 'var(--blue)' }} />{t('beforeAfter.title')}</h1>
             {patient && <p className="page-subtitle">{patient.name}</p>}
           </div>
         </div>
         <button className="btn btn-primary" onClick={() => fileRef.current.click()} disabled={uploading}>
-          <i className="fas fa-upload" /> {uploading ? 'Enviando...' : 'Adicionar Foto'}
+          <i className="fas fa-upload" /> {uploading ? t('common.loading') : t('beforeAfter.newRecord')}
         </button>
       </div>
 
       {/* Formulário de upload */}
       <div className="card" style={{ marginBottom: 20 }}>
-        <div className="card-header"><span className="card-title">Configurar Upload</span></div>
+        <div className="card-header"><span className="card-title">{t('beforeAfter.upload')}</span></div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 16, alignItems: 'end' }}>
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label">Tipo</label>
+            <label className="form-label">{t('beforeAfter.photoType')}</label>
             <select className="form-control" value={form.photo_type} onChange={e => setForm(p => ({ ...p, photo_type: e.target.value }))}>
-              <option value="before">Antes</option>
-              <option value="after">Depois</option>
+              <option value="before">{t('beforeAfter.before')}</option>
+              <option value="after">{t('beforeAfter.after')}</option>
             </select>
           </div>
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label">Procedimento</label>
+            <label className="form-label">{t('beforeAfter.procedure')}</label>
             <input className="form-control" placeholder="Ex: Harmonização facial" value={form.procedure_name}
               onChange={e => setForm(p => ({ ...p, procedure_name: e.target.value }))} />
           </div>
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label">Data da Foto</label>
+            <label className="form-label">{t('beforeAfter.date')}</label>
             <input className="form-control" type="date" value={form.photo_date}
               onChange={e => setForm(p => ({ ...p, photo_date: e.target.value }))} />
           </div>
           <div>
             <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleUpload} />
             <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => fileRef.current.click()} disabled={uploading}>
-              <i className="fas fa-camera" /> Selecionar Foto
+              <i className="fas fa-camera" /> {t('beforeAfter.upload')}
             </button>
           </div>
         </div>
@@ -111,27 +113,27 @@ export default function BeforeAfter() {
       {/* Filtros e comparação */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'center', flexWrap: 'wrap' }}>
         <select className="form-control" style={{ width: 220 }} value={filter} onChange={e => setFilter(e.target.value)}>
-          <option value="">Todos os procedimentos</option>
+          <option value="">{t('beforeAfter.allProcedures')}</option>
           {procedures.map(p => <option key={p} value={p}>{p}</option>)}
         </select>
         <button
           className={`btn ${compareMode ? 'btn-primary' : 'btn-outline'}`}
           onClick={() => { setCompareMode(v => !v); setSelectedBefore(null); setSelectedAfter(null); }}
         >
-          <i className="fas fa-columns" /> {compareMode ? 'Sair da Comparação' : 'Modo Comparação'}
+          <i className="fas fa-columns" /> {compareMode ? t('beforeAfter.exitCompare') : t('beforeAfter.compareMode')}
         </button>
         <span style={{ color: 'var(--gray-500)', fontSize: 13 }}>
-          {beforePhotos.length} antes · {afterPhotos.length} depois
+          {beforePhotos.length} {t('beforeAfter.before')} · {afterPhotos.length} {t('beforeAfter.after')}
         </span>
       </div>
 
       {/* Modo comparação lado a lado */}
       {compareMode && (
         <div className="card" style={{ marginBottom: 20 }}>
-          <div className="card-header"><span className="card-title">Comparação Lado a Lado</span></div>
+          <div className="card-header"><span className="card-title">{t('beforeAfter.sideBySide')}</span></div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
             <div>
-              <p style={{ fontWeight: 600, marginBottom: 12, color: 'var(--orange)' }}>⬅ Antes</p>
+              <p style={{ fontWeight: 600, marginBottom: 12, color: 'var(--orange)' }}>⬅ {t('beforeAfter.before')}</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 12 }}>
                 {beforePhotos.map(p => (
                   <img key={p.id} src={photoUrl(p.filename)} alt="antes"
@@ -146,7 +148,7 @@ export default function BeforeAfter() {
               )}
             </div>
             <div>
-              <p style={{ fontWeight: 600, marginBottom: 12, color: 'var(--blue)' }}>Depois ➡</p>
+              <p style={{ fontWeight: 600, marginBottom: 12, color: 'var(--blue)' }}>{t('beforeAfter.after')} ➡</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 12 }}>
                 {afterPhotos.map(p => (
                   <img key={p.id} src={photoUrl(p.filename)} alt="depois"
@@ -165,8 +167,8 @@ export default function BeforeAfter() {
       )}
 
       {/* Grade de fotos */}
-      {[{ label: 'Antes', type: 'before', color: 'var(--orange)', list: beforePhotos },
-        { label: 'Depois', type: 'after', color: 'var(--blue)', list: afterPhotos }].map(({ label, color, list }) => (
+      {[{ label: t('beforeAfter.before'), type: 'before', color: 'var(--orange)', list: beforePhotos },
+        { label: t('beforeAfter.after'), type: 'after', color: 'var(--blue)', list: afterPhotos }].map(({ label, color, list }) => (
         <div key={label} style={{ marginBottom: 24 }}>
           <h3 style={{ fontSize: 15, fontWeight: 700, color, marginBottom: 12 }}>
             <i className="fas fa-image" style={{ marginRight: 8 }} />{label} ({list.length})
@@ -174,7 +176,7 @@ export default function BeforeAfter() {
           {list.length === 0 ? (
             <div className="empty-state" style={{ padding: 32 }}>
               <i className="fas fa-image" />
-              <p>Nenhuma foto de "{label}" cadastrada</p>
+              <p>{t('beforeAfter.noRecords')}</p>
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>

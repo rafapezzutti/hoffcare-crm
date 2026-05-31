@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Modal from '../components/Modal';
 
@@ -9,17 +10,18 @@ const empty = {
 
 const fmt = (v) => v ? parseFloat(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00';
 
-const TYPE_LABELS = {
-  a_pagar: { label: 'Clínica paga ao profissional', color: '#dc3545', bg: '#f8d7da', icon: 'fa-arrow-up' },
-  a_receber: { label: 'Profissional paga à clínica', color: '#28a745', bg: '#d4edda', icon: 'fa-arrow-down' },
+const TYPE_STYLE = {
+  a_pagar: { color: '#dc3545', bg: '#f8d7da', icon: 'fa-arrow-up' },
+  a_receber: { color: '#28a745', bg: '#d4edda', icon: 'fa-arrow-down' },
 };
 
-const STATUS_LABELS = {
-  pendente: { label: 'Pendente', color: '#856404', bg: '#fff3cd' },
-  pago: { label: 'Pago', color: '#155724', bg: '#d4edda' },
+const STATUS_STYLE = {
+  pendente: { tKey: 'settlements.pending', color: '#856404', bg: '#fff3cd' },
+  pago:     { tKey: 'settlements.paid',    color: '#155724', bg: '#d4edda' },
 };
 
 export default function Settlements() {
+  const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [professionals, setProfessionals] = useState([]);
   const [form, setForm] = useState(empty);
@@ -65,11 +67,11 @@ export default function Settlements() {
       if (editing) await api.put(`/settlements/${editing.id}`, form);
       else await api.post('/settlements', form);
       setOpen(false); load();
-    } catch (err) { setError(err.response?.data?.error || 'Erro ao salvar'); }
+    } catch (err) { setError(err.response?.data?.error || t('settlements.errorSave')); }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Remover acerto financeiro?')) return;
+    if (!confirm(t('settlements.delete'))) return;
     await api.delete(`/settlements/${id}`); load();
   };
 
@@ -84,12 +86,12 @@ export default function Settlements() {
         <div>
           <h1 className="page-title">
             <i className="fas fa-handshake" style={{ marginRight: 10, color: 'var(--blue)' }} />
-            Acertos Financeiros
+            {t('settlements.title')}
           </h1>
-          <p className="page-subtitle">Controle de acertos entre a clínica e os profissionais</p>
+          <p className="page-subtitle">{t('settlements.subtitle')}</p>
         </div>
         <button className="btn btn-primary" onClick={() => handleOpen()}>
-          <i className="fas fa-plus" /> Novo Acerto
+          <i className="fas fa-plus" /> {t('settlements.newSettlement')}
         </button>
       </div>
 
@@ -103,7 +105,7 @@ export default function Settlements() {
             <div className="stat-value" style={{ fontSize: 20, color: '#dc3545' }}>
               R$ {fmt(totalPagar)}
             </div>
-            <div className="stat-label">Clínica a pagar</div>
+            <div className="stat-label">{t('settlements.toPay')}</div>
           </div>
         </div>
         <div className="stat-card">
@@ -112,7 +114,7 @@ export default function Settlements() {
             <div className="stat-value" style={{ fontSize: 20, color: 'var(--success)' }}>
               R$ {fmt(totalReceber)}
             </div>
-            <div className="stat-label">Clínica a receber</div>
+            <div className="stat-label">{t('settlements.toReceive')}</div>
           </div>
         </div>
         <div className="stat-card">
@@ -121,7 +123,7 @@ export default function Settlements() {
             <div className="stat-value" style={{ fontSize: 20 }}>
               R$ {fmt(totalPendente)}
             </div>
-            <div className="stat-label">Pendentes</div>
+            <div className="stat-label">{t('settlements.pending')}</div>
           </div>
         </div>
       </div>
@@ -131,14 +133,14 @@ export default function Settlements() {
         <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
           <select className="form-control" style={{ width: 200 }}
             value={filterProf} onChange={e => setFilterProf(e.target.value)}>
-            <option value="">Todos os profissionais</option>
+            <option value="">{t('settlements.allProfessionals')}</option>
             {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
           <select className="form-control" style={{ width: 160 }}
             value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-            <option value="">Todos os status</option>
-            <option value="pendente">Pendente</option>
-            <option value="pago">Pago</option>
+            <option value="">{t('settlements.allStatuses')}</option>
+            <option value="pendente">{t('settlements.pending')}</option>
+            <option value="pago">{t('settlements.paid')}</option>
           </select>
         </div>
 
@@ -146,24 +148,24 @@ export default function Settlements() {
           <table className="table">
             <thead>
               <tr>
-                <th>Data</th>
-                <th>Profissional</th>
-                <th>Tipo</th>
-                <th>Descrição</th>
-                <th>Valor</th>
-                <th>Status</th>
-                <th>Ações</th>
+                <th>{t('settlements.date')}</th>
+                <th>{t('settlements.professional')}</th>
+                <th>{t('settlements.type')}</th>
+                <th>{t('settlements.description')}</th>
+                <th>{t('settlements.value')}</th>
+                <th>{t('settlements.status')}</th>
+                <th>{t('settlements.actions')}</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
                 <tr><td colSpan={7}>
-                  <div className="empty-state"><i className="fas fa-handshake" /><p>Nenhum acerto cadastrado</p></div>
+                  <div className="empty-state"><i className="fas fa-handshake" /><p>{t('settlements.empty')}</p></div>
                 </td></tr>
               )}
               {filtered.map(item => {
-                const typeInfo = TYPE_LABELS[item.type] || TYPE_LABELS.a_pagar;
-                const statusInfo = STATUS_LABELS[item.status] || STATUS_LABELS.pendente;
+                const typeInfo = TYPE_STYLE[item.type] || TYPE_STYLE.a_pagar;
+                const statusInfo = STATUS_STYLE[item.status] || STATUS_STYLE.pendente;
                 return (
                   <tr key={item.id}>
                     <td>{item.date ? new Date(item.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '—'}</td>
@@ -171,7 +173,7 @@ export default function Settlements() {
                     <td>
                       <span style={{ background: typeInfo.bg, color: typeInfo.color, borderRadius: 4, padding: '2px 8px', fontSize: 12, fontWeight: 600 }}>
                         <i className={`fas ${typeInfo.icon}`} style={{ marginRight: 4, fontSize: 10 }} />
-                        {item.type === 'a_pagar' ? 'Pagar' : 'Receber'}
+                        {item.type === 'a_pagar' ? t('settlements.toPay') : t('settlements.toReceive')}
                       </span>
                     </td>
                     <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -184,7 +186,7 @@ export default function Settlements() {
                     </td>
                     <td>
                       <span style={{ background: statusInfo.bg, color: statusInfo.color, borderRadius: 4, padding: '2px 8px', fontSize: 12, fontWeight: 600 }}>
-                        {statusInfo.label}
+                        {t(statusInfo.tKey)}
                       </span>
                     </td>
                     <td>
@@ -206,52 +208,52 @@ export default function Settlements() {
       </div>
 
       <Modal open={open} onClose={() => setOpen(false)}
-        title={editing ? 'Editar Acerto Financeiro' : 'Novo Acerto Financeiro'}
+        title={editing ? t('settlements.editSettlement') : t('settlements.newSettlement')}
         footer={
           <>
-            <button className="btn btn-outline" onClick={() => setOpen(false)}>Cancelar</button>
-            <button className="btn btn-primary" onClick={handleSubmit}>Salvar</button>
+            <button className="btn btn-outline" onClick={() => setOpen(false)}>{t('settlements.cancel')}</button>
+            <button className="btn btn-primary" onClick={handleSubmit}>{t('settlements.save')}</button>
           </>
         }>
         {error && <div className="alert alert-error">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Tipo de Acerto <span className="required">*</span></label>
+            <label className="form-label">{t('settlements.type')} <span className="required">*</span></label>
             <select className="form-control" {...f('type')}>
-              <option value="a_pagar">Clínica paga ao profissional (saída)</option>
-              <option value="a_receber">Profissional paga à clínica (entrada)</option>
+              <option value="a_pagar">{t('settlements.typePayLabel')}</option>
+              <option value="a_receber">{t('settlements.typeReceiveLabel')}</option>
             </select>
           </div>
           <div className="form-grid form-grid-2">
             <div className="form-group">
-              <label className="form-label">Profissional</label>
+              <label className="form-label">{t('settlements.professional')}</label>
               <select className="form-control" {...f('professional_id')}>
-                <option value="">— Nenhum —</option>
+                <option value="">{t('settlements.none')}</option>
                 {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label">Data <span className="required">*</span></label>
+              <label className="form-label">{t('settlements.date')} <span className="required">*</span></label>
               <input className="form-control" type="date" {...f('date')} required />
             </div>
           </div>
           <div className="form-grid form-grid-2">
             <div className="form-group">
-              <label className="form-label">Valor (R$) <span className="required">*</span></label>
+              <label className="form-label">{t('settlements.value')} (R$) <span className="required">*</span></label>
               <input className="form-control" type="number" step="0.01" min="0" {...f('value')} required />
             </div>
             <div className="form-group">
-              <label className="form-label">Status</label>
+              <label className="form-label">{t('settlements.status')}</label>
               <select className="form-control" {...f('status')}>
-                <option value="pendente">Pendente</option>
-                <option value="pago">Pago</option>
+                <option value="pendente">{t('settlements.pending')}</option>
+                <option value="pago">{t('settlements.paid')}</option>
               </select>
             </div>
           </div>
           <div className="form-group">
-            <label className="form-label">Descrição</label>
+            <label className="form-label">{t('settlements.description')}</label>
             <textarea className="form-control" rows={3} {...f('description')}
-              placeholder="Ex: Comissão de procedimentos, Reembolso de materiais..." />
+              placeholder={t('settlements.descriptionPlaceholder')} />
           </div>
         </form>
       </Modal>

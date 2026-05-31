@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
-const ACTION_LABELS = { can_view: 'Ver', can_create: 'Criar', can_edit: 'Editar', can_delete: 'Excluir' };
 const ACTIONS = ['can_view', 'can_create', 'can_edit', 'can_delete'];
 
 export default function Permissions() {
+  const { t } = useTranslation();
   const { user: me } = useAuth();
   const [data, setData] = useState(null);
   const [saving, setSaving] = useState({});
@@ -37,7 +38,7 @@ export default function Permissions() {
           modules: u.modules.map(m => m.module !== module ? m : { ...m, [action]: !current, is_override: true })
         })
       }));
-    } catch { alert('Erro ao salvar permissão'); }
+    } catch { alert(t('permissions.errorSave')); }
     finally { setSaving(p => { const n={...p}; delete n[key]; return n; }); }
   };
 
@@ -45,7 +46,7 @@ export default function Permissions() {
     try {
       await api.delete(`/permissions/${userId}/${module}`);
       load();
-    } catch { alert('Erro ao resetar'); }
+    } catch { alert(t('permissions.errorReset')); }
   };
 
   if (!data) return <div className="page"><div className="empty-state"><div className="spinner" /></div></div>;
@@ -53,7 +54,7 @@ export default function Permissions() {
   const canManage = me?.role === 'admin' || me?.role === 'responsavel';
   if (!canManage) return (
     <div className="page">
-      <div className="empty-state"><i className="fas fa-lock" /><p>Você não tem permissão para acessar esta tela.</p></div>
+      <div className="empty-state"><i className="fas fa-lock" /><p>{t('permissions.noAccess')}</p></div>
     </div>
   );
 
@@ -63,8 +64,8 @@ export default function Permissions() {
     <div className="page">
       <div className="page-header">
         <div>
-          <h1 className="page-title"><i className="fas fa-shield-halved" style={{ marginRight: 8, color: 'var(--blue)' }} />Permissões</h1>
-          <p className="page-subtitle">Controle de acesso por usuário — padrão por perfil com ajuste fino individual</p>
+          <h1 className="page-title"><i className="fas fa-shield-halved" style={{ marginRight: 8, color: 'var(--blue)' }} />{t('permissions.title')}</h1>
+          <p className="page-subtitle">{t('permissions.subtitle')}</p>
         </div>
       </div>
 
@@ -72,9 +73,9 @@ export default function Permissions() {
         {/* Lista de usuários */}
         <div className="card" style={{ padding: 0 }}>
           <div style={{ padding: '12px 16px', fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--gray-500)', borderBottom: '1px solid var(--gray-100)' }}>
-            Usuários
+            {t('permissions.users')}
           </div>
-          {data.users.length === 0 && <div style={{ padding: 16, color: 'var(--gray-400)', fontSize: 13 }}>Nenhum usuário</div>}
+          {data.users.length === 0 && <div style={{ padding: 16, color: 'var(--gray-400)', fontSize: 13 }}>{t('permissions.noUsers')}</div>}
           {data.users.map(u => (
             <button key={u.id} onClick={() => setSelectedUser(u.id)} style={{
               width: '100%', padding: '12px 16px', border: 'none', cursor: 'pointer', textAlign: 'left',
@@ -86,7 +87,7 @@ export default function Permissions() {
               <div style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 2 }}>{u.role} · {u.email}</div>
               {u.modules.some(m => m.is_override) && (
                 <div style={{ fontSize: 10, color: '#e67e22', marginTop: 2, fontWeight: 600 }}>
-                  <i className="fas fa-circle-dot" style={{ marginRight: 4 }} />Personalizado
+                  <i className="fas fa-circle-dot" style={{ marginRight: 4 }} />{t('permissions.customized')}
                 </div>
               )}
             </button>
@@ -96,24 +97,24 @@ export default function Permissions() {
         {/* Tabela de permissões */}
         <div className="card" style={{ padding: 0 }}>
           {!currentUser ? (
-            <div className="empty-state"><i className="fas fa-user" /><p>Selecione um usuário</p></div>
+            <div className="empty-state"><i className="fas fa-user" /><p>{t('permissions.selectUser')}</p></div>
           ) : (
             <>
               <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--gray-100)', background: '#f8f9fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 15 }}>{currentUser.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>Perfil: <strong>{currentUser.role}</strong> · {currentUser.email}</div>
+                  <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{t('permissions.profile')}: <strong>{currentUser.role}</strong> · {currentUser.email}</div>
                 </div>
                 {currentUser.modules.some(m => m.is_override) && (
                   <button className="btn btn-outline btn-sm" style={{ fontSize: 11 }}
                     onClick={async () => {
-                      if (!confirm('Resetar todas as permissões deste usuário para o padrão do perfil?')) return;
+                      if (!confirm(t('permissions.confirmReset'))) return;
                       for (const mod of currentUser.modules.filter(m => m.is_override)) {
                         await api.delete(`/permissions/${currentUser.id}/${mod.module}`).catch(() => {});
                       }
                       load();
                     }}>
-                    <i className="fas fa-rotate-left" style={{ marginRight: 4 }} />Resetar tudo
+                    <i className="fas fa-rotate-left" style={{ marginRight: 4 }} />{t('permissions.resetAll')}
                   </button>
                 )}
               </div>
@@ -122,8 +123,8 @@ export default function Permissions() {
                 <table className="table" style={{ fontSize: 13 }}>
                   <thead>
                     <tr>
-                      <th style={{ textAlign: 'left', minWidth: 200 }}>Módulo</th>
-                      {ACTIONS.map(a => <th key={a} style={{ textAlign: 'center', width: 80 }}>{ACTION_LABELS[a]}</th>)}
+                      <th style={{ textAlign: 'left', minWidth: 200 }}>{t('permissions.module')}</th>
+                      {ACTIONS.map(a => <th key={a} style={{ textAlign: 'center', width: 80 }}>{t(`permissions.${a}`)}</th>)}
                       <th style={{ width: 60 }}></th>
                     </tr>
                   </thead>
@@ -155,7 +156,7 @@ export default function Permissions() {
                         <td style={{ padding: '8px', textAlign: 'center' }}>
                           {mod.is_override && (
                             <button className="btn btn-outline btn-sm" style={{ fontSize: 10, padding: '2px 8px' }}
-                              onClick={() => resetUser(currentUser.id, mod.module)} title="Resetar para padrão">
+                              onClick={() => resetUser(currentUser.id, mod.module)} title={t('permissions.resetToDefault')}>
                               <i className="fas fa-rotate-left" />
                             </button>
                           )}

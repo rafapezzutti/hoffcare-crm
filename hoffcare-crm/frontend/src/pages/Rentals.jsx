@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Modal from '../components/Modal';
 import { PROF_TYPES, getProfType } from '../config/professionalTypes';
 
 const RECURRENCES = [
-  { value: 'mensal', label: 'Mensal' },
-  { value: 'unico', label: 'Pagamento único' },
-  { value: 'trimestral', label: 'Trimestral' },
-  { value: 'semestral', label: 'Semestral' },
-  { value: 'anual', label: 'Anual' },
+  { value: 'mensal',     tKey: 'rentals.recurrenceMonthly' },
+  { value: 'unico',      tKey: 'rentals.recurrenceSingle' },
+  { value: 'trimestral', tKey: 'rentals.recurrenceQuarterly' },
+  { value: 'semestral',  tKey: 'rentals.recurrenceBiannual' },
+  { value: 'anual',      tKey: 'rentals.recurrenceAnnual' },
 ];
 
 const empty = {
@@ -18,11 +19,12 @@ const empty = {
 
 const fmt = (v) => v ? parseFloat(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '—';
 
-const statusBadge = (status) => status === 'active'
-  ? { label: 'Ativo', bg: '#d4edda', color: '#155724' }
-  : { label: 'Inativo', bg: '#f8d7da', color: '#721c24' };
+const statusBadge = (status, t) => status === 'active'
+  ? { label: t ? t('rentals.active') : 'Ativo', bg: '#d4edda', color: '#155724' }
+  : { label: t ? t('rentals.inactive') : 'Inativo', bg: '#f8d7da', color: '#721c24' };
 
 export default function Rentals() {
+  const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [professionals, setProfessionals] = useState([]);
@@ -76,11 +78,11 @@ export default function Rentals() {
       if (editing) await api.put(`/rentals/${editing.id}`, form);
       else await api.post('/rentals', form);
       setOpen(false); load();
-    } catch (err) { setError(err.response?.data?.error || 'Erro ao salvar'); }
+    } catch (err) { setError(err.response?.data?.error || t('rentals.errorSave')); }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Remover locação?')) return;
+    if (!confirm(t('rentals.delete'))) return;
     await api.delete(`/rentals/${id}`); load();
   };
 
@@ -99,12 +101,12 @@ export default function Rentals() {
         <div>
           <h1 className="page-title">
             <i className="fas fa-key" style={{ marginRight: 10, color: 'var(--orange)' }} />
-            Locações de Espaço
+            {t('rentals.title')}
           </h1>
-          <p className="page-subtitle">Controle de aluguéis e locações do consultório</p>
+          <p className="page-subtitle">{t('rentals.subtitle')}</p>
         </div>
         <button className="btn btn-primary" onClick={() => handleOpen()}>
-          <i className="fas fa-plus" /> Nova Locação
+          <i className="fas fa-plus" /> {t('rentals.newRental')}
         </button>
       </div>
 
@@ -116,21 +118,21 @@ export default function Rentals() {
             <div className="stat-value" style={{ fontSize: 20 }}>
               R$ {totalActive.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
-            <div className="stat-label">Receita mensal de locações</div>
+            <div className="stat-label">{t('rentals.totalMonthly')}</div>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-icon blue"><i className="fas fa-door-open" /></div>
           <div>
             <div className="stat-value">{items.filter(i => i.status === 'active').length}</div>
-            <div className="stat-label">Locações ativas</div>
+            <div className="stat-label">{t('rentals.activeRentals')}</div>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-icon orange"><i className="fas fa-list" /></div>
           <div>
             <div className="stat-value">{items.length}</div>
-            <div className="stat-label">Total de registros</div>
+            <div className="stat-label">{t('rentals.totalRecords')}</div>
           </div>
         </div>
       </div>
@@ -139,7 +141,7 @@ export default function Rentals() {
         <div className="search-bar">
           <div className="search-input-wrapper">
             <i className="fas fa-search" />
-            <input className="form-control" placeholder="Buscar por locatário ou espaço..."
+            <input className="form-control" placeholder={t('rentals.searchPlaceholder')}
               value={search} onChange={e => setSearch(e.target.value)} />
           </div>
         </div>
@@ -147,32 +149,32 @@ export default function Rentals() {
           <table className="table">
             <thead>
               <tr>
-                <th>Locatário</th>
-                <th>Espaço / Sala</th>
-                <th>Valor</th>
-                <th>Recorrência</th>
-                <th>Início</th>
-                <th>Término</th>
-                <th>Status</th>
-                <th>Ações</th>
+                <th>{t('rentals.tenant')}</th>
+                <th>{t('rentals.space')}</th>
+                <th>{t('rentals.value')}</th>
+                <th>{t('rentals.recurrence')}</th>
+                <th>{t('rentals.startDate')}</th>
+                <th>{t('rentals.endDate')}</th>
+                <th>{t('rentals.status')}</th>
+                <th>{t('rentals.actions')}</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
                 <tr><td colSpan={8}>
-                  <div className="empty-state"><i className="fas fa-key" /><p>Nenhuma locação cadastrada</p></div>
+                  <div className="empty-state"><i className="fas fa-key" /><p>{t('rentals.empty')}</p></div>
                 </td></tr>
               )}
               {filtered.map(item => {
-                const badge = statusBadge(item.status);
+                const badge = statusBadge(item.status, t);
                 return (
                   <tr key={item.id}>
                     <td><strong>{item.tenant_name}</strong></td>
                     <td>{item.space_description || item.room_name || '—'}</td>
                     <td><strong style={{ color: 'var(--success)' }}>R$ {fmt(item.value)}</strong></td>
-                    <td>{RECURRENCES.find(r => r.value === item.recurrence)?.label || item.recurrence}</td>
+                    <td>{(() => { const rec = RECURRENCES.find(r => r.value === item.recurrence); return rec ? t(rec.tKey) : item.recurrence; })()}</td>
                     <td>{item.start_date ? new Date(item.start_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '—'}</td>
-                    <td>{item.end_date ? new Date(item.end_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'Indeterminado'}</td>
+                    <td>{item.end_date ? new Date(item.end_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : t('rentals.indefinite')}</td>
                     <td>
                       <span style={{ background: badge.bg, color: badge.color, borderRadius: 4, padding: '2px 8px', fontSize: 12, fontWeight: 600 }}>
                         {badge.label}
@@ -197,17 +199,17 @@ export default function Rentals() {
       </div>
 
       <Modal open={open} onClose={() => setOpen(false)}
-        title={editing ? 'Editar Locação' : 'Nova Locação'}
+        title={editing ? t('rentals.editRental') : t('rentals.newRental')}
         footer={
           <>
-            <button className="btn btn-outline" onClick={() => setOpen(false)}>Cancelar</button>
-            <button className="btn btn-primary" onClick={handleSubmit}>Salvar</button>
+            <button className="btn btn-outline" onClick={() => setOpen(false)}>{t('rentals.cancel')}</button>
+            <button className="btn btn-primary" onClick={handleSubmit}>{t('rentals.save')}</button>
           </>
         }>
         {error && <div className="alert alert-error">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Locatário <span className="required">*</span></label>
+            <label className="form-label">{t('rentals.tenant')} <span className="required">*</span></label>
             {!manualName ? (
               <>
                 <select
@@ -216,7 +218,7 @@ export default function Rentals() {
                   onChange={e => setForm(p => ({ ...p, tenant_name: e.target.value }))}
                   required={!manualName}
                 >
-                  <option value="">— Selecione um profissional —</option>
+                  <option value="">{t('rentals.selectProfessional')}</option>
                   {PROF_TYPES.map(pt => {
                     const profs = professionals.filter(p => p.type === pt.value);
                     if (profs.length === 0) return null;
@@ -237,67 +239,67 @@ export default function Rentals() {
                   style={{ marginTop: 6, fontSize: 12 }}
                   onClick={() => { setManualName(true); setForm(p => ({ ...p, tenant_name: '' })); }}
                 >
-                  <i className="fas fa-keyboard" /> Digitar nome manualmente
+                  <i className="fas fa-keyboard" /> {t('rentals.manualName')}
                 </button>
               </>
             ) : (
               <>
-                <input className="form-control" {...f('tenant_name')} required placeholder="Nome do locatário" />
+                <input className="form-control" {...f('tenant_name')} required placeholder={t('rentals.tenantPlaceholder')} />
                 <button
                   type="button"
                   className="btn btn-outline btn-sm"
                   style={{ marginTop: 6, fontSize: 12 }}
                   onClick={() => { setManualName(false); setForm(p => ({ ...p, tenant_name: '' })); }}
                 >
-                  <i className="fas fa-user-md" /> Selecionar profissional cadastrado
+                  <i className="fas fa-user-md" /> {t('rentals.selectProfessional')}
                 </button>
               </>
             )}
           </div>
           <div className="form-grid form-grid-2">
             <div className="form-group">
-              <label className="form-label">Descrição do Espaço</label>
+              <label className="form-label">{t('rentals.spaceDescription')}</label>
               <input className="form-control" {...f('space_description')} placeholder="Ex: Consultório 2" />
             </div>
             <div className="form-group">
-              <label className="form-label">Sala (opcional)</label>
+              <label className="form-label">{t('rentals.room')}</label>
               <select className="form-control" {...f('room_id')}>
-                <option value="">— Nenhuma —</option>
+                <option value="">{t('rentals.noRoom')}</option>
                 {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
             </div>
           </div>
           <div className="form-grid form-grid-2">
             <div className="form-group">
-              <label className="form-label">Valor (R$) <span className="required">*</span></label>
+              <label className="form-label">{t('rentals.value')} (R$) <span className="required">*</span></label>
               <input className="form-control" type="number" step="0.01" min="0" {...f('value')} required />
             </div>
             <div className="form-group">
-              <label className="form-label">Recorrência</label>
+              <label className="form-label">{t('rentals.recurrence')}</label>
               <select className="form-control" {...f('recurrence')}>
-                {RECURRENCES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                {RECURRENCES.map(r => <option key={r.value} value={r.value}>{t(r.tKey)}</option>)}
               </select>
             </div>
           </div>
           <div className="form-grid form-grid-2">
             <div className="form-group">
-              <label className="form-label">Data de Início <span className="required">*</span></label>
+              <label className="form-label">{t('rentals.startDate')} <span className="required">*</span></label>
               <input className="form-control" type="date" {...f('start_date')} required />
             </div>
             <div className="form-group">
-              <label className="form-label">Data de Término</label>
+              <label className="form-label">{t('rentals.endDate')}</label>
               <input className="form-control" type="date" {...f('end_date')} />
             </div>
           </div>
           <div className="form-group">
-            <label className="form-label">Status</label>
+            <label className="form-label">{t('rentals.status')}</label>
             <select className="form-control" {...f('status')}>
-              <option value="active">Ativo</option>
-              <option value="inactive">Inativo</option>
+              <option value="active">{t('rentals.active')}</option>
+              <option value="inactive">{t('rentals.inactive')}</option>
             </select>
           </div>
           <div className="form-group">
-            <label className="form-label">Observações</label>
+            <label className="form-label">{t('rentals.notes')}</label>
             <textarea className="form-control" rows={3} {...f('notes')} />
           </div>
         </form>

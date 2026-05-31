@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import dayjs from 'dayjs';
 
-const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const fmt = (v) => `R$ ${parseFloat(v || 0).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.')}`;
 
 const Row = ({ cells, bold, bg }) => (
@@ -27,6 +27,7 @@ const SummaryCard = ({ label, value, color }) => (
 );
 
 export default function BankStatement() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const now = new Date();
@@ -45,7 +46,7 @@ export default function BankStatement() {
       setData(res.data);
       setTab('consolidated');
     } catch (err) {
-      alert(err.response?.data?.error || 'Erro ao carregar extrato');
+      alert(err.response?.data?.error || t('bankStatement.errorLoad'));
     } finally { setLoading(false); }
   };
 
@@ -67,7 +68,7 @@ export default function BankStatement() {
   };
 
   const handleSendEmail = async (prof) => {
-    if (!prof?.email) { alert('Profissional sem e-mail cadastrado.'); return; }
+    if (!prof?.email) { alert(t('bankStatement.noEmail')); return; }
     setEmailLoading(true); setEmailResult(null);
     try {
       await api.post(`/settlements/statement/${prof.professional_id}/send-email`, {
@@ -76,13 +77,15 @@ export default function BankStatement() {
         professional_name: prof.professional_name,
         professional_email: prof.email || prof.professional_email,
       });
-      setEmailResult({ ok: true, msg: `E-mail enviado para ${prof.professional_email || prof.email}` });
+      setEmailResult({ ok: true, msg: `${t('bankStatement.emailSent')} ${prof.professional_email || prof.email}` });
     } catch(err) {
-      setEmailResult({ ok: false, msg: err.response?.data?.error || 'Erro ao enviar' });
+      setEmailResult({ ok: false, msg: err.response?.data?.error || t('bankStatement.emailError') });
     } finally { setEmailLoading(false); }
   };
 
   const buildEmailHtml = (prof) => {
+    const months = t('months', { returnObjects: true }) || [];
+    const monthName = months[month - 1] || '';
     const rows = (prof.daily_rows || []).map(r =>
       `<tr><td style="padding:6px 12px;border-bottom:1px solid #eee">${r.day}</td>
        <td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right">${r.count}</td>
@@ -94,23 +97,23 @@ export default function BankStatement() {
     return `<div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto">
       <div style="background:#1a2535;padding:20px;text-align:center">
         <div style="color:#4DB8E8;font-size:20px;font-weight:800">P. Soluções para Saúde</div>
-        <div style="color:#E8841A;font-size:13px;font-weight:600">Extrato Mensal — ${MONTHS[month-1]}/${year}</div>
+        <div style="color:#E8841A;font-size:13px;font-weight:600">${t('bankStatement.title')} — ${monthName}/${year}</div>
       </div>
       <div style="background:#f8f9fa;padding:16px 24px;border-bottom:2px solid #4DB8E8">
-        <strong>${prof.professional_name}</strong> — Repasse: ${prof.repasse_percent}%
+        <strong>${prof.professional_name}</strong> — ${t('bankStatement.transfer')}: ${prof.repasse_percent}%
       </div>
       <table style="width:100%;border-collapse:collapse;font-size:13px">
         <thead><tr style="background:#D6EAF8">
-          <th style="padding:8px 12px;text-align:left">Data</th>
-          <th style="padding:8px 12px;text-align:right">Atend.</th>
-          <th style="padding:8px 12px;text-align:right">Bruto</th>
-          <th style="padding:8px 12px;text-align:right">Repasse</th>
-          <th style="padding:8px 12px;text-align:right">Acertos+</th>
-          <th style="padding:8px 12px;text-align:right">Líquido</th>
+          <th style="padding:8px 12px;text-align:left">${t('bankStatement.date')}</th>
+          <th style="padding:8px 12px;text-align:right">${t('bankStatement.consultations')}</th>
+          <th style="padding:8px 12px;text-align:right">${t('financial.grossRevenue')}</th>
+          <th style="padding:8px 12px;text-align:right">${t('bankStatement.transfer')}</th>
+          <th style="padding:8px 12px;text-align:right">${t('bankStatement.settlementsIn')}</th>
+          <th style="padding:8px 12px;text-align:right">${t('bankStatement.net')}</th>
         </tr></thead>
         <tbody>${rows}</tbody>
         <tfoot><tr style="background:#1E8449;color:white;font-weight:700">
-          <td style="padding:10px 12px" colspan="2">TOTAL</td>
+          <td style="padding:10px 12px" colspan="2">${t('bankStatement.total')}</td>
           <td style="padding:10px 12px;text-align:right">${fmt(prof.gross)}</td>
           <td style="padding:10px 12px;text-align:right">${fmt(prof.repasse)}</td>
           <td style="padding:10px 12px;text-align:right">${fmt(prof.settlements_in)}</td>
@@ -126,8 +129,8 @@ export default function BankStatement() {
     <div className="page">
       <div className="page-header">
         <div>
-          <h1 className="page-title"><i className="fas fa-file-invoice-dollar" style={{ marginRight: 8, color: 'var(--blue)' }} />Extrato Mensal</h1>
-          <p className="page-subtitle">Visão financeira detalhada por dia, estilo extrato bancário</p>
+          <h1 className="page-title"><i className="fas fa-file-invoice-dollar" style={{ marginRight: 8, color: 'var(--blue)' }} />{t('bankStatement.title')}</h1>
+          <p className="page-subtitle">{t('bankStatement.subtitle')}</p>
         </div>
       </div>
 
@@ -135,19 +138,19 @@ export default function BankStatement() {
       <div className="card" style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Mês</label>
+            <label className="form-label">{t('bankStatement.month')}</label>
             <select className="form-control" value={month} onChange={e => setMonth(Number(e.target.value))} style={{ width: 160 }}>
-              {MONTHS.map((n, i) => <option key={i+1} value={i+1}>{n}</option>)}
+              {(t('months', { returnObjects: true }) || []).map((n, i) => <option key={i+1} value={i+1}>{n}</option>)}
             </select>
           </div>
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Ano</label>
+            <label className="form-label">{t('bankStatement.year')}</label>
             <select className="form-control" value={year} onChange={e => setYear(Number(e.target.value))} style={{ width: 100 }}>
               {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
             </select>
           </div>
           <button className="btn btn-primary" onClick={load} disabled={loading}>
-            <i className="fas fa-search" style={{ marginRight: 6 }} />{loading ? 'Carregando...' : 'Gerar Extrato'}
+            <i className="fas fa-search" style={{ marginRight: 6 }} />{loading ? t('common.loading') : t('bankStatement.generate')}
           </button>
           {data && (
             <button className="btn btn-outline" onClick={handleExport} title="Exportar Excel">
@@ -160,7 +163,7 @@ export default function BankStatement() {
                 borderBottom: tab === 'admin' ? '2px solid #7d3c98' : '2px solid transparent',
                 color: tab === 'admin' ? '#7d3c98' : 'var(--gray-500)', background: 'none', marginBottom: -2
               }}>
-                <i className="fas fa-crown" style={{ marginRight: 6 }} />Admin — Todas as Clínicas
+                <i className="fas fa-crown" style={{ marginRight: 6 }} />{t('bankStatement.adminAllClinics')}
               </button>
             )}
         </div>
@@ -170,13 +173,13 @@ export default function BankStatement() {
         <>
           {/* Cards resumo */}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
-            <SummaryCard label="Receita Bruta" value={fmt(data.totals.gross)} color="#1a5276" />
-            {data.totals.aesthetics_gross > 0 && <SummaryCard label="Estética Facial" value={fmt(data.totals.aesthetics_gross)} color="#e91e8c" />}
-            <SummaryCard label="Repasse Profissionais" value={fmt(data.totals.repasse)} color="#7d3c98" />
-            <SummaryCard label="Acertos Entrada" value={fmt(data.totals.settlements_in)} color="#1e8449" />
-            <SummaryCard label="Acertos Saída" value={fmt(data.totals.settlements_out)} color="#c0392b" />
-            {data.totals.rentals > 0 && <SummaryCard label="Aluguéis" value={fmt(data.totals.rentals)} color="#e67e22" />}
-            <SummaryCard label="Líquido da Clínica" value={fmt(data.totals.net)} color={data.totals.net >= 0 ? '#1e8449' : '#c0392b'} />
+            <SummaryCard label={t('financial.grossRevenue')} value={fmt(data.totals.gross)} color="#1a5276" />
+            {data.totals.aesthetics_gross > 0 && <SummaryCard label={t('financial.aestheticsRevenue')} value={fmt(data.totals.aesthetics_gross)} color="#e91e8c" />}
+            <SummaryCard label={t('financial.professionalTransfer')} value={fmt(data.totals.repasse)} color="#7d3c98" />
+            <SummaryCard label={t('financial.settlementsIn')} value={fmt(data.totals.settlements_in)} color="#1e8449" />
+            <SummaryCard label={t('financial.settlementsOut')} value={fmt(data.totals.settlements_out)} color="#c0392b" />
+            {data.totals.rentals > 0 && <SummaryCard label={t('financial.rentalsLabel')} value={fmt(data.totals.rentals)} color="#e67e22" />}
+            <SummaryCard label={t('financial.netRevenue')} value={fmt(data.totals.net)} color={data.totals.net >= 0 ? '#1e8449' : '#c0392b'} />
           </div>
 
           {/* Abas */}
@@ -186,7 +189,7 @@ export default function BankStatement() {
               borderBottom: tab === 'consolidated' ? '2px solid #2E86C1' : '2px solid transparent',
               color: tab === 'consolidated' ? '#2E86C1' : 'var(--gray-500)', background: 'none', marginBottom: -2
             }}>
-              <i className="fas fa-table" style={{ marginRight: 6 }} />Consolidado
+              <i className="fas fa-table" style={{ marginRight: 6 }} />{t('bankStatement.consolidated')}
             </button>
             {data.by_professional.map(p => (
               <button key={p.professional_id} onClick={() => setTab(String(p.professional_id))} style={{
@@ -206,19 +209,19 @@ export default function BankStatement() {
                 <table className="table" style={{ fontSize: 13 }}>
                   <thead>
                     <tr>
-                      <th style={{ textAlign: 'left' }}>Data</th>
-                      <th style={{ textAlign: 'right' }}>Atend.</th>
-                      <th style={{ textAlign: 'right' }}>Receita Bruta</th>
-                      <th style={{ textAlign: 'right', color: '#e91e8c' }}>Estética</th>
-                      <th style={{ textAlign: 'right' }}>Repasse</th>
-                      <th style={{ textAlign: 'right' }}>Acertos +</th>
-                      <th style={{ textAlign: 'right' }}>Acertos −</th>
-                      <th style={{ textAlign: 'right' }}>Líquido do Dia</th>
+                      <th style={{ textAlign: 'left' }}>{t('bankStatement.date')}</th>
+                      <th style={{ textAlign: 'right' }}>{t('bankStatement.consultations')}</th>
+                      <th style={{ textAlign: 'right' }}>{t('financial.grossRevenue')}</th>
+                      <th style={{ textAlign: 'right', color: '#e91e8c' }}>{t('financial.aestheticsColumn')}</th>
+                      <th style={{ textAlign: 'right' }}>{t('bankStatement.transfer')}</th>
+                      <th style={{ textAlign: 'right' }}>{t('bankStatement.settlementsIn')}</th>
+                      <th style={{ textAlign: 'right' }}>{t('bankStatement.settlementsOut')}</th>
+                      <th style={{ textAlign: 'right' }}>{t('bankStatement.dailyNet')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.days.length === 0 && (
-                      <tr><td colSpan={8}><div className="empty-state"><i className="fas fa-file-invoice" /><p>Nenhum movimento no período</p></div></td></tr>
+                      <tr><td colSpan={8}><div className="empty-state"><i className="fas fa-file-invoice" /><p>{t('financial.noMovement')}</p></div></td></tr>
                     )}
                     {data.days.map((row, i) => (
                       <tr key={row.day} style={{ background: i % 2 === 0 ? '#f8f9fa' : 'white' }}>
@@ -234,12 +237,12 @@ export default function BankStatement() {
                     ))}
                     {data.totals.rentals > 0 && (
                       <tr style={{ background: '#fffbeb' }}>
-                        <td style={{ padding: '8px 12px', fontStyle: 'italic', color: '#e67e22' }} colSpan={7}>Aluguéis do mês</td>
+                        <td style={{ padding: '8px 12px', fontStyle: 'italic', color: '#e67e22' }} colSpan={7}>{t('bankStatement.monthlyRentals')}</td>
                         <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: '#e67e22' }}>− {fmt(data.totals.rentals)}</td>
                       </tr>
                     )}
                     <tr style={{ background: '#1e8449' }}>
-                      <td style={{ padding: '10px 12px', fontWeight: 800, color: 'white' }} colSpan={2}>TOTAL DO MÊS</td>
+                      <td style={{ padding: '10px 12px', fontWeight: 800, color: 'white' }} colSpan={2}>{t('financial.monthTotal')}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: 'white' }}>{fmt(data.totals.gross)}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: 'white' }}>{fmt(data.totals.aesthetics_gross)}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: 'white' }}>{fmt(data.totals.repasse)}</td>
@@ -258,7 +261,7 @@ export default function BankStatement() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid var(--gray-100)', background: '#f8f9fa' }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 15 }}>{currentProf.professional_name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>Repasse: {currentProf.repasse_percent}% · {MONTHS[month-1]}/{year}</div>
+                    <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{t('bankStatement.transfer')}: {currentProf.repasse_percent}% · {(t('months', { returnObjects: true }) || [])[month-1]}/{year}</div>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     {emailResult && (
@@ -267,7 +270,7 @@ export default function BankStatement() {
                       </span>
                     )}
                     <button className="btn btn-outline btn-sm" onClick={() => handleSendEmail(currentProf)} disabled={emailLoading}>
-                      <i className="fas fa-envelope" style={{ marginRight: 6 }} />{emailLoading ? 'Enviando...' : 'Enviar por e-mail'}
+                      <i className="fas fa-envelope" style={{ marginRight: 6 }} />{emailLoading ? t('bankStatement.sending') : t('bankStatement.sendEmail')}
                     </button>
                   </div>
                 </div>
@@ -276,18 +279,18 @@ export default function BankStatement() {
                   <table className="table" style={{ fontSize: 13 }}>
                     <thead>
                       <tr>
-                        <th style={{ textAlign: 'left' }}>Data</th>
-                        <th style={{ textAlign: 'right' }}>Atend.</th>
-                        <th style={{ textAlign: 'right' }}>Receita Bruta</th>
-                        <th style={{ textAlign: 'right' }}>Repasse ({currentProf.repasse_percent}%)</th>
-                        <th style={{ textAlign: 'right' }}>Acertos +</th>
-                        <th style={{ textAlign: 'right' }}>Acertos −</th>
-                        <th style={{ textAlign: 'right' }}>Líquido</th>
+                        <th style={{ textAlign: 'left' }}>{t('bankStatement.date')}</th>
+                        <th style={{ textAlign: 'right' }}>{t('bankStatement.consultations')}</th>
+                        <th style={{ textAlign: 'right' }}>{t('financial.grossRevenue')}</th>
+                        <th style={{ textAlign: 'right' }}>{t('bankStatement.transfer')} ({currentProf.repasse_percent}%)</th>
+                        <th style={{ textAlign: 'right' }}>{t('bankStatement.settlementsIn')}</th>
+                        <th style={{ textAlign: 'right' }}>{t('bankStatement.settlementsOut')}</th>
+                        <th style={{ textAlign: 'right' }}>{t('bankStatement.net')}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {currentProf.daily_rows.length === 0 && (
-                        <tr><td colSpan={7}><div className="empty-state"><i className="fas fa-file" /><p>Sem movimento no período</p></div></td></tr>
+                        <tr><td colSpan={7}><div className="empty-state"><i className="fas fa-file" /><p>{t('financial.noMovement')}</p></div></td></tr>
                       )}
                       {currentProf.daily_rows.map((row, i) => (
                         <tr key={row.day} style={{ background: i % 2 === 0 ? '#f8f9fa' : 'white' }}>
@@ -301,7 +304,7 @@ export default function BankStatement() {
                         </tr>
                       ))}
                       <tr style={{ background: '#1e8449' }}>
-                        <td style={{ padding: '10px 12px', fontWeight: 800, color: 'white' }} colSpan={2}>TOTAL</td>
+                        <td style={{ padding: '10px 12px', fontWeight: 800, color: 'white' }} colSpan={2}>{t('bankStatement.total')}</td>
                         <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: 'white' }}>{fmt(currentProf.gross)}</td>
                         <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: 'white' }}>{fmt(currentProf.repasse)}</td>
                         <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: 'white' }}>{fmt(currentProf.settlements_in)}</td>
@@ -321,7 +324,7 @@ export default function BankStatement() {
         <div className="card">
           <div className="empty-state">
             <i className="fas fa-file-invoice-dollar" />
-            <p>Selecione o mês e clique em <strong>Gerar Extrato</strong></p>
+            <p>{t('bankStatement.selectHint')}</p>
           </div>
         </div>
       )}

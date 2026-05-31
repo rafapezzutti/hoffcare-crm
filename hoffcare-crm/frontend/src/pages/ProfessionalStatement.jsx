@@ -1,15 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import dayjs from 'dayjs';
 
-const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
-                'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-
 const fmt = (v) => parseFloat(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 
-function buildEmailHtml(data) {
+function buildEmailHtml(data, t) {
   const { professional, year, month, records, settlements, rentals, summary } = data;
-  const monthName = MONTHS[month - 1];
+  const months = (t && t('months', { returnObjects: true })) || ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const monthName = months[month - 1];
 
   const recordsRows = records.map(r => `
     <tr>
@@ -25,7 +24,7 @@ function buildEmailHtml(data) {
       <td style="padding:8px;border-bottom:1px solid #eee;">${new Date(s.date).toLocaleDateString('pt-BR',{timeZone:'UTC'})}</td>
       <td style="padding:8px;border-bottom:1px solid #eee;">${s.description || '—'}</td>
       <td style="padding:8px;border-bottom:1px solid #eee;">
-        <span style="color:${s.type==='a_pagar'?'#dc3545':'#28a745'}">${s.type==='a_pagar'?'Clínica paga':'Profissional paga'}</span>
+        <span style="color:${s.type==='a_pagar'?'#dc3545':'#28a745'}">${s.type==='a_pagar'?(t?t('professionalStatement.clinicPays'):'Clínica paga'):(t?t('professionalStatement.profPays'):'Profissional paga')}</span>
       </td>
       <td style="padding:8px;border-bottom:1px solid #eee;text-align:right;font-weight:700;color:${s.type==='a_pagar'?'#28a745':'#dc3545'};">
         ${s.type==='a_pagar'?'+':'−'} R$ ${fmt(s.value)}
@@ -47,7 +46,7 @@ function buildEmailHtml(data) {
         <div style="font-size:22px;font-weight:800;color:#4DB8E8;">P. Soluções</div>
         <div style="font-size:13px;font-weight:600;color:#E8841A;">para Saúde</div>
         <div style="margin-top:12px;font-size:16px;color:#fff;font-weight:700;">
-          Extrato Financeiro — ${monthName}/${year}
+          ${t?t('professionalStatement.title'):'Extrato Financeiro'} — ${monthName}/${year}
         </div>
       </div>
       <div style="background:#fff;border:1px solid #e9ecef;border-top:none;padding:32px;border-radius:0 0 8px 8px;">
@@ -57,21 +56,21 @@ function buildEmailHtml(data) {
         <!-- Resumo -->
         <div style="background:#f8f9fa;border-radius:8px;padding:20px;margin-bottom:24px;display:flex;gap:16px;flex-wrap:wrap;">
           <div style="flex:1;min-width:120px;text-align:center;">
-            <div style="font-size:11px;color:#6c757d;text-transform:uppercase;letter-spacing:1px;">Atendimentos</div>
+            <div style="font-size:11px;color:#6c757d;text-transform:uppercase;letter-spacing:1px;">${t?t('professionalStatement.consultations'):'Atendimentos'}</div>
             <div style="font-size:20px;font-weight:700;color:#28a745;">R$ ${fmt(summary.total_records)}</div>
           </div>
           ${rentals.length > 0 ? `<div style="flex:1;min-width:120px;text-align:center;">
-            <div style="font-size:11px;color:#6c757d;text-transform:uppercase;letter-spacing:1px;">Aluguéis</div>
+            <div style="font-size:11px;color:#6c757d;text-transform:uppercase;letter-spacing:1px;">${t?t('financial.rentalsLabel'):'Aluguéis'}</div>
             <div style="font-size:20px;font-weight:700;color:#dc3545;">− R$ ${fmt(summary.total_rentals)}</div>
           </div>` : ''}
           ${settlements.length > 0 ? `<div style="flex:1;min-width:120px;text-align:center;">
-            <div style="font-size:11px;color:#6c757d;text-transform:uppercase;letter-spacing:1px;">Acertos</div>
+            <div style="font-size:11px;color:#6c757d;text-transform:uppercase;letter-spacing:1px;">${t?t('professionalStatement.settlementsBalance'):'Acertos'}</div>
             <div style="font-size:20px;font-weight:700;color:${summary.total_settlements_in - summary.total_settlements_out >= 0 ? '#28a745' : '#dc3545'};">
               R$ ${fmt(summary.total_settlements_in - summary.total_settlements_out)}
             </div>
           </div>` : ''}
           <div style="flex:1;min-width:120px;text-align:center;border-left:2px solid #dee2e6;padding-left:16px;">
-            <div style="font-size:11px;color:#6c757d;text-transform:uppercase;letter-spacing:1px;">Líquido</div>
+            <div style="font-size:11px;color:#6c757d;text-transform:uppercase;letter-spacing:1px;">${t?t('professionalStatement.net'):'Líquido'}</div>
             <div style="font-size:22px;font-weight:800;color:${summary.net_total >= 0 ? '#1a2535' : '#dc3545'};">
               R$ ${fmt(summary.net_total)}
             </div>
@@ -81,18 +80,18 @@ function buildEmailHtml(data) {
         <!-- Atendimentos -->
         ${records.length > 0 ? `
         <h3 style="font-size:14px;font-weight:700;color:#1a2535;margin:0 0 12px;border-bottom:2px solid #4DB8E8;padding-bottom:6px;">
-          📋 Atendimentos (${records.length})
+          📋 ${t?t('professionalStatement.consultations'):'Atendimentos'} (${records.length})
         </h3>
         <table style="width:100%;border-collapse:collapse;margin-bottom:24px;font-size:13px;">
           <thead><tr style="background:#f8f9fa;">
-            <th style="padding:8px;text-align:left;color:#6c757d;font-weight:600;">Data</th>
-            <th style="padding:8px;text-align:left;color:#6c757d;font-weight:600;">Paciente</th>
-            <th style="padding:8px;text-align:left;color:#6c757d;font-weight:600;">Procedimentos</th>
-            <th style="padding:8px;text-align:right;color:#6c757d;font-weight:600;">Valor</th>
+            <th style="padding:8px;text-align:left;color:#6c757d;font-weight:600;">${t?t('professionalStatement.date'):'Data'}</th>
+            <th style="padding:8px;text-align:left;color:#6c757d;font-weight:600;">${t?t('professionalStatement.patient'):'Paciente'}</th>
+            <th style="padding:8px;text-align:left;color:#6c757d;font-weight:600;">${t?t('professionalStatement.procedures'):'Procedimentos'}</th>
+            <th style="padding:8px;text-align:right;color:#6c757d;font-weight:600;">${t?t('professionalStatement.value'):'Valor'}</th>
           </tr></thead>
           <tbody>${recordsRows}</tbody>
           <tfoot><tr style="background:#e8f5e9;">
-            <td colspan="3" style="padding:10px;font-weight:700;">Total Atendimentos</td>
+            <td colspan="3" style="padding:10px;font-weight:700;">${t?t('professionalStatement.grossSubtotal'):'Total Atendimentos'}</td>
             <td style="padding:10px;text-align:right;font-weight:800;color:#28a745;">R$ ${fmt(summary.total_records)}</td>
           </tr></tfoot>
         </table>` : ''}
@@ -100,17 +99,17 @@ function buildEmailHtml(data) {
         <!-- Aluguéis -->
         ${rentals.length > 0 ? `
         <h3 style="font-size:14px;font-weight:700;color:#1a2535;margin:0 0 12px;border-bottom:2px solid #E8841A;padding-bottom:6px;">
-          🔑 Descontos de Locação
+          🔑 ${t?t('professionalStatement.rentalDiscounts'):'Descontos de Locação'}
         </h3>
         <table style="width:100%;border-collapse:collapse;margin-bottom:24px;font-size:13px;">
           <thead><tr style="background:#f8f9fa;">
-            <th style="padding:8px;text-align:left;color:#6c757d;">Espaço</th>
-            <th style="padding:8px;text-align:left;color:#6c757d;">Recorrência</th>
-            <th style="padding:8px;text-align:right;color:#6c757d;">Valor</th>
+            <th style="padding:8px;text-align:left;color:#6c757d;">${t?t('professionalStatement.space'):'Espaço'}</th>
+            <th style="padding:8px;text-align:left;color:#6c757d;">${t?t('professionalStatement.recurrence'):'Recorrência'}</th>
+            <th style="padding:8px;text-align:right;color:#6c757d;">${t?t('professionalStatement.value'):'Valor'}</th>
           </tr></thead>
           <tbody>${rentalsRows}</tbody>
           <tfoot><tr style="background:#fdecea;">
-            <td colspan="2" style="padding:10px;font-weight:700;">Total Aluguéis</td>
+            <td colspan="2" style="padding:10px;font-weight:700;">${t?t('professionalStatement.totalRentals'):'Total Aluguéis'}</td>
             <td style="padding:10px;text-align:right;font-weight:800;color:#dc3545;">− R$ ${fmt(summary.total_rentals)}</td>
           </tr></tfoot>
         </table>` : ''}
@@ -118,14 +117,14 @@ function buildEmailHtml(data) {
         <!-- Acertos -->
         ${settlements.length > 0 ? `
         <h3 style="font-size:14px;font-weight:700;color:#1a2535;margin:0 0 12px;border-bottom:2px solid #6f42c1;padding-bottom:6px;">
-          🤝 Acertos Financeiros
+          🤝 ${t?t('professionalStatement.financialSettlements'):'Acertos Financeiros'}
         </h3>
         <table style="width:100%;border-collapse:collapse;margin-bottom:24px;font-size:13px;">
           <thead><tr style="background:#f8f9fa;">
-            <th style="padding:8px;text-align:left;color:#6c757d;">Data</th>
-            <th style="padding:8px;text-align:left;color:#6c757d;">Descrição</th>
-            <th style="padding:8px;text-align:left;color:#6c757d;">Tipo</th>
-            <th style="padding:8px;text-align:right;color:#6c757d;">Valor</th>
+            <th style="padding:8px;text-align:left;color:#6c757d;">${t?t('professionalStatement.date'):'Data'}</th>
+            <th style="padding:8px;text-align:left;color:#6c757d;">${t?t('professionalStatement.description'):'Descrição'}</th>
+            <th style="padding:8px;text-align:left;color:#6c757d;">${t?t('professionalStatement.type'):'Tipo'}</th>
+            <th style="padding:8px;text-align:right;color:#6c757d;">${t?t('professionalStatement.value'):'Valor'}</th>
           </tr></thead>
           <tbody>${settlementsRows}</tbody>
         </table>` : ''}
@@ -133,7 +132,7 @@ function buildEmailHtml(data) {
         <!-- Total líquido -->
         <div style="background:#1a2535;border-radius:8px;padding:20px;text-align:center;margin-top:8px;">
           <div style="font-size:12px;color:#adb5bd;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">
-            Total Líquido — ${monthName}/${year}
+            ${t?t('professionalStatement.totalNet'):'Total Líquido'} — ${monthName}/${year}
           </div>
           <div style="font-size:32px;font-weight:800;color:${summary.net_total >= 0 ? '#4DB8E8' : '#dc3545'};">
             R$ ${fmt(summary.net_total)}
@@ -150,6 +149,7 @@ function buildEmailHtml(data) {
 }
 
 export default function ProfessionalStatement() {
+  const { t } = useTranslation();
   const now = dayjs();
   const [professionals, setProfessionals] = useState([]);
   const [selProfId, setSelProfId] = useState('');
@@ -172,7 +172,7 @@ export default function ProfessionalStatement() {
       const r = await api.get(`/settlements/statement/${selProfId}?year=${selYear}&month=${selMonth}`);
       setData(r.data);
     } catch (err) {
-      setMsg('Erro ao carregar extrato.');
+      setMsg(t('professionalStatement.errorLoad'));
     } finally {
       setLoading(false);
     }
@@ -183,7 +183,7 @@ export default function ProfessionalStatement() {
     const w = window.open('', '_blank');
     w.document.write(`<html><head><title>Extrato</title>
       <style>body{margin:0;padding:20px;font-family:Arial,sans-serif;}@media print{body{margin:0;}}</style>
-    </head><body>${buildEmailHtml(data)}</body></html>`);
+    </head><body>${buildEmailHtml(data, t)}</body></html>`);
     w.document.close();
     w.focus();
     setTimeout(() => { w.print(); }, 500);
@@ -192,22 +192,22 @@ export default function ProfessionalStatement() {
   const handleSendEmail = async () => {
     if (!data) return;
     if (!data.professional?.email) {
-      setMsg('❌ Profissional não tem email cadastrado.');
+      setMsg('❌ ' + t('professionalStatement.noEmail'));
       return;
     }
-    if (!confirm(`Enviar extrato para ${data.professional.email}?`)) return;
+    if (!confirm(`${t('professionalStatement.confirmSend')} ${data.professional.email}?`)) return;
     setSending(true); setMsg('');
     try {
       await api.post(`/settlements/statement/${selProfId}/send-email`, {
-        html: buildEmailHtml(data),
+        html: buildEmailHtml(data, t),
         year: selYear,
         month: selMonth,
         professional_name: data.professional.name,
         professional_email: data.professional.email,
       });
-      setMsg('✅ Email enviado com sucesso!');
+      setMsg('✅ ' + t('professionalStatement.emailSent'));
     } catch (err) {
-      setMsg('❌ ' + (err.response?.data?.error || 'Erro ao enviar email'));
+      setMsg('❌ ' + (err.response?.data?.error || t('professionalStatement.emailError')));
     } finally {
       setSending(false);
     }
@@ -222,9 +222,9 @@ export default function ProfessionalStatement() {
         <div>
           <h1 className="page-title">
             <i className="fas fa-file-invoice-dollar" style={{ marginRight: 10, color: 'var(--blue)' }} />
-            Extrato Mensal por Profissional
+            {t('professionalStatement.title')}
           </h1>
-          <p className="page-subtitle">Resumo financeiro com atendimentos, aluguéis e acertos</p>
+          <p className="page-subtitle">{t('professionalStatement.subtitle')}</p>
         </div>
       </div>
 
@@ -232,26 +232,26 @@ export default function ProfessionalStatement() {
       <div className="card" style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div className="form-group" style={{ flex: 2, minWidth: 200, marginBottom: 0 }}>
-            <label className="form-label">Profissional</label>
+            <label className="form-label">{t('professionalStatement.professional')}</label>
             <select className="form-control" value={selProfId} onChange={e => setSelProfId(e.target.value)}>
-              <option value="">Selecione um profissional...</option>
+              <option value="">{t('professionalStatement.selectProfessional')}</option>
               {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
           <div className="form-group" style={{ width: 150, marginBottom: 0 }}>
-            <label className="form-label">Mês</label>
+            <label className="form-label">{t('professionalStatement.month')}</label>
             <select className="form-control" value={selMonth} onChange={e => setSelMonth(Number(e.target.value))}>
-              {MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
+              {(t('months', { returnObjects: true }) || []).map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
             </select>
           </div>
           <div className="form-group" style={{ width: 100, marginBottom: 0 }}>
-            <label className="form-label">Ano</label>
+            <label className="form-label">{t('professionalStatement.year')}</label>
             <select className="form-control" value={selYear} onChange={e => setSelYear(Number(e.target.value))}>
               {years.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
           </div>
           <button className="btn btn-primary" onClick={loadStatement} disabled={!selProfId || loading}>
-            {loading ? <><i className="fas fa-spinner fa-spin" /> Carregando...</> : <><i className="fas fa-search" /> Gerar Extrato</>}
+            {loading ? <><i className="fas fa-spinner fa-spin" /> {t('common.loading')}</> : <><i className="fas fa-search" /> {t('professionalStatement.generate')}</>}
           </button>
         </div>
       </div>
@@ -269,11 +269,11 @@ export default function ProfessionalStatement() {
             <div className="empty-state" style={{ padding: 60 }}>
               <i className="fas fa-calendar-times" style={{ fontSize: 48, color: 'var(--gray-300)' }} />
               <p style={{ marginTop: 16, fontSize: 16, fontWeight: 600, color: 'var(--gray-600)' }}>
-                Nenhum registro encontrado
+                {t('professionalStatement.noData')}
               </p>
               <p style={{ fontSize: 13, color: 'var(--gray-400)', marginTop: 4 }}>
-                {data.professional?.name} não possui atendimentos, locações ou acertos em{' '}
-                <strong>{MONTHS[selMonth - 1]}/{selYear}</strong>.
+                {data.professional?.name} {t('professionalStatement.noAttendances')}{' '}
+                <strong>{(t('months', { returnObjects: true }) || [])[selMonth - 1]}/{selYear}</strong>.
               </p>
             </div>
           </div>
@@ -283,12 +283,12 @@ export default function ProfessionalStatement() {
           {/* Botões de ação */}
           <div style={{ display: 'flex', gap: 12, marginBottom: 16, justifyContent: 'flex-end' }}>
             <button className="btn btn-outline" onClick={handlePrint}>
-              <i className="fas fa-print" /> Imprimir / Salvar PDF
+              <i className="fas fa-print" /> {t('professionalStatement.print')}
             </button>
             <button className="btn btn-primary" onClick={handleSendEmail} disabled={sending}>
               {sending
-                ? <><i className="fas fa-spinner fa-spin" /> Enviando...</>
-                : <><i className="fas fa-envelope" /> Enviar por Email</>}
+                ? <><i className="fas fa-spinner fa-spin" /> {t('professionalStatement.sending')}</>
+                : <><i className="fas fa-envelope" /> {t('professionalStatement.sendEmail')}</>}
             </button>
           </div>
 
@@ -297,9 +297,9 @@ export default function ProfessionalStatement() {
             {/* Cabeçalho */}
             <div style={{ background: '#1a2535', borderRadius: 8, padding: 24, marginBottom: 24, textAlign: 'center' }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: '#4DB8E8' }}>P. Soluções para Saúde</div>
-              <div style={{ fontSize: 14, color: '#E8841A', marginBottom: 8 }}>Extrato Financeiro</div>
+              <div style={{ fontSize: 14, color: '#E8841A', marginBottom: 8 }}>{t('professionalStatement.title')}</div>
               <div style={{ fontSize: 18, color: '#fff', fontWeight: 700 }}>
-                {MONTHS[selMonth - 1]}/{selYear}
+                {(t('months', { returnObjects: true }) || [])[selMonth - 1]}/{selYear}
               </div>
             </div>
 
@@ -320,7 +320,7 @@ export default function ProfessionalStatement() {
                   <div className="stat-value" style={{ fontSize: 20, color: 'var(--success)' }}>
                     R$ {fmt(data.summary.total_records_gross)}
                   </div>
-                  <div className="stat-label">{data.records.length} atendimento(s) — bruto</div>
+                  <div className="stat-label">{data.records.length} {t('professionalStatement.consultations')} — {t('professionalStatement.gross')}</div>
                 </div>
               </div>
 
@@ -334,7 +334,7 @@ export default function ProfessionalStatement() {
                     }}>
                       {data.summary.total_settlements_in - data.summary.total_settlements_out >= 0 ? '+' : '−'} R$ {fmt(Math.abs(data.summary.total_settlements_in - data.summary.total_settlements_out))}
                     </div>
-                    <div className="stat-label">{data.settlements.length} acerto(s) antes do repasse</div>
+                    <div className="stat-label">{data.settlements.length} {t('professionalStatement.settlementsIn')}</div>
                   </div>
                 </div>
               )}
@@ -364,7 +364,7 @@ export default function ProfessionalStatement() {
                     <div className="stat-value" style={{ fontSize: 20, color: '#dc3545' }}>
                       − R$ {fmt(data.summary.total_rentals)}
                     </div>
-                    <div className="stat-label">{data.rentals.length} locação(ões)</div>
+                    <div className="stat-label">{data.rentals.length} {t('professionalStatement.rentalsCount')}</div>
                   </div>
                 </div>
               )}
@@ -379,7 +379,7 @@ export default function ProfessionalStatement() {
                   }}>
                     R$ {fmt(data.summary.net_total)}
                   </div>
-                  <div className="stat-label" style={{ color: '#adb5bd' }}>Total líquido</div>
+                  <div className="stat-label" style={{ color: '#adb5bd' }}>{t('professionalStatement.net')}</div>
                 </div>
               </div>
             </div>
@@ -389,12 +389,12 @@ export default function ProfessionalStatement() {
               <>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--gray-700)', marginBottom: 10, borderBottom: '2px solid var(--blue)', paddingBottom: 6 }}>
                   <i className="fas fa-clipboard-list" style={{ marginRight: 8, color: 'var(--blue)' }} />
-                  Atendimentos
+                  {t('professionalStatement.consultations')}
                 </div>
                 <div className="table-container" style={{ marginBottom: 24 }}>
                   <table className="table">
                     <thead>
-                      <tr><th>Data</th><th>Paciente</th><th>Procedimentos</th><th style={{ textAlign: 'right' }}>Valor</th></tr>
+                      <tr><th>{t('professionalStatement.date')}</th><th>{t('professionalStatement.patient')}</th><th>{t('professionalStatement.procedures')}</th><th style={{ textAlign: 'right' }}>{t('professionalStatement.value')}</th></tr>
                     </thead>
                     <tbody>
                       {data.records.map((r, i) => (
@@ -412,7 +412,7 @@ export default function ProfessionalStatement() {
                       {/* Linha 1: subtotal bruto */}
                       <tr style={{ background: 'var(--gray-50)' }}>
                         <td colSpan={3} style={{ fontWeight: 600, color: 'var(--gray-600)', fontSize: 13 }}>
-                          Subtotal bruto
+                          {t('professionalStatement.grossSubtotal')}
                         </td>
                         <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--success)', fontSize: 13 }}>
                           R$ {fmt(data.summary.total_records_gross)}
@@ -426,7 +426,7 @@ export default function ProfessionalStatement() {
                           <tr style={{ background: 'var(--gray-50)' }}>
                             <td colSpan={3} style={{ fontWeight: 600, color: 'var(--gray-600)', fontSize: 13 }}>
                               <i className="fas fa-handshake" style={{ marginRight: 6, color: '#6f42c1', fontSize: 11 }} />
-                              Acertos financeiros ({data.settlements.length})
+                              {t('professionalStatement.financialSettlements')} ({data.settlements.length})
                             </td>
                             <td style={{ textAlign: 'right', fontWeight: 700, fontSize: 13,
                               color: saldo >= 0 ? 'var(--success)' : '#dc3545' }}>
@@ -441,7 +441,7 @@ export default function ProfessionalStatement() {
                         <tr style={{ background: '#eef7fc' }}>
                           <td colSpan={3} style={{ fontWeight: 600, color: '#1a7fad', fontSize: 13 }}>
                             <i className="fas fa-percent" style={{ marginRight: 6, fontSize: 11 }} />
-                            Repasse {data.summary.repasse_percent}% sobre base R$ {fmt(data.summary.base_before_repasse)}
+                            {t('professionalStatement.repasse')} {data.summary.repasse_percent}% {t('professionalStatement.repasseBase')} R$ {fmt(data.summary.base_before_repasse)}
                           </td>
                           <td style={{ textAlign: 'right', fontWeight: 800, color: '#1a7fad', fontSize: 13 }}>
                             R$ {fmt(data.summary.total_after_repasse)}
@@ -452,7 +452,7 @@ export default function ProfessionalStatement() {
                       {/* Linha 4: total líquido dos atendimentos */}
                       <tr style={{ background: '#1a2535' }}>
                         <td colSpan={3} style={{ fontWeight: 700, color: '#fff', fontSize: 13 }}>
-                          Líquido de atendimentos
+                          {t('professionalStatement.consultationsNet')}
                         </td>
                         <td style={{ textAlign: 'right', fontWeight: 800, fontSize: 15,
                           color: data.summary.total_after_repasse >= 0 ? '#4DB8E8' : '#dc3545' }}>
@@ -470,12 +470,12 @@ export default function ProfessionalStatement() {
               <>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--gray-700)', marginBottom: 10, borderBottom: '2px solid var(--orange)', paddingBottom: 6 }}>
                   <i className="fas fa-key" style={{ marginRight: 8, color: 'var(--orange)' }} />
-                  Descontos de Locação
+                  {t('professionalStatement.rentalDiscounts')}
                 </div>
                 <div className="table-container" style={{ marginBottom: 24 }}>
                   <table className="table">
                     <thead>
-                      <tr><th>Espaço</th><th>Recorrência</th><th style={{ textAlign: 'right' }}>Valor</th></tr>
+                      <tr><th>{t('professionalStatement.space')}</th><th>{t('professionalStatement.recurrence')}</th><th style={{ textAlign: 'right' }}>{t('professionalStatement.value')}</th></tr>
                     </thead>
                     <tbody>
                       {data.rentals.map((r, i) => (
@@ -490,7 +490,7 @@ export default function ProfessionalStatement() {
                     </tbody>
                     <tfoot>
                       <tr style={{ background: '#fff5f5' }}>
-                        <td colSpan={2} style={{ fontWeight: 700 }}>Total Locações</td>
+                        <td colSpan={2} style={{ fontWeight: 700 }}>{t('professionalStatement.totalRentals')}</td>
                         <td style={{ textAlign: 'right', fontWeight: 800, color: '#dc3545' }}>
                           − R$ {fmt(data.summary.total_rentals)}
                         </td>
@@ -506,12 +506,12 @@ export default function ProfessionalStatement() {
               <>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--gray-700)', marginBottom: 10, borderBottom: '2px solid #6f42c1', paddingBottom: 6 }}>
                   <i className="fas fa-handshake" style={{ marginRight: 8, color: '#6f42c1' }} />
-                  Acertos Financeiros
+                  {t('professionalStatement.financialSettlements')}
                 </div>
                 <div className="table-container" style={{ marginBottom: 24 }}>
                   <table className="table">
                     <thead>
-                      <tr><th>Data</th><th>Descrição</th><th>Tipo</th><th style={{ textAlign: 'right' }}>Valor</th></tr>
+                      <tr><th>{t('professionalStatement.date')}</th><th>{t('professionalStatement.description')}</th><th>{t('professionalStatement.type')}</th><th style={{ textAlign: 'right' }}>{t('professionalStatement.value')}</th></tr>
                     </thead>
                     <tbody>
                       {data.settlements.map((s, i) => (
@@ -523,7 +523,7 @@ export default function ProfessionalStatement() {
                               fontSize: 12, fontWeight: 600,
                               color: s.type === 'a_pagar' ? '#28a745' : '#dc3545',
                             }}>
-                              {s.type === 'a_pagar' ? '↑ Clínica paga' : '↓ Prof. paga'}
+                              {s.type === 'a_pagar' ? `↑ ${t('professionalStatement.clinicPays')}` : `↓ ${t('professionalStatement.profPays')}`}
                             </span>
                           </td>
                           <td style={{ textAlign: 'right', fontWeight: 700, color: s.type === 'a_pagar' ? '#28a745' : '#dc3545' }}>
@@ -542,7 +542,7 @@ export default function ProfessionalStatement() {
               background: '#1a2535', borderRadius: 8, padding: 24, textAlign: 'center',
             }}>
               <div style={{ fontSize: 12, color: '#adb5bd', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-                Total Líquido — {MONTHS[selMonth - 1]}/{selYear}
+                {t('professionalStatement.totalNet')} — {(t('months', { returnObjects: true }) || [])[selMonth - 1]}/{selYear}
               </div>
               <div style={{
                 fontSize: 36, fontWeight: 800,
@@ -552,13 +552,13 @@ export default function ProfessionalStatement() {
               </div>
               <div style={{ fontSize: 12, color: '#6c757d', marginTop: 8 }}>
                 {data.summary.repasse_percent < 100
-                  ? `(R$ ${fmt(data.summary.total_records_gross)} ± acertos) × ${data.summary.repasse_percent}% = R$ ${fmt(data.summary.total_after_repasse)}`
-                  : `Procedimentos R$ ${fmt(data.summary.total_records_gross)}`
+                  ? `(R$ ${fmt(data.summary.total_records_gross)} ± ${t('professionalStatement.settlementsBalance')}) × ${data.summary.repasse_percent}% = R$ ${fmt(data.summary.total_after_repasse)}`
+                  : `${t('professionalStatement.procedures2')} R$ ${fmt(data.summary.total_records_gross)}`
                 }
                 {data.settlements.length > 0 && data.summary.repasse_percent >= 100 &&
-                  ` ± Acertos R$ ${fmt(Math.abs(data.summary.total_settlements_in - data.summary.total_settlements_out))}`
+                  ` ± ${t('professionalStatement.settlementsBalance')} R$ ${fmt(Math.abs(data.summary.total_settlements_in - data.summary.total_settlements_out))}`
                 }
-                {data.rentals.length > 0 && ` − Locações R$ ${fmt(data.summary.total_rentals)}`}
+                {data.rentals.length > 0 && ` − ${t('financial.rentalsLabel')} R$ ${fmt(data.summary.total_rentals)}`}
               </div>
             </div>
           </div>
@@ -570,7 +570,7 @@ export default function ProfessionalStatement() {
         <div className="card">
           <div className="empty-state" style={{ padding: 60 }}>
             <i className="fas fa-file-invoice-dollar" style={{ fontSize: 48 }} />
-            <p>Selecione um profissional e clique em "Gerar Extrato"</p>
+            <p>{t('professionalStatement.selectHint')}</p>
           </div>
         </div>
       )}
