@@ -18,8 +18,6 @@ export const PROF_TYPES = [
   { value: 'farmaceutico',          labelKey: 'profTypes.farmaceutico',          label: 'Farmacêutico',          short: 'Farm.',     emoji: '💊', color: '#0069d9', bg: 'rgba(0,105,217,0.12)',   border: '#0069d9', council: 'CRF' },
   { value: 'quiropraxista',            labelKey: 'profTypes.quiropraxista',            label: 'Quiropraxista',                short: 'Quiro.',    emoji: '🦴', color: '#795548', bg: 'rgba(121,85,72,0.12)',   border: '#795548', council: 'CRQ'  },
   { value: 'esteticista',              labelKey: 'profTypes.esteticista',              label: 'Esteticista',                  short: 'Estétic.',  emoji: '💆', color: '#e91e8c', bg: 'rgba(233,30,140,0.12)',  border: '#e91e8c', council: 'Reg.' },
-  { value: 'professor_educacao_fisica', labelKey: 'profTypes.professor_educacao_fisica', label: 'Prof. Educação Física',       short: 'Ed. Fís.',  emoji: '🏋️', color: '#2e7d32', bg: 'rgba(46,125,50,0.12)',   border: '#2e7d32', council: 'CREF' },
-  { value: 'professor_particular',      labelKey: 'profTypes.professor_particular',      label: 'Professor Particular',        short: 'Prof.',     emoji: '📚', color: '#1565c0', bg: 'rgba(21,101,192,0.12)',  border: '#1565c0', council: 'Reg.' },
 ];
 
 // Lookup rápido por value: profTypeMap['medico'] → { label, color, ... }
