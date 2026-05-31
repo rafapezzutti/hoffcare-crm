@@ -28,22 +28,22 @@ export default function Layout() {
     { to: '/records', icon: 'fa-clipboard-list', label: t('nav.records') },
     { to: '/history', icon: 'fa-clock-rotate-left', label: t('nav.history') },
 
-    { section: 'Estética' },
-    { to: '/aesthetics', icon: 'fa-face-smile', label: 'Estética Facial' },
+    { section: t('nav.aestheticsSection') },
+    { to: '/aesthetics', icon: 'fa-face-smile', label: t('nav.aesthetics') },
 
-    { section: 'Financeiro' },
-    { to: '/rentals', icon: 'fa-key', label: 'Locações' },
-    { to: '/settlements', icon: 'fa-handshake', label: 'Acertos' },
-    { to: '/statement', icon: 'fa-file-invoice-dollar', label: 'Extrato Mensal' },
-    { to: '/bank-statement', icon: 'fa-table-list', label: 'Extrato Bancário' },
-    { to: '/message-counter', icon: 'fa-chart-bar', label: 'Contador Mensagens' },
+    { section: t('nav.financial') },
+    { to: '/rentals', icon: 'fa-key', label: t('nav.rentals') },
+    { to: '/settlements', icon: 'fa-handshake', label: t('nav.settlements') },
+    { to: '/statement', icon: 'fa-file-invoice-dollar', label: t('nav.monthlyStatement') },
+    { to: '/bank-statement', icon: 'fa-table-list', label: t('nav.bankStatement') },
+    { to: '/message-counter', icon: 'fa-chart-bar', label: t('nav.messageCounter') },
   ];
 
   const adminItems = [
     { section: t('nav.admin') },
     { to: '/clinics', icon: 'fa-hospital', label: t('nav.clinics') },
     { to: '/users', icon: 'fa-users-gear', label: t('nav.users') },
-    { to: '/permissions', icon: 'fa-shield-halved', label: 'Permissões' },
+    { to: '/permissions', icon: 'fa-shield-halved', label: t('nav.permissions') },
   ];
 
   const handleLogout = () => { logout(); navigate('/login'); };
