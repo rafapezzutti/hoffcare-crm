@@ -100,7 +100,7 @@ router.post('/send-report', auth, async (req, res) => {
     ).join('');
 
     const { Resend } = require('resend');
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
     await resend.emails.send({
       from: process.env.RESEND_FROM || 'P. Soluções para Saúde <noreply@psaude.ia.br>',
       to: patient.email,

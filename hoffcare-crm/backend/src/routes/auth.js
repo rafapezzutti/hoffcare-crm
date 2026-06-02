@@ -7,7 +7,7 @@ const pool = require('../config/db');
 const { auth } = require('../middleware/auth');
 const router = express.Router();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://psaude.ia.br';
 
 // Cria tabela de tokens se não existir

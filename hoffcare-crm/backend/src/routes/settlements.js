@@ -535,7 +535,7 @@ router.post('/statement/:professional_id/send-email', auth, async (req, res) => 
   if (!professional_email) return res.status(400).json({ error: 'Profissional não tem email cadastrado' });
 
   const { Resend } = require('resend');
-  const resend = new Resend(process.env.RESEND_API_KEY);
+  const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
   const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
                   'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];

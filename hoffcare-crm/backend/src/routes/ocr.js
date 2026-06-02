@@ -1,0 +1,76 @@
+const express  = require('express');
+const multer   = require('multer');
+const { auth } = require('../middleware/auth');
+const { extractFromImage } = require('../services/vertexai');
+
+const router = express.Router();
+
+// Armazena em memória — não grava nada em disco (LGPD: imagem não é persistida)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+    if (allowed.includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Formato não suportado. Use JPG, PNG ou WEBP.'));
+  },
+});
+
+const VALID_TYPES = ['patient', 'anamnesis', 'financial', 'evolution'];
+
+/**
+ * POST /api/ocr/extract
+ * Body: multipart/form-data
+ *   image (file)  — foto ou scan do documento
+ *   type  (text)  — patient | anamnesis | financial | evolution
+ *
+ * Response: { success: true, type, data: { ...campos extraídos } }
+ */
+router.post('/extract', auth, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Nenhuma imagem enviada.' });
+    }
+
+    const { type = 'patient' } = req.body;
+
+    if (!VALID_TYPES.includes(type)) {
+      return res.status(400).json({
+        error: `Tipo inválido. Use um de: ${VALID_TYPES.join(', ')}.`,
+      });
+    }
+
+    // Verifica se o serviço está configurado
+    if (!process.env.GOOGLE_CLOUD_PROJECT) {
+      return res.status(503).json({
+        error: 'Serviço de OCR não configurado. Contate o administrador.',
+      });
+    }
+
+    const imageBase64 = req.file.buffer.toString('base64');
+    const mimeType    = req.file.mimetype;
+
+    console.log(`[OCR] Processando documento tipo "${type}" (${(req.file.size / 1024).toFixed(0)} KB)`);
+
+    const data = await extractFromImage(imageBase64, mimeType, type);
+
+    return res.json({ success: true, type, data });
+
+  } catch (err) {
+    console.error('[OCR] Erro:', err.message);
+
+    if (err.message.includes('quota') || err.message.includes('RESOURCE_EXHAUSTED')) {
+      return res.status(429).json({ error: 'Limite de requisições atingido. Aguarde alguns minutos.' });
+    }
+    if (err.message.includes('JSON')) {
+      return res.status(422).json({ error: 'Não foi possível extrair dados. Tente com uma imagem mais nítida.' });
+    }
+    if (err.message.includes('PERMISSION_DENIED') || err.message.includes('credentials')) {
+      return res.status(503).json({ error: 'Credenciais do Google Cloud inválidas. Contate o administrador.' });
+    }
+
+    return res.status(500).json({ error: 'Erro ao processar imagem: ' + err.message });
+  }
+});
+
+module.exports = router;
