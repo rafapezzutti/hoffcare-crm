@@ -193,6 +193,24 @@ router.post('/', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// PUT /api/anamnesis/:id/fill — profissional preenche presencialmente
+router.put('/:id/fill', auth, async (req, res) => {
+  const { responses } = req.body;
+  try {
+    const r = await pool.query(
+      'SELECT id, status FROM patient_anamnesis WHERE id=$1 AND clinic_id=$2',
+      [req.params.id, req.user.clinic_id]
+    );
+    if (!r.rows[0]) return res.status(404).json({ error: 'Anamnese não encontrada' });
+    if (r.rows[0].status === 'completed') return res.status(400).json({ error: 'Anamnese já preenchida' });
+    await pool.query(
+      `UPDATE patient_anamnesis SET responses=$1, status='completed', completed_at=NOW() WHERE id=$2`,
+      [JSON.stringify(responses || {}), req.params.id]
+    );
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // DELETE /api/anamnesis/:id
 router.delete('/:id', auth, async (req, res) => {
   try {

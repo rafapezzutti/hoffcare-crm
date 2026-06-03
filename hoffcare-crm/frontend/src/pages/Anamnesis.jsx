@@ -18,13 +18,44 @@ const STATUS_BADGE = {
   completed: 'badge-green',
 };
 
+// ── Template completo: Anamnese Saúde Bucal (formulário do Caio) ──────────────
+const SAUDE_BUCAL_TEMPLATE = [
+  'Está em tratamento médico?',
+  'Apresenta alguma doença? Qual(is)?',
+  'Está tomando algum medicamento? Qual(is)?',
+  'Sua pressão arterial é normal, alta, baixa ou controlada por medicamento?',
+  'Quando se corta, o sangramento é normal ou excessivo?',
+  'Tem alguma doença no coração?',
+  'Tem algum tipo de alergia? A quê?',
+  'Apresenta epilepsia?',
+  'Tem doença ou insuficiência hepática?',
+  'Teve ou tem febre reumática?',
+  'Tem diabetes?',
+  'Tem colesterol alto?',
+  'Tem asma ou bronquite?',
+  'É gestante? Se sim, quantos meses?',
+  'Fuma? Se sim, quantos cigarros por dia?',
+  'Tem algum distúrbio de coagulação sanguínea?',
+  'Tem algum problema renal?',
+  'Fez quimioterapia ou radioterapia?',
+  'Apresenta osteopenia ou osteoporose?',
+  'Tem ou teve: HIV, Hepatite, Herpes, Tuberculose ou Pneumonia?',
+  'Sua gengiva sangra com facilidade?',
+  'Tem sentido dor nos dentes ou na gengiva?',
+  'Tem sentido mobilidade nos dentes?',
+  'Tem sentido gosto ruim na boca?',
+  'Já foi anestesiado em tratamento dentário?',
+  'Sentiu-se mal durante a anestesia?',
+  'Qual o principal motivo do seu tratamento?',
+];
+
 function printAnamnesis(patientName, questions, t) {
   const answerSpace = t ? t('anamnesis.printAnswerSpace') : '(espaço para resposta)';
-  const patientSig = t ? t('anamnesis.printPatientSignature') : 'Assinatura do paciente';
-  const profSig = t ? t('anamnesis.printProfSignature') : 'Assinatura do profissional';
-  const title = t ? t('anamnesis.printTitle') : 'Anamnese Digital';
-  const patientLabel = t ? t('anamnesis.printPatient') : 'Paciente';
-  const dateLabel = t ? t('anamnesis.printDate') : 'Data';
+  const patientSig  = t ? t('anamnesis.printPatientSignature') : 'Assinatura do paciente';
+  const profSig     = t ? t('anamnesis.printProfSignature')    : 'Assinatura do profissional';
+  const title       = t ? t('anamnesis.printTitle')            : 'Anamnese Digital';
+  const patientLabel = t ? t('anamnesis.printPatient')         : 'Paciente';
+  const dateLabel   = t ? t('anamnesis.printDate')             : 'Data';
 
   const rows = questions.map((q, i) => `
     <div style="margin-bottom:20px;border-bottom:1px solid #eee;padding-bottom:16px">
@@ -62,19 +93,25 @@ export default function Anamnesis() {
   const { id: patientId } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [patient, setPatient] = useState(null);
-  const [list, setList] = useState([]);
-  const [open, setOpen] = useState(false);
-  const [viewOpen, setViewOpen] = useState(false);
-  const [viewing, setViewing] = useState(null);
+
+  const [patient,      setPatient]      = useState(null);
+  const [list,         setList]         = useState([]);
+  const [open,         setOpen]         = useState(false);
+  const [viewOpen,     setViewOpen]     = useState(false);
+  const [viewing,      setViewing]      = useState(null);
   const [allQuestions, setAllQuestions] = useState([]);
-  const [selected, setSelected] = useState([]);       // ids selecionados
-  const [search, setSearch] = useState('');
-  const [filterCat, setFilterCat] = useState('todas');
-  const [newQ, setNewQ] = useState('');
-  const [saveToBank, setSaveToBank] = useState(true);
-  const [sendEmail, setSendEmail] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [selected,     setSelected]     = useState([]);
+  const [search,       setSearch]       = useState('');
+  const [filterCat,    setFilterCat]    = useState('todas');
+  const [newQ,         setNewQ]         = useState('');
+  const [saveToBank,   setSaveToBank]   = useState(true);
+  const [loading,      setLoading]      = useState(false);
+
+  // ── Preenchimento presencial ─────────────────────────────────────────────────
+  const [fillOpen,      setFillOpen]      = useState(false);
+  const [fillAnamnesis, setFillAnamnesis] = useState(null); // { id, questions: [] }
+  const [fillResponses, setFillResponses] = useState({});
+  const [fillLoading,   setFillLoading]   = useState(false);
 
   const load = async () => {
     const [p, a, q] = await Promise.all([
@@ -89,7 +126,6 @@ export default function Anamnesis() {
 
   useEffect(() => { load(); }, [patientId]);
 
-  // Abre modal limpando seleção
   const openModal = () => {
     setSelected([]);
     setSearch('');
@@ -98,7 +134,28 @@ export default function Anamnesis() {
     setOpen(true);
   };
 
-  // Perguntas visíveis (filtro)
+  // Aplicar template Saúde Bucal — seleciona perguntas existentes no banco ou adiciona temporárias
+  const applyTemplate = () => {
+    const tmpToAdd = [];
+    const idsToSelect = [];
+
+    SAUDE_BUCAL_TEMPLATE.forEach(q => {
+      const existing = allQuestions.find(aq => aq.question === q);
+      if (existing) {
+        idsToSelect.push(existing.id);
+      } else {
+        const tmp = { id: `tmp_${Date.now()}_${Math.random()}`, question: q, category: 'odontologica', is_default: false };
+        tmpToAdd.push(tmp);
+        idsToSelect.push(tmp.id);
+      }
+    });
+
+    if (tmpToAdd.length) setAllQuestions(prev => [...prev, ...tmpToAdd]);
+    setSelected(idsToSelect);
+    setFilterCat('todas');
+    setSearch('');
+  };
+
   const visible = useMemo(() => {
     let q = allQuestions;
     if (filterCat !== 'todas') q = q.filter(x => x.category === filterCat);
@@ -106,7 +163,6 @@ export default function Anamnesis() {
     return q;
   }, [allQuestions, filterCat, search]);
 
-  // Agrupar por categoria
   const grouped = useMemo(() => {
     const g = {};
     visible.forEach(q => {
@@ -130,7 +186,6 @@ export default function Anamnesis() {
         setSelected(p => [...p, res.data.id]);
       } catch { alert(t('anamnesis.errorSaveQuestion')); }
     } else {
-      // Adiciona só localmente como objeto temporário
       const tmp = { id: `tmp_${Date.now()}`, question: newQ.trim(), category: 'personalizada', is_default: false };
       setAllQuestions(p => [...p, tmp]);
       setSelected(p => [...p, tmp.id]);
@@ -151,19 +206,52 @@ export default function Anamnesis() {
     setSelected(p => p.filter(x => x !== q.id));
   };
 
-  const handleCreate = async (withEmail) => {
+  // Criar anamnese e opcionalmente abrir preenchimento presencial
+  const handleCreate = async (withEmail, presential = false) => {
     if (!selected.length) { alert(t('anamnesis.selectAtLeastOne')); return; }
     setLoading(true);
     try {
-      await api.post('/anamnesis', {
+      const res = await api.post('/anamnesis', {
         patient_id: patientId,
         selected_questions: selectedQuestions.map(q => q.question),
         send_email: withEmail,
       });
       setOpen(false);
+      if (presential) {
+        setFillAnamnesis({ id: res.data.id, questions: selectedQuestions.map(q => q.question) });
+        setFillResponses({});
+        setFillOpen(true);
+      }
       load();
     } catch (err) { alert(err.response?.data?.error || t('anamnesis.errorCreate')); }
     finally { setLoading(false); }
+  };
+
+  // Abrir modal de preenchimento para anamnese existente (pending)
+  const openFillModal = (anamnesis) => {
+    const qs = Array.isArray(anamnesis.custom_questions)
+      ? anamnesis.custom_questions
+      : (() => { try { return JSON.parse(anamnesis.custom_questions); } catch { return []; } })();
+    setFillAnamnesis({ id: anamnesis.id, questions: qs });
+    setFillResponses({});
+    setFillOpen(true);
+  };
+
+  // Submeter preenchimento presencial
+  const handleSubmitFill = async () => {
+    if (!fillAnamnesis) return;
+    setFillLoading(true);
+    try {
+      await api.put(`/anamnesis/${fillAnamnesis.id}/fill`, { responses: fillResponses });
+      setFillOpen(false);
+      setFillAnamnesis(null);
+      setFillResponses({});
+      load();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Erro ao salvar respostas.');
+    } finally {
+      setFillLoading(false);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -174,6 +262,7 @@ export default function Anamnesis() {
 
   const categories = [...new Set(allQuestions.map(q => q.category))];
 
+  // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="page">
       <div className="page-header">
@@ -182,7 +271,10 @@ export default function Anamnesis() {
             <i className="fas fa-arrow-left" />
           </button>
           <div>
-            <h1 className="page-title"><i className="fas fa-clipboard-list" style={{ marginRight: 8, color: 'var(--blue)' }} />{t('anamnesis.title')}</h1>
+            <h1 className="page-title">
+              <i className="fas fa-clipboard-list" style={{ marginRight: 8, color: 'var(--blue)' }} />
+              {t('anamnesis.title')}
+            </h1>
             {patient && <p className="page-subtitle">{patient.name}</p>}
           </div>
         </div>
@@ -198,20 +290,44 @@ export default function Anamnesis() {
           <div className="table-container">
             <table className="table">
               <thead>
-                <tr><th>{t('anamnesis.date')}</th><th>{t('anamnesis.questions')}</th><th>{t('anamnesis.status')}</th><th>{t('anamnesis.sent')}</th><th>{t('anamnesis.answered')}</th><th>{t('common.actions')}</th></tr>
+                <tr>
+                  <th>{t('anamnesis.date')}</th>
+                  <th>{t('anamnesis.questions')}</th>
+                  <th>{t('anamnesis.status')}</th>
+                  <th>{t('anamnesis.sent')}</th>
+                  <th>{t('anamnesis.answered')}</th>
+                  <th>{t('common.actions')}</th>
+                </tr>
               </thead>
               <tbody>
                 {list.map(a => {
-                  const qs = Array.isArray(a.custom_questions) ? a.custom_questions : (() => { try { return JSON.parse(a.custom_questions); } catch { return []; } })();
+                  const qs = Array.isArray(a.custom_questions)
+                    ? a.custom_questions
+                    : (() => { try { return JSON.parse(a.custom_questions); } catch { return []; } })();
                   return (
                     <tr key={a.id}>
                       <td>{dayjs(a.created_at).format('DD/MM/YYYY')}</td>
                       <td>{qs.length} {t('anamnesis.questions')}</td>
-                      <td><span className={`badge ${STATUS_BADGE[a.status] || 'badge-blue'}`}>{a.status === 'pending' ? t('anamnesis.statusPending') : a.status === 'sent' ? t('anamnesis.statusSent') : a.status === 'completed' ? t('anamnesis.statusCompleted') : a.status}</span></td>
-                      <td>{a.sent_at ? dayjs(a.sent_at).format('DD/MM/YYYY HH:mm') : '—'}</td>
+                      <td>
+                        <span className={`badge ${STATUS_BADGE[a.status] || 'badge-blue'}`}>
+                          {a.status === 'pending'   ? t('anamnesis.statusPending')
+                          : a.status === 'sent'      ? t('anamnesis.statusSent')
+                          : a.status === 'completed' ? t('anamnesis.statusCompleted')
+                          : a.status}
+                        </span>
+                      </td>
+                      <td>{a.sent_at      ? dayjs(a.sent_at).format('DD/MM/YYYY HH:mm')      : '—'}</td>
                       <td>{a.completed_at ? dayjs(a.completed_at).format('DD/MM/YYYY HH:mm') : '—'}</td>
                       <td>
                         <div className="table-actions">
+                          {/* Preencher presencialmente (só para pending/sent) */}
+                          {(a.status === 'pending' || a.status === 'sent') && (
+                            <button className="btn btn-outline btn-sm" style={{ color: '#22c55e', borderColor: '#22c55e' }}
+                              title="Preencher com o paciente presencialmente"
+                              onClick={() => openFillModal(a)}>
+                              <i className="fas fa-pen-to-square" /> Preencher
+                            </button>
+                          )}
                           {a.status === 'completed' && (
                             <button className="btn btn-outline btn-sm" onClick={() => { setViewing(a); setViewOpen(true); }}>
                               <i className="fas fa-eye" /> {t('anamnesis.view')}
@@ -223,7 +339,9 @@ export default function Anamnesis() {
                           </button>
                           <a href={`${window.location.origin}/anamnesis/form/${a.token}`} target="_blank" rel="noreferrer"
                             className="btn btn-outline btn-sm"><i className="fas fa-link" /></a>
-                          <button className="btn btn-danger btn-sm" onClick={() => handleDelete(a.id)}><i className="fas fa-trash" /></button>
+                          <button className="btn btn-danger btn-sm" onClick={() => handleDelete(a.id)}>
+                            <i className="fas fa-trash" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -235,19 +353,27 @@ export default function Anamnesis() {
         )}
       </div>
 
-      {/* ── Modal criar ── */}
+      {/* ── Modal criar ──────────────────────────────────────────────────────── */}
       <Modal open={open} onClose={() => setOpen(false)} title={t('anamnesis.new')} size="modal-xl"
         footer={
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <button className="btn btn-outline" onClick={() => setOpen(false)}>{t('common.cancel')}</button>
             <button className="btn btn-outline" disabled={!selected.length || loading}
-              onClick={() => { printAnamnesis(patient?.name || '', selectedQuestions.map(q => q.question), t); }}>
+              onClick={() => printAnamnesis(patient?.name || '', selectedQuestions.map(q => q.question), t)}>
               <i className="fas fa-print" style={{ marginRight: 6 }} />{t('anamnesis.print')}
             </button>
             <button className="btn btn-outline" disabled={!selected.length || loading || !patient?.email}
               onClick={() => handleCreate(true)} title={!patient?.email ? t('anamnesis.noEmail') : ''}>
               <i className="fas fa-envelope" style={{ marginRight: 6 }} />
               {loading ? t('anamnesis.sending') : t('anamnesis.send')}
+            </button>
+            {/* Preencher Agora — cria e abre modal de preenchimento */}
+            <button className="btn btn-primary" disabled={!selected.length || loading}
+              onClick={() => handleCreate(false, true)}
+              style={{ background: '#22c55e', borderColor: '#22c55e' }}
+              title="Criar e preencher agora, com o paciente presente">
+              <i className="fas fa-pen-to-square" style={{ marginRight: 6 }} />
+              {loading ? 'Aguarde...' : 'Preencher Agora'}
             </button>
             <button className="btn btn-primary" disabled={!selected.length || loading}
               onClick={() => handleCreate(false)}>
@@ -261,9 +387,23 @@ export default function Anamnesis() {
 
           {/* ── Esquerda: banco de perguntas ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--gray-700)', marginBottom: 2 }}>
-              <i className="fas fa-database" style={{ marginRight: 6, color: '#4DB8E8' }} />
-              {t('anamnesis.questionBank')}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--gray-700)' }}>
+                <i className="fas fa-database" style={{ marginRight: 6, color: '#4DB8E8' }} />
+                {t('anamnesis.questionBank')}
+              </div>
+              {/* Botão template Saúde Bucal */}
+              <button type="button"
+                onClick={applyTemplate}
+                style={{
+                  padding: '4px 10px', borderRadius: 6, border: '1px solid #34d399',
+                  background: '#f0fdf4', color: '#16a34a', fontSize: 11, fontWeight: 700,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
+                }}
+                title="Carrega as 27 perguntas do formulário de Saúde Bucal">
+                <i className="fas fa-tooth" style={{ fontSize: 10 }} />
+                Modelo Saúde Bucal
+              </button>
             </div>
 
             {/* Filtros */}
@@ -282,7 +422,9 @@ export default function Anamnesis() {
             {/* Lista por grupo */}
             <div style={{ flex: 1, overflowY: 'auto', maxHeight: 320, border: '1px solid var(--gray-200)', borderRadius: 8 }}>
               {Object.keys(grouped).length === 0 && (
-                <div style={{ padding: 20, textAlign: 'center', color: 'var(--gray-400)', fontSize: 13 }}>{t('anamnesis.noQuestionsFound')}</div>
+                <div style={{ padding: 20, textAlign: 'center', color: 'var(--gray-400)', fontSize: 13 }}>
+                  {t('anamnesis.noQuestionsFound')}
+                </div>
               )}
               {Object.entries(grouped).map(([cat, qs]) => (
                 <div key={cat}>
@@ -301,8 +443,7 @@ export default function Anamnesis() {
                       background: selected.includes(q.id) ? '#eff9ff' : 'white',
                       cursor: 'pointer',
                     }} onClick={() => toggle(q.id)}>
-                      <input type="checkbox" readOnly checked={selected.includes(q.id)}
-                        style={{ cursor: 'pointer', flexShrink: 0 }} />
+                      <input type="checkbox" readOnly checked={selected.includes(q.id)} style={{ cursor: 'pointer', flexShrink: 0 }} />
                       <span style={{ fontSize: 12, flex: 1, lineHeight: 1.4 }}>{q.question}</span>
                       {!q.is_default && (
                         <button type="button" style={{ border: 'none', background: 'none', color: '#dc2626', cursor: 'pointer', padding: 2, flexShrink: 0 }}
@@ -340,7 +481,7 @@ export default function Anamnesis() {
 
           {/* ── Direita: selecionadas ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--gray-700)', marginBottom: 2 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--gray-700)' }}>
               <i className="fas fa-check-circle" style={{ marginRight: 6, color: '#22c55e' }} />
               {t('anamnesis.selectedQuestions')} ({selected.length})
             </div>
@@ -352,10 +493,7 @@ export default function Anamnesis() {
                 </div>
               ) : (
                 selectedQuestions.map((q, i) => (
-                  <div key={q.id} style={{
-                    display: 'flex', alignItems: 'flex-start', gap: 8,
-                    padding: '8px 12px', borderBottom: '1px solid var(--gray-100)',
-                  }}>
+                  <div key={q.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 12px', borderBottom: '1px solid var(--gray-100)' }}>
                     <span style={{ color: 'var(--gray-400)', fontSize: 11, marginTop: 2, flexShrink: 0 }}>{i + 1}.</span>
                     <span style={{ fontSize: 12, flex: 1, lineHeight: 1.4 }}>{q.question}</span>
                     <button type="button" style={{ border: 'none', background: 'none', color: '#dc2626', cursor: 'pointer', padding: 2, flexShrink: 0 }}
@@ -366,7 +504,7 @@ export default function Anamnesis() {
                 ))
               )}
             </div>
-            {!patient?.email && sendEmail && (
+            {!patient?.email && (
               <div className="alert alert-error" style={{ fontSize: 12, padding: '8px 12px' }}>
                 {t('anamnesis.noEmailWarning')}
               </div>
@@ -375,7 +513,87 @@ export default function Anamnesis() {
         </div>
       </Modal>
 
-      {/* ── Modal ver respostas ── */}
+      {/* ── Modal preenchimento presencial ───────────────────────────────────── */}
+      <Modal open={fillOpen} onClose={() => !fillLoading && setFillOpen(false)}
+        title={`📋 Preencher Anamnese — ${patient?.name || ''}`}
+        size="modal-xl"
+        footer={
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button className="btn btn-outline" onClick={() => setFillOpen(false)} disabled={fillLoading}>
+              Cancelar
+            </button>
+            <button className="btn btn-primary" onClick={handleSubmitFill} disabled={fillLoading}
+              style={{ background: '#22c55e', borderColor: '#22c55e' }}>
+              <i className="fas fa-check" style={{ marginRight: 6 }} />
+              {fillLoading ? 'Salvando...' : 'Salvar Anamnese'}
+            </button>
+          </div>
+        }>
+
+        {fillAnamnesis && (
+          <div>
+            <div style={{ marginBottom: 16, padding: '10px 14px', background: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0', fontSize: 13, color: '#166534' }}>
+              <i className="fas fa-user-doctor" style={{ marginRight: 8 }} />
+              Preenchimento presencial — profissional registra as respostas do paciente durante a consulta.
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: '60vh', overflowY: 'auto', paddingRight: 4 }}>
+              {fillAnamnesis.questions.map((q, i) => (
+                <div key={i} style={{ padding: '14px 16px', border: '1px solid var(--gray-200)', borderRadius: 10, background: fillResponses[i] === 'Sim' ? '#eff9ff' : fillResponses[i] === 'Não' ? '#f9fafb' : '#fff' }}>
+                  <p style={{ fontWeight: 600, marginBottom: 10, fontSize: 13, color: 'var(--gray-800)' }}>
+                    <span style={{ color: 'var(--gray-400)', marginRight: 6 }}>{i + 1}.</span>{q}
+                  </p>
+
+                  {/* Opções sim/não/não sei */}
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    {['Sim', 'Não', 'Não sei'].map(opt => (
+                      <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13,
+                        padding: '5px 14px', borderRadius: 20,
+                        background: fillResponses[i] === opt ? (opt === 'Sim' ? '#dbeafe' : opt === 'Não' ? '#dcfce7' : '#fef9c3') : '#f8f9fa',
+                        border: `1px solid ${fillResponses[i] === opt ? (opt === 'Sim' ? '#93c5fd' : opt === 'Não' ? '#86efac' : '#fde68a') : 'var(--gray-200)'}`,
+                        fontWeight: fillResponses[i] === opt ? 600 : 400,
+                      }}>
+                        <input type="radio" name={`fill_${i}`} value={opt}
+                          checked={fillResponses[i] === opt}
+                          onChange={() => setFillResponses(p => ({ ...p, [i]: opt }))}
+                          style={{ display: 'none' }} />
+                        {opt}
+                      </label>
+                    ))}
+                  </div>
+
+                  {/* Campo de detalhe quando Sim */}
+                  {fillResponses[i] === 'Sim' && (
+                    <textarea
+                      placeholder="Detalhes (opcional)..."
+                      rows={2}
+                      style={{ width: '100%', marginTop: 10, padding: '8px 12px', borderRadius: 6, border: '1px solid #93c5fd', fontSize: 13, resize: 'vertical', outline: 'none', fontFamily: 'inherit' }}
+                      value={fillResponses[`${i}_detail`] || ''}
+                      onChange={e => setFillResponses(p => ({ ...p, [`${i}_detail`]: e.target.value }))}
+                    />
+                  )}
+                </div>
+              ))}
+
+              {/* Campo de observações gerais */}
+              <div style={{ padding: '14px 16px', border: '1px solid #fde68a', borderRadius: 10, background: '#fffbeb' }}>
+                <p style={{ fontWeight: 600, marginBottom: 8, fontSize: 13, color: '#92400e' }}>
+                  <i className="fas fa-comment" style={{ marginRight: 6 }} />Observações gerais
+                </p>
+                <textarea
+                  placeholder="Alguma informação adicional relevante..."
+                  rows={3}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #fde68a', fontSize: 13, resize: 'vertical', outline: 'none', fontFamily: 'inherit', background: '#fff' }}
+                  value={fillResponses['observacoes'] || ''}
+                  onChange={e => setFillResponses(p => ({ ...p, observacoes: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* ── Modal ver respostas ───────────────────────────────────────────────── */}
       <Modal open={viewOpen} onClose={() => setViewOpen(false)} title={t('anamnesis.answersTitle')} size="modal-xl"
         footer={
           <div style={{ display: 'flex', gap: 8 }}>
@@ -398,8 +616,7 @@ export default function Anamnesis() {
               </p>
               {qs.length === 0 && (
                 <div className="empty-state" style={{ padding: 24 }}>
-                  <i className="fas fa-clipboard" />
-                  <p>{t('anamnesis.noQuestionsFound')}</p>
+                  <i className="fas fa-clipboard" /><p>{t('anamnesis.noQuestionsFound')}</p>
                 </div>
               )}
               {qs.map((q, i) => {
