@@ -415,15 +415,13 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 
 /* Responsive */
 /* Mobile topbar — visível só no celular */
-.mobile-topbar {
-  display: none;
-}
+.mobile-topbar { display: none; }
+.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 998; }
 
 @media (max-width: 768px) {
   .mobile-topbar {
     display: flex;
     align-items: center;
-    justifyifyContent: space-between;
     gap: 12px;
     position: fixed;
     top: 0; left: 0; right: 0;
@@ -436,21 +434,14 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   }
   .mobile-topbar span:last-child { margin-left: auto; }
 
-  .sidebar {
-    width: 0;
-    overflow: hidden;
-    position: fixed;
-    top: 0; left: 0; bottom: 0;
-    z-index: 999;
-    transition: width 0.25s ease;
-  }
-  .sidebar.open { width: 260px; }
-  .sidebar-overlay { display: block !important; }
+  /* Sidebar: oculta por padrão, desliza ao abrir */
+  .sidebar { width: 0; overflow: hidden; transition: width 0.25s ease; z-index: 999; }
+  .sidebar.open { width: 260px; overflow-y: auto; }
+  .sidebar-overlay { display: block; }
 
-  .main-content {
-    margin-left: 0;
-    padding-top: 60px; /* espaço para a topbar */
-  }
+  /* Conteúdo principal: sem margem do sidebar, espaço para topbar */
+  .main-content { margin-left: 0 !important; padding-top: 60px; }
+
   .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
   .page { padding: 16px; }
   .stats-grid { grid-template-columns: 1fr 1fr; }

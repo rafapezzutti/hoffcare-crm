@@ -81,9 +81,7 @@ export default function Layout() {
     <div className="layout">
       {/* Overlay mobile — fecha sidebar ao clicar fora */}
       {sidebarOpen && (
-        <div onClick={() => setSidebarOpen(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 998, display: 'none' }}
-          className="sidebar-overlay" />
+        <div onClick={() => setSidebarOpen(false)} className="sidebar-overlay" />
       )}
 
       {/* Topbar mobile — hambúrguer + nome da clínica */}
