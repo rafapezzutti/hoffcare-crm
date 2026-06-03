@@ -41,9 +41,10 @@ const FIELD_LABELS = {
 const TABLE_FIELDS = ['name', 'cpf', 'birthdate', 'phone', 'email'];
 
 const validateRow = (row) => {
-  if (!row.name?.trim())                          return 'Nome obrigatório';
+  if (!row.name?.trim()) return 'Nome obrigatório';
   const cpf = (row.cpf || '').replace(/\D/g, '');
-  if (cpf.length !== 11)                          return 'CPF inválido (11 dígitos)';
+  if (cpf.length !== 11) return 'CPF inválido (11 dígitos)';
+  // birthdate é opcional na importação em lote
   return null;
 };
 
@@ -149,17 +150,18 @@ export default function OcrBatchCapture({ onClose, onComplete }) {
 
       try {
         await api.post('/patients', {
-          name:      patient.name?.trim(),
-          cpf:       patient.cpf.replace(/\D/g, ''),
-          birthdate: patient.birthdate || null,
-          phone:     patient.phone ? patient.phone.replace(/\D/g, '') : null,
-          email:     patient.email || null,
+          name:         patient.name?.trim(),
+          cpf:          patient.cpf.replace(/\D/g, ''),
+          birthdate:    patient.birthdate || null,
+          phone:        patient.phone ? patient.phone.replace(/\D/g, '') : null,
+          email:        patient.email || null,
+          batch_import: true, // permite salvar sem data de nascimento
         });
         prog[i] = { status: 'success', msg: 'Salvo ✅' };
         saved++;
       } catch (err) {
         const msg = err.response?.data?.error || 'Erro';
-        const isDuplicate = msg.toLowerCase().includes('cpf') || msg.toLowerCase().includes('unique') || msg.toLowerCase().includes('duplicat') || (err.response?.status === 409);
+        const isDuplicate = msg.toLowerCase().includes('já cadastrado') || msg.toLowerCase().includes('unique') || msg.toLowerCase().includes('duplicat') || err.response?.status === 409;
         if (isDuplicate) {
           prog[i] = { status: 'skipped', msg: 'Já cadastrado ⚠️' };
           skipped++;

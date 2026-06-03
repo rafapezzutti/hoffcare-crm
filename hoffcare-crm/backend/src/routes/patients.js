@@ -67,8 +67,11 @@ router.get('/:id', auth, async (req, res) => {
 
 // Create patient
 router.post('/', auth, async (req, res) => {
-  const { name, cpf, birthdate, phone, email, health_declaration } = req.body;
-  if (!name || !cpf || !birthdate)
+  const { name, cpf, birthdate, phone, email, health_declaration, batch_import } = req.body;
+  // Em importação em lote (batch_import: true), birthdate é opcional
+  if (!name || !cpf)
+    return res.status(400).json({ error: 'Nome e CPF são obrigatórios' });
+  if (!batch_import && !birthdate)
     return res.status(400).json({ error: 'Nome, CPF e data de nascimento são obrigatórios' });
 
   const clinic_id = req.user.clinic_id || req.body.clinic_id;
