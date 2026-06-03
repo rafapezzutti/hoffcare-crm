@@ -7,7 +7,7 @@ const ACTIONS = ['can_view', 'can_create', 'can_edit', 'can_delete'];
 
 export default function Permissions() {
   const { t } = useTranslation();
-  const { user: me } = useAuth();
+  const { user: me, refreshUser } = useAuth();
   const [data, setData] = useState(null);
   const [saving, setSaving] = useState({});
   const [selectedUser, setSelectedUser] = useState(null);
@@ -77,6 +77,8 @@ export default function Permissions() {
     try {
       await api.put(`/permissions/${userId}/ai-chat`, { enabled: true });
       setAiUsers(prev => prev.map(u => u.id === userId ? { ...u, can_use_ai_chat: true } : u));
+      // Se o usuário alterado é o próprio logado, atualiza a sessão sem logout
+      if (String(me?.id) === String(userId)) await refreshUser();
     } catch { alert('Erro ao salvar.'); }
     finally { setAiSaving(p => { const n = { ...p }; delete n[userId]; return n; }); }
   };

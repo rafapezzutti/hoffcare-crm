@@ -41,8 +41,19 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  // Recarrega os dados do usuário logado do servidor (sem precisar de logout)
+  const refreshUser = async () => {
+    try {
+      const res = await api.get('/auth/me');
+      const fresh = res.data;
+      localStorage.setItem('psaude_user', JSON.stringify(fresh));
+      setUser(fresh);
+      return fresh;
+    } catch { return null; }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
