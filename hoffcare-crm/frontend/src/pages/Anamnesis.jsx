@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Modal from '../components/Modal';
+import OcrAnamnesisCapture from '../components/OcrAnamnesisCapture';
 import dayjs from 'dayjs';
 
 const CATEGORY_KEYS = {
@@ -106,6 +107,9 @@ export default function Anamnesis() {
   const [newQ,         setNewQ]         = useState('');
   const [saveToBank,   setSaveToBank]   = useState(true);
   const [loading,      setLoading]      = useState(false);
+
+  // ── Importação histórica via OCR ─────────────────────────────────────────────
+  const [ocrOpen, setOcrOpen] = useState(false);
 
   // ── Preenchimento presencial ─────────────────────────────────────────────────
   const [fillOpen,      setFillOpen]      = useState(false);
@@ -278,9 +282,16 @@ export default function Anamnesis() {
             {patient && <p className="page-subtitle">{patient.name}</p>}
           </div>
         </div>
-        <button className="btn btn-primary" onClick={openModal}>
-          <i className="fas fa-paper-plane" /> {t('anamnesis.new')}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-outline" onClick={() => setOcrOpen(true)}
+            title="Importar ficha de anamnese histórica a partir de foto"
+            style={{ borderColor: '#34d399', color: '#16a34a' }}>
+            <i className="fas fa-camera" /> Importar histórico
+          </button>
+          <button className="btn btn-primary" onClick={openModal}>
+            <i className="fas fa-paper-plane" /> {t('anamnesis.new')}
+          </button>
+        </div>
       </div>
 
       <div className="card">
@@ -352,6 +363,15 @@ export default function Anamnesis() {
           </div>
         )}
       </div>
+
+      {/* ── Modal importação histórica via OCR ───────────────────────────────── */}
+      {ocrOpen && (
+        <OcrAnamnesisCapture
+          patientId={patientId}
+          onClose={() => setOcrOpen(false)}
+          onComplete={() => { setOcrOpen(false); load(); }}
+        />
+      )}
 
       {/* ── Modal criar ──────────────────────────────────────────────────────── */}
       <Modal open={open} onClose={() => setOpen(false)} title={t('anamnesis.new')} size="modal-xl"
