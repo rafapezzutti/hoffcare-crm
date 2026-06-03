@@ -21,11 +21,15 @@ const DAILY_IMAGE_LIMIT = 2;
 
 /** Retorna o registro de uso de hoje para o usuário (cria se não existir). */
 async function getTodayUsage(userId) {
-  const { rows } = await pool.query(
+  // INSERT e SELECT separados — pg não suporta múltiplos statements num único query()
+  await pool.query(
     `INSERT INTO ai_usage (user_id, usage_date, call_count, image_count)
      VALUES ($1, (NOW() AT TIME ZONE 'America/Sao_Paulo')::DATE, 0, 0)
-     ON CONFLICT (user_id, usage_date) DO NOTHING;
-     SELECT call_count, image_count FROM ai_usage
+     ON CONFLICT (user_id, usage_date) DO NOTHING`,
+    [userId]
+  );
+  const { rows } = await pool.query(
+    `SELECT call_count, image_count FROM ai_usage
      WHERE user_id = $1
        AND usage_date = (NOW() AT TIME ZONE 'America/Sao_Paulo')::DATE`,
     [userId]

@@ -124,10 +124,15 @@ router.put('/:user_id/ai-chat', auth, async (req, res) => {
   if (!canManage) return res.status(403).json({ error: 'Sem permissão para alterar acesso à IA.' });
   const { enabled } = req.body;
   try {
-    await pool.query(
-      `UPDATE users SET can_use_ai_chat = $1 WHERE id = $2 AND clinic_id = $3`,
-      [!!enabled, req.params.user_id, req.user.clinic_id]
-    );
+    // Filtra pela clínica se disponível; admin sem clinic_id usa só o id
+    const clinicId = req.user.clinic_id;
+    const query = clinicId
+      ? `UPDATE users SET can_use_ai_chat = $1 WHERE id = $2 AND clinic_id = $3`
+      : `UPDATE users SET can_use_ai_chat = $1 WHERE id = $2`;
+    const params = clinicId
+      ? [!!enabled, req.params.user_id, clinicId]
+      : [!!enabled, req.params.user_id];
+    await pool.query(query, params);
     res.json({ ok: true, can_use_ai_chat: !!enabled });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
