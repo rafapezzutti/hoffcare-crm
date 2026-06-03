@@ -33,7 +33,8 @@ router.post('/login', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT u.*, c.is_autonomous
+      `SELECT u.*, c.is_autonomous,
+              COALESCE(u.can_use_ai_chat, false) as can_use_ai_chat
        FROM users u
        LEFT JOIN clinics c ON c.id = u.clinic_id
        WHERE u.email = $1`,
@@ -66,6 +67,7 @@ router.post('/login', async (req, res) => {
         trial_starts_at: user.trial_starts_at || null,
         trial_expires_at: user.trial_expires_at || null,
         trial_blocked_at: user.trial_blocked_at || null,
+        can_use_ai_chat: !!user.can_use_ai_chat,
       }
     });
   } catch (err) {
