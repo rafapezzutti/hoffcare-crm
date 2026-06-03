@@ -31,6 +31,28 @@ Estrutura obrigatória:
   "notes": "observações gerais"
 }`,
 
+  patient_batch: `Você é um assistente especializado em extração de dados de fichas médicas em português brasileiro.
+Analise esta imagem que pode conter dados de UM OU MAIS pacientes (lista, tabela, fichas múltiplas, etc.).
+Extraia TODOS os pacientes visíveis na imagem.
+Retorne APENAS um array JSON válido, sem markdown, sem blocos de código, sem explicações.
+Cada elemento do array representa um paciente. Use null para campos não encontrados ou ilegíveis.
+Se houver apenas um paciente, retorne um array com um elemento.
+
+Estrutura obrigatória:
+[
+  {
+    "name": "nome completo",
+    "cpf": "somente dígitos, sem pontos ou traços",
+    "birthdate": "YYYY-MM-DD",
+    "phone": "somente dígitos",
+    "email": "endereço de e-mail",
+    "address": "endereço completo",
+    "gender": "M ou F",
+    "profession": "profissão",
+    "notes": "observações"
+  }
+]`,
+
   anamnesis: `Você é um assistente especializado em extração de dados de anamnese médica em português brasileiro.
 Analise esta imagem de uma ficha de anamnese e extraia todas as informações clínicas visíveis.
 Retorne APENAS um objeto JSON válido, sem markdown, sem blocos de código, sem explicações.
@@ -136,7 +158,15 @@ async function extractFromImage(imageBase64, mimeType, documentType) {
       const result = await httpPost(endpoint.hostname, endpoint.path, body, token, project);
       const text   = result.candidates[0].content.parts[0].text.trim();
       const clean  = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
-      const match  = clean.match(/\{[\s\S]*\}/);
+
+      // patient_batch retorna array — tenta match de array primeiro
+      if (documentType === 'patient_batch') {
+        const arrMatch = clean.match(/\[[\s\S]*\]/);
+        if (!arrMatch) throw new Error('A IA não retornou um array JSON válido. Tente com uma imagem mais nítida.');
+        return JSON.parse(arrMatch[0]);
+      }
+
+      const match = clean.match(/\{[\s\S]*\}/);
       if (!match) throw new Error('A IA não retornou um JSON válido. Tente com uma imagem mais nítida.');
       return JSON.parse(match[0]);
     } catch (err) {

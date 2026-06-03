@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { formatPhone, formatCPF } from '../utils/format';
+import OcrBatchCapture from '../components/OcrBatchCapture';
 
 export default function Patients() {
   const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showBatch, setShowBatch] = useState(false);
   const navigate = useNavigate();
 
   const load = async (q = '') => {
@@ -36,9 +38,21 @@ export default function Patients() {
 
   return (
     <div className="page">
+      {showBatch && (
+        <OcrBatchCapture
+          onClose={() => setShowBatch(false)}
+          onComplete={({ saved }) => { setShowBatch(false); if (saved > 0) load(); }}
+        />
+      )}
       <div className="page-header">
         <div><h1 className="page-title">{t('patients.title')}</h1><p className="page-subtitle">{items.length} {t('patients.registered')}</p></div>
-        <button className="btn btn-primary" onClick={() => navigate('/patients/new')}><i className="fas fa-user-plus" /> {t('patients.newPatient')}</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-outline" onClick={() => setShowBatch(true)}
+            style={{ borderColor: 'var(--blue)', color: 'var(--blue)', fontWeight: 600 }}>
+            <i className="fas fa-camera" style={{ marginRight: 6 }} />Captura em Lote
+          </button>
+          <button className="btn btn-primary" onClick={() => navigate('/patients/new')}><i className="fas fa-user-plus" /> {t('patients.newPatient')}</button>
+        </div>
       </div>
 
       <div className="card">

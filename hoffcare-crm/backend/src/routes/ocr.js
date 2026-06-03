@@ -16,7 +16,7 @@ const upload = multer({
   },
 });
 
-const VALID_TYPES = ['patient', 'anamnesis', 'financial', 'evolution'];
+const VALID_TYPES = ['patient', 'patient_batch', 'anamnesis', 'financial', 'evolution'];
 
 /**
  * POST /api/ocr/extract
