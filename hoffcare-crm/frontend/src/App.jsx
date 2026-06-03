@@ -34,6 +34,7 @@ import AnamnesisForm from './pages/AnamnesisForm';
 import Anthropometry from './pages/Anthropometry';
 import Aesthetics from './pages/Aesthetics';
 import AiChat from './pages/AiChat';
+import Evolution from './pages/Evolution';
 import Inventory from './pages/Inventory';
 import Budgets from './pages/Budgets';
 import BudgetForm from './pages/BudgetForm';
@@ -67,6 +68,7 @@ export default function App() {
             <Route path="procedures" element={<Procedures />} />
             <Route path="patients" element={<Patients />} />
             <Route path="patients/:id" element={<PatientDetail />} />
+            <Route path="patients/:id/evolution" element={<Evolution />} />
             <Route path="patients/:id/before-after" element={<BeforeAfter />} />
             <Route path="patients/:id/anamnesis" element={<Anamnesis />} />
             <Route path="patients/:id/anthropometry" element={<Anthropometry />} />

@@ -116,6 +116,9 @@ export default function PatientDetail() {
         </div>
         {!isNew && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn btn-outline" onClick={() => navigate(`/patients/${id}/evolution`)} title="Evolução Clínica">
+              <i className="fas fa-notes-medical" /> Evolução
+            </button>
             <button className="btn btn-outline" onClick={() => navigate(`/patients/${id}/before-after`)} title="Antes e Depois">
               <i className="fas fa-images" /> Antes/Depois
             </button>
