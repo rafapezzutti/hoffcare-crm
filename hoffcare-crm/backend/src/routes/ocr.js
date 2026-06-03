@@ -1,7 +1,7 @@
 const express  = require('express');
 const multer   = require('multer');
 const { auth } = require('../middleware/auth');
-const { extractFromImage, extractFromText, extractRawTextFromImage } = require('../services/vertexai');
+const { extractFromImage, extractFromText, extractRawTextFromImage, extractFromTextWithType } = require('../services/vertexai');
 const { extractText, detectType, extractPatientsFromDocument } = require('../services/documentParser');
 
 // Normaliza CPF em qualquer dado retornado pela IA (objeto ou array)
@@ -76,15 +76,24 @@ router.post('/extract', auth, uploadImage.single('image'), async (req, res) => {
     let raw;
     if (type === 'patient_batch') {
       // Para lote de imagens, sempre usa pipeline híbrido: OCR → texto → extractFromText.
-      // Isso garante o mesmo resultado completo e confiável do pipeline de docx/xlsx,
-      // evitando limitação de tokens da extração visual direta.
+      // Garante resultado completo, evitando limitação de tokens da extração visual.
       console.log('[OCR] Patient batch: pipeline OCR→texto');
       const rawText = await extractRawTextFromImage(imageBase64, mimeType);
       console.log(`[OCR] Texto extraído da imagem (${rawText.length} chars)`);
       raw = await extractFromText(rawText);
-      console.log(`[OCR] Pipeline retornou ${raw.length} pacientes`);
+      console.log(`[OCR] Pipeline retornou ${Array.isArray(raw) ? raw.length : 1} registro(s)`);
     } else {
-      raw = await extractFromImage(imageBase64, mimeType, type);
+      // Para tipos single-document: tenta extração visual; se falhar, cai no pipeline OCR→texto.
+      try {
+        raw = await extractFromImage(imageBase64, mimeType, type);
+        console.log(`[OCR] Extração visual OK para tipo "${type}"`);
+      } catch (visErr) {
+        console.warn(`[OCR] Extração visual falhou para tipo "${type}" (${visErr.message}). Ativando fallback OCR→texto...`);
+        const rawText = await extractRawTextFromImage(imageBase64, mimeType);
+        console.log(`[OCR] Texto extraído (${rawText.length} chars), processando como tipo "${type}"...`);
+        raw = await extractFromTextWithType(rawText, type);
+        console.log(`[OCR] Fallback OK para tipo "${type}"`);
+      }
     }
 
     const data = normalizeCPF(raw);

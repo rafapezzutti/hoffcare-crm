@@ -225,6 +225,63 @@ function httpPost(hostname, path, body, accessToken, project) {
   });
 }
 
+// ── Versões dos prompts adaptadas para entrada de TEXTO (não imagem) ──────────
+
+const TEXT_PROMPTS = {
+  patient:   PROMPTS.patient
+    .replace('Analise esta imagem de um documento físico e extraia', 'Analise o texto abaixo extraído de um documento e extraia'),
+  anamnesis: PROMPTS.anamnesis
+    .replace('Analise esta imagem de uma ficha de anamnese e extraia', 'Analise o texto abaixo de uma ficha de anamnese e extraia'),
+  financial: PROMPTS.financial
+    .replace('Analise esta imagem e extraia', 'Analise o texto abaixo e extraia'),
+  evolution: PROMPTS.evolution
+    .replace('Analise esta imagem de um prontuário e extraia', 'Analise o texto abaixo de um prontuário e extraia'),
+};
+
+/**
+ * Fallback: processa texto extraído de uma imagem (via OCR) usando o prompt
+ * específico do tipo de documento. Retorna o mesmo formato que extractFromImage.
+ */
+async function extractFromTextWithType(textContent, documentType) {
+  if (!process.env.GOOGLE_CREDENTIALS_JSON) {
+    throw new Error('GOOGLE_CREDENTIALS_JSON não configurado.');
+  }
+
+  const authGL = new GoogleAuth({
+    credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON),
+    scopes: ['https://www.googleapis.com/auth/generative-language'],
+  });
+  const tokenGL = await authGL.getAccessToken();
+
+  const basePrompt = TEXT_PROMPTS[documentType] || TEXT_PROMPTS.patient;
+  const fullPrompt = basePrompt + '\n\nTexto do documento:\n' + textContent.slice(0, 20000);
+
+  const body = JSON.stringify({
+    contents: [{ parts: [{ text: fullPrompt }] }],
+    generationConfig: { maxOutputTokens: 4096, temperature: 0.1 },
+  });
+
+  const project = process.env.GOOGLE_CLOUD_PROJECT;
+  const result  = await httpPost(
+    'generativelanguage.googleapis.com',
+    `/v1beta/models/${MODEL}:generateContent`,
+    body, tokenGL, project
+  );
+
+  const text  = result.candidates[0].content.parts[0].text.trim();
+  const clean = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+
+  if (documentType === 'patient_batch') {
+    const arrMatch = clean.match(/\[[\s\S]*\]/);
+    if (!arrMatch) throw new Error('Fallback: IA não retornou array JSON válido.');
+    return JSON.parse(arrMatch[0]);
+  }
+
+  const match = clean.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('Fallback: IA não retornou JSON válido.');
+  return JSON.parse(match[0]);
+}
+
 // ── Extração de texto puro de uma imagem (OCR simples via Gemini) ─────────────
 
 /**
@@ -358,4 +415,4 @@ async function extractFromText(textContent) {
   return JSON.parse(match[0]);
 }
 
-module.exports = { extractFromImage, extractFromText, extractRawTextFromImage };
+module.exports = { extractFromImage, extractFromText, extractRawTextFromImage, extractFromTextWithType };
