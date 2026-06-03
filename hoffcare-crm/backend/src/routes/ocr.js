@@ -1,7 +1,7 @@
 const express  = require('express');
 const multer   = require('multer');
 const { auth } = require('../middleware/auth');
-const { extractFromImage, extractFromText } = require('../services/vertexai');
+const { extractFromImage, extractFromText, extractRawTextFromImage } = require('../services/vertexai');
 const { extractText, detectType, extractPatientsFromDocument } = require('../services/documentParser');
 
 // Normaliza CPF em qualquer dado retornado pela IA (objeto ou array)
@@ -73,7 +73,28 @@ router.post('/extract', auth, uploadImage.single('image'), async (req, res) => {
 
     console.log(`[OCR] Processando documento tipo "${type}" (${(req.file.size / 1024).toFixed(0)} KB)`);
 
-    const raw  = await extractFromImage(imageBase64, mimeType, type);
+    let raw;
+    if (type === 'patient_batch') {
+      // Tenta extração visual direta. Se falhar ou retornar vazio,
+      // usa fallback híbrido: extrai texto da imagem → processa como documento.
+      try {
+        raw = await extractFromImage(imageBase64, mimeType, type);
+        if (!Array.isArray(raw) || raw.length === 0) {
+          console.warn('[OCR] Extração visual retornou vazio, tentando fallback OCR→texto...');
+          throw new Error('resultado vazio');
+        }
+        console.log(`[OCR] Extração visual: ${raw.length} pacientes`);
+      } catch (visErr) {
+        console.warn(`[OCR] Fallback OCR→texto ativado (${visErr.message})`);
+        const rawText = await extractRawTextFromImage(imageBase64, mimeType);
+        console.log(`[OCR] Texto extraído da imagem (${rawText.length} chars), enviando para IA...`);
+        raw = await extractFromText(rawText);
+        console.log(`[OCR] Fallback retornou ${raw.length} pacientes`);
+      }
+    } else {
+      raw = await extractFromImage(imageBase64, mimeType, type);
+    }
+
     const data = normalizeCPF(raw);
 
     return res.json({ success: true, type, data });

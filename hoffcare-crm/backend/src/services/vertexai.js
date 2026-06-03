@@ -31,25 +31,33 @@ Estrutura obrigatória:
   "notes": "observações gerais"
 }`,
 
-  patient_batch: `Você é um assistente especializado em extração de dados de fichas médicas em português brasileiro.
-Analise esta imagem que pode conter dados de UM OU MAIS pacientes (lista, tabela, fichas múltiplas, etc.).
-Extraia TODOS os pacientes visíveis na imagem.
+  patient_batch: `Você é um assistente especializado em extração de nomes e CPFs de documentos brasileiros.
+Analise esta imagem — pode ser uma ficha médica, tabela de notas fiscais, lista de pacientes, planilha impressa, cadastro, relatório ou qualquer documento que contenha nomes e CPFs de pessoas.
+Extraia TODAS as pessoas (físicas) presentes na imagem, independentemente do formato do documento.
 Retorne APENAS um array JSON válido, sem markdown, sem blocos de código, sem explicações.
-Cada elemento do array representa um paciente. Use null para campos não encontrados ou ilegíveis.
 Se houver apenas um paciente, retorne um array com um elemento.
+Se não encontrar nenhuma pessoa, retorne [].
+
+REGRAS IMPORTANTES:
+- Extraia TODA pessoa que tenha nome completo E/OU CPF identificável
+- CPF pode estar formatado (000.000.000-00) ou só números — converta sempre para somente dígitos
+- Se o mesmo CPF aparece várias vezes (ex: em meses diferentes), inclua apenas UMA vez (deduplique pelo CPF)
+- Se houver texto como "Menor X" ou "(Menor X CPF)" junto a um nome, o nome do Menor é o paciente real — use o nome do menor
+- Ignore cabeçalhos, totalizadores, valores monetários, meses, "TOTAL" — foque em NOMES e CPFs de pessoas
+- Use null para campos não encontrados. Não invente dados.
 
 Estrutura obrigatória:
 [
   {
-    "name": "nome completo",
-    "cpf": "somente dígitos, sem pontos ou traços",
-    "birthdate": "YYYY-MM-DD",
-    "phone": "somente dígitos",
-    "email": "endereço de e-mail",
-    "address": "endereço completo",
-    "gender": "M ou F",
-    "profession": "profissão",
-    "notes": "observações"
+    "name": "nome completo da pessoa",
+    "cpf": "somente 11 dígitos sem pontos ou traços",
+    "birthdate": "YYYY-MM-DD ou null",
+    "phone": "somente dígitos ou null",
+    "email": "email ou null",
+    "address": "endereço completo ou null",
+    "gender": "M ou F ou null",
+    "profession": "profissão ou null",
+    "notes": "observações relevantes ou null"
   }
 ]`,
 
@@ -106,6 +114,12 @@ Estrutura obrigatória:
   "notes": "observações"
 }`
 };
+
+// ── Prompt para extração de texto puro de uma imagem (OCR) ───────────────────
+
+const PROMPT_OCR_TEXT = `Transcreva TODO o texto visível nesta imagem, mantendo a estrutura original (tabelas, linhas, colunas).
+Não faça resumos, não interprete, não adicione comentários.
+Retorne apenas o texto exato como aparece na imagem.`;
 
 // ── Chamada direta à API REST ─────────────────────────────────────────────────
 
@@ -211,6 +225,61 @@ function httpPost(hostname, path, body, accessToken, project) {
   });
 }
 
+// ── Extração de texto puro de uma imagem (OCR simples via Gemini) ─────────────
+
+/**
+ * Usa Gemini vision para transcrever o texto de uma imagem.
+ * Retorna uma string com o texto extraído, para ser processada por extractFromText.
+ */
+async function extractRawTextFromImage(imageBase64, mimeType) {
+  if (!process.env.GOOGLE_CREDENTIALS_JSON) {
+    throw new Error('GOOGLE_CREDENTIALS_JSON não configurado.');
+  }
+
+  const authV  = new GoogleAuth({ credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON), scopes: ['https://www.googleapis.com/auth/cloud-platform'] });
+  const authGL = new GoogleAuth({ credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON), scopes: ['https://www.googleapis.com/auth/generative-language'] });
+  const tokenV  = await authV.getAccessToken();
+  const tokenGL = await authGL.getAccessToken();
+
+  const body = JSON.stringify({
+    contents: [{
+      parts: [
+        { inline_data: { mime_type: mimeType, data: imageBase64 } },
+        { text: PROMPT_OCR_TEXT }
+      ]
+    }],
+    generationConfig: { maxOutputTokens: 4096, temperature: 0 }
+  });
+
+  const project  = process.env.GOOGLE_CLOUD_PROJECT;
+  const location = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
+
+  const endpoints = [
+    {
+      hostname: `${location}-aiplatform.googleapis.com`,
+      path: `/v1/projects/${project}/locations/${location}/publishers/google/models/${MODEL}:generateContent`,
+      token: tokenV,
+    },
+    {
+      hostname: 'generativelanguage.googleapis.com',
+      path: `/v1beta/models/${MODEL}:generateContent`,
+      token: tokenGL,
+    }
+  ];
+
+  let lastError;
+  for (const ep of endpoints) {
+    try {
+      const result = await httpPost(ep.hostname, ep.path, body, ep.token, project);
+      return result.candidates[0].content.parts[0].text.trim();
+    } catch (err) {
+      console.warn(`[OCR-TEXT] Endpoint ${ep.hostname} falhou: ${err.message}`);
+      lastError = err;
+    }
+  }
+  throw lastError;
+}
+
 // ── Extração a partir de texto (documentos: xlsx, csv, docx, txt, pdf) ────────
 
 const PROMPT_TEXT_BATCH = `Você é um assistente especializado em extração de nomes e CPFs de documentos brasileiros.
@@ -289,4 +358,4 @@ async function extractFromText(textContent) {
   return JSON.parse(match[0]);
 }
 
-module.exports = { extractFromImage, extractFromText };
+module.exports = { extractFromImage, extractFromText, extractRawTextFromImage };
