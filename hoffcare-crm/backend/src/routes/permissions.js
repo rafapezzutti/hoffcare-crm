@@ -76,7 +76,42 @@ router.get('/', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// PUT /api/permissions/:user_id/:module — salva override
+// GET /api/permissions/modules — lista módulos disponíveis
+router.get('/modules', auth, (req, res) => res.json(MODULES));
+
+// GET /api/permissions/ai-chat — status Talk to Me de todos os usuários da clínica
+// DEVE vir antes de /:user_id/:module para não ser capturada pela rota genérica
+router.get('/ai-chat', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, name, email, role, COALESCE(can_use_ai_chat, false) as can_use_ai_chat
+       FROM users WHERE clinic_id = $1 AND is_trial = false ORDER BY name`,
+      [req.user.clinic_id]
+    );
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// PUT /api/permissions/:user_id/ai-chat — habilita ou desabilita Talk to Me
+// DEVE vir antes de /:user_id/:module para não ser capturada pela rota genérica
+router.put('/:user_id/ai-chat', auth, async (req, res) => {
+  const canManage = req.user.role === 'admin' || req.user.role === 'responsavel';
+  if (!canManage) return res.status(403).json({ error: 'Sem permissão para alterar acesso à IA.' });
+  const { enabled } = req.body;
+  try {
+    const clinicId = req.user.clinic_id;
+    const query = clinicId
+      ? `UPDATE users SET can_use_ai_chat = $1 WHERE id = $2 AND clinic_id = $3`
+      : `UPDATE users SET can_use_ai_chat = $1 WHERE id = $2`;
+    const params = clinicId
+      ? [!!enabled, req.params.user_id, clinicId]
+      : [!!enabled, req.params.user_id];
+    await pool.query(query, params);
+    res.json({ ok: true, can_use_ai_chat: !!enabled });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// PUT /api/permissions/:user_id/:module — salva override de módulo
 router.put('/:user_id/:module', auth, async (req, res) => {
   const { can_view, can_create, can_edit, can_delete } = req.body;
   const { user_id, module } = req.params;
@@ -100,40 +135,6 @@ router.delete('/:user_id/:module', auth, async (req, res) => {
       [req.user.clinic_id, req.params.user_id, req.params.module]
     );
     res.json({ ok: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// GET /api/permissions/modules — lista módulos disponíveis
-router.get('/modules', auth, (req, res) => res.json(MODULES));
-
-// GET /api/permissions/ai-chat — status Talk to Me de todos os usuários da clínica
-router.get('/ai-chat', auth, async (req, res) => {
-  try {
-    const { rows } = await pool.query(
-      `SELECT id, name, email, role, COALESCE(can_use_ai_chat, false) as can_use_ai_chat
-       FROM users WHERE clinic_id = $1 AND is_trial = false ORDER BY name`,
-      [req.user.clinic_id]
-    );
-    res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// PUT /api/permissions/:user_id/ai-chat — habilita ou desabilita Talk to Me para um usuário
-router.put('/:user_id/ai-chat', auth, async (req, res) => {
-  const canManage = req.user.role === 'admin' || req.user.role === 'responsavel';
-  if (!canManage) return res.status(403).json({ error: 'Sem permissão para alterar acesso à IA.' });
-  const { enabled } = req.body;
-  try {
-    // Filtra pela clínica se disponível; admin sem clinic_id usa só o id
-    const clinicId = req.user.clinic_id;
-    const query = clinicId
-      ? `UPDATE users SET can_use_ai_chat = $1 WHERE id = $2 AND clinic_id = $3`
-      : `UPDATE users SET can_use_ai_chat = $1 WHERE id = $2`;
-    const params = clinicId
-      ? [!!enabled, req.params.user_id, clinicId]
-      : [!!enabled, req.params.user_id];
-    await pool.query(query, params);
-    res.json({ ok: true, can_use_ai_chat: !!enabled });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
