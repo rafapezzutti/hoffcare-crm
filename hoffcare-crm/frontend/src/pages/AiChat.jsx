@@ -10,11 +10,22 @@ import api from '../services/api';
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
 
+const DISCLAIMER = `⚠️ Aviso Legal & LGPD — leia antes de usar este assistente.`;
+
+const DISCLAIMER_FULL = `RESPONSABILIDADE: As respostas geradas por este assistente são meramente informativas e de responsabilidade exclusiva do profissional de saúde que as utiliza. A P. Soluções atua exclusivamente como intermediária tecnológica, não possui qualquer responsabilidade pelo conteúdo gerado, e não pratica medicina, odontologia ou qualquer atividade regulamentada pelo Conselho Federal de Medicina (CFM), CFO ou afins. As informações não substituem o julgamento clínico, a avaliação presencial nem o prontuário oficial do paciente.
+
+FONTE DE DADOS: Este assistente utiliza o Google Gemini (Google LLC) como modelo de linguagem. O conteúdo das mensagens pode ser processado pelos servidores do Google conforme os Termos de Uso e a Política de Privacidade do Google Gemini. A P. Soluções não armazena o conteúdo das conversas.
+
+LGPD (Lei 13.709/2018): Não insira neste chat dados pessoais sensíveis de pacientes, como nome completo, CPF, diagnósticos, resultados de exames ou qualquer informação que permita identificar individualmente um paciente. O profissional de saúde é o controlador dos dados de seus pacientes e é responsável pelo cumprimento da LGPD. A P. Soluções é operadora tecnológica e adota as medidas de segurança cabíveis, mas não pode garantir conformidade total quando dados são inseridos voluntariamente pelo usuário neste campo de texto livre.
+
+Ao utilizar o Talk to Me, o profissional declara estar ciente e de acordo com os termos acima.`;
+
 export default function AiChat() {
   const navigate  = useNavigate();
   const bottomRef = useRef();
   const fileRef   = useRef();
   const mediaRef  = useRef(null);
+  const [disclaimerOpen, setDisclaimerOpen] = useState(false);
 
   const [messages,  setMessages]  = useState([]);   // { role, text, images?, audio?, action?, error? }
   const [input,     setInput]     = useState('');
@@ -197,6 +208,30 @@ export default function AiChat() {
           <span title="Usos restantes hoje">💬 {callsLeft} / 20 usos</span>
           <span title="Imagens restantes hoje">🖼️ {imagesLeft} / 2 imagens</span>
         </div>
+      </div>
+
+      {/* Banner de Disclaimer */}
+      <div style={{ background: '#fffbeb', borderBottom: '1px solid #fde68a', padding: '8px 20px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>⚠️</span>
+          <div style={{ flex: 1 }}>
+            <span style={{ fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>
+              <strong>Aviso Legal & LGPD:</strong> As respostas são de responsabilidade exclusiva do profissional de saúde.
+              A P. Soluções é intermediária tecnológica (Google Gemini) e não se responsabiliza pelo conteúdo gerado.
+              <strong> Não insira dados pessoais de pacientes neste chat.</strong>
+            </span>
+            {' '}
+            <button onClick={() => setDisclaimerOpen(o => !o)}
+              style={{ background: 'none', border: 'none', color: '#b45309', fontSize: 11, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
+              {disclaimerOpen ? 'Ver menos' : 'Ver completo'}
+            </button>
+          </div>
+        </div>
+        {disclaimerOpen && (
+          <div style={{ marginTop: 8, padding: '10px 14px', background: '#fef3c7', borderRadius: 8, fontSize: 12, color: '#78350f', lineHeight: 1.7, whiteSpace: 'pre-line' }}>
+            {DISCLAIMER_FULL}
+          </div>
+        )}
       </div>
 
       {/* Mensagens */}
