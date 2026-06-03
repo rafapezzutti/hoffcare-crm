@@ -21,27 +21,6 @@ function detectType(mimetype, originalname) {
   return null;
 }
 
-/**
- * Extrai texto de um buffer de arquivo
- * @param {Buffer} buffer   Conteúdo do arquivo
- * @param {string} mimetype MIME type
- * @param {string} filename Nome original do arquivo
- * @returns {Promise<string>} Texto extraído
- */
-async function extractText(buffer, mimetype, filename) {
-  const type = detectType(mimetype, filename);
-  if (!type) throw new Error(`Formato não suportado: ${mimetype || filename}`);
-
-  switch (type) {
-    case 'xlsx': return extractXlsx(buffer);
-    case 'csv':  return extractCsv(buffer);
-    case 'docx': return extractDocx(buffer);
-    case 'txt':  return buffer.toString('utf-8');
-    case 'pdf':  return extractPdf(buffer);
-    default: throw new Error(`Tipo não implementado: ${type}`);
-  }
-}
-
 // ── Excel (.xlsx / .xls) ──────────────────────────────────────────────────────
 function extractXlsx(buffer) {
   const XLSX = require('xlsx');
@@ -93,6 +72,75 @@ async function extractPdf(buffer) {
   const data     = await pdfParse(buffer);
   if (!data.text.trim()) throw new Error('PDF sem texto extraível. Use uma imagem para PDFs escaneados.');
   return data.text;
+}
+
+// ── Pré-processamento de texto ────────────────────────────────────────────────
+
+/**
+ * Pré-processa o texto extraído:
+ * 1. Normaliza CPFs formatados (000.000.000-00) → CPF:00000000000
+ * 2. Extrai pares nome+CPF de forma estruturada quando possível
+ * Isso evita que o Gemini tente interpretar formatação e se perca.
+ */
+function preprocessText(rawText) {
+  const CPF_REGEX = /(\d{3})\.(\d{3})\.(\d{3})-(\d{2})/g;
+
+  // Substitui CPF formatado por versão clara: [CPF:33489931807]
+  const normalized = rawText.replace(CPF_REGEX, (_, a, b, c, d) => `[CPF:${a}${b}${c}${d}]`);
+
+  // Tenta extrair pares NOME + CPF linha a linha para dar contexto estruturado
+  const lines = normalized.split('\n').map(l => l.trim()).filter(Boolean);
+  const pairs = [];
+  const seenCPFs = new Set();
+
+  for (const line of lines) {
+    const cpfMatch = line.match(/\[CPF:(\d{11})\]/g);
+    if (!cpfMatch) continue;
+
+    // Pega todos CPFs da linha
+    for (const cpfTag of cpfMatch) {
+      const cpf = cpfTag.replace('[CPF:', '').replace(']', '');
+      if (seenCPFs.has(cpf)) continue;
+      seenCPFs.add(cpf);
+
+      // Remove o CPF do texto para obter o nome
+      let namePart = line
+        .replace(/\[CPF:\d{11}\]/g, '')
+        .replace(/\d{1,3}[.,]\d{3}[.,]\d{2,3}/g, '') // remove valores monetários
+        .replace(/N[°º]\s*\w+/gi, '')                 // remove N°NF
+        .replace(/\(Menor\s+/gi, '| Menor: ')         // destaca menores
+        .replace(/\)/g, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+
+      if (namePart.length > 3) {
+        pairs.push(`NOME: ${namePart} | CPF: ${cpf}`);
+      }
+    }
+  }
+
+  // Retorna versão estruturada se encontrou pares, senão o texto normalizado
+  if (pairs.length > 0) {
+    return `=== REGISTROS IDENTIFICADOS (${pairs.length}) ===\n` + pairs.join('\n') + '\n\n=== TEXTO COMPLETO ===\n' + normalized;
+  }
+  return normalized;
+}
+
+async function extractText(buffer, mimetype, filename) {
+  const type = detectType(mimetype, filename);
+  if (!type) throw new Error(`Formato não suportado: ${mimetype || filename}`);
+
+  let raw;
+  switch (type) {
+    case 'xlsx': raw = extractXlsx(buffer); break;
+    case 'csv':  raw = extractCsv(buffer); break;
+    case 'docx': raw = await extractDocx(buffer); break;
+    case 'txt':  raw = buffer.toString('utf-8'); break;
+    case 'pdf':  raw = await extractPdf(buffer); break;
+    default: throw new Error(`Tipo não implementado: ${type}`);
+  }
+
+  return preprocessText(raw);
 }
 
 module.exports = { extractText, detectType };

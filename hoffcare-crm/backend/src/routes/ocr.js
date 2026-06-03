@@ -4,6 +4,15 @@ const { auth } = require('../middleware/auth');
 const { extractFromImage, extractFromText } = require('../services/vertexai');
 const { extractText, detectType }          = require('../services/documentParser');
 
+// Normaliza CPF em qualquer dado retornado pela IA (objeto ou array)
+function normalizeCPF(data) {
+  if (Array.isArray(data)) return data.map(normalizeCPF);
+  if (data && typeof data === 'object' && data.cpf) {
+    return { ...data, cpf: String(data.cpf).replace(/\D/g, '') };
+  }
+  return data;
+}
+
 const router = express.Router();
 
 // Upload de imagens
@@ -64,7 +73,8 @@ router.post('/extract', auth, uploadImage.single('image'), async (req, res) => {
 
     console.log(`[OCR] Processando documento tipo "${type}" (${(req.file.size / 1024).toFixed(0)} KB)`);
 
-    const data = await extractFromImage(imageBase64, mimeType, type);
+    const raw  = await extractFromImage(imageBase64, mimeType, type);
+    const data = normalizeCPF(raw);
 
     return res.json({ success: true, type, data });
 
@@ -108,7 +118,8 @@ router.post('/extract-document', auth, uploadDocument.single('file'), async (req
     console.log(`[OCR-DOC] Texto extraído: ${text.length} chars`);
 
     // 2. Manda para Gemini extrair pacientes
-    const patients = await extractFromText(text);
+    const raw      = await extractFromText(text);
+    const patients = normalizeCPF(raw); // normaliza CPFs independente do formato
     console.log(`[OCR-DOC] Pacientes encontrados: ${patients.length}`);
 
     return res.json({ success: true, count: patients.length, data: patients });
