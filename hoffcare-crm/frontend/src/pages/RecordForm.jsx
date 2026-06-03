@@ -5,6 +5,7 @@ import api from '../services/api';
 import dayjs from 'dayjs';
 import { PROF_TYPES, getProfType } from '../config/professionalTypes';
 import { useAuth } from '../context/AuthContext';
+import OcrCapture from '../components/OcrCapture';
 
 export default function RecordForm() {
   const { t } = useTranslation();
@@ -35,6 +36,8 @@ export default function RecordForm() {
   const [selectedProfessional, setSelectedProfessional] = useState(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [showOcr, setShowOcr] = useState(false);
+  const [ocrMsg, setOcrMsg] = useState(null); // { type: 'success'|'warning'|'error', text }
 
   useEffect(() => {
     Promise.all([
@@ -84,6 +87,33 @@ export default function RecordForm() {
     p.cpf.includes(patientSearch)
   );
 
+  // ── OCR: busca paciente pelo CPF extraído ────────────────────────────────
+  const handleOcrExtracted = (data) => {
+    setShowOcr(false);
+    const cpf = data.cpf ? data.cpf.replace(/\D/g, '') : '';
+    if (!cpf && !data.name) {
+      setOcrMsg({ type: 'warning', text: 'A IA não conseguiu identificar o paciente. Busque manualmente.' });
+      return;
+    }
+    // Tenta encontrar o paciente na lista pelo CPF ou nome
+    const found = patients.find(p =>
+      (cpf && p.cpf.replace(/\D/g, '') === cpf) ||
+      (data.name && p.name.toLowerCase() === data.name.toLowerCase())
+    );
+    if (found) {
+      setForm(f => ({ ...f, patient_id: found.id }));
+      setPatientSearch(found.name);
+      setSelectedPatient(found);
+      setOcrMsg({ type: 'success', text: `✅ Paciente encontrado: ${found.name}` });
+    } else {
+      const label = data.name || (cpf ? `CPF ${cpf}` : '');
+      setOcrMsg({
+        type: 'warning',
+        text: `Paciente "${label}" não encontrado no cadastro. Cadastre-o primeiro em Pacientes → Novo Paciente.`
+      });
+    }
+  };
+
   const procType = form.type === 'dentista' ? 'odontologico' : form.type;
   const filteredProcedures = allProcedures.filter(p =>
     (p.type === procType || p.type === form.type) &&
@@ -120,8 +150,20 @@ export default function RecordForm() {
   const total = form.procedures.reduce((s, p) => s + (parseFloat(p.value) || 0), 0);
 
   const handleSubmit = async () => {
-    if (!form.patient_id || !form.professional_id) {
+    // Validações essenciais
+    if (!form.patient_id) {
+      setError('Paciente é obrigatório. Use a busca ou "Captura com IA" para vincular.'); return;
+    }
+    if (!form.professional_id) {
       setError(t('recordForm.errorRequired')); return;
+    }
+    if (!form.consultation_date) {
+      setError('Data da consulta é obrigatória.'); return;
+    }
+    // Garante vínculo correto: patient_id deve existir na lista
+    const patientExists = patients.find(p => p.id === form.patient_id || p.id === Number(form.patient_id));
+    if (!patientExists) {
+      setError('Paciente não encontrado no cadastro. Verifique o vínculo antes de salvar.'); return;
     }
     // Valida procedimentos manuais: precisam ter nome
     const emptyManual = form.procedures.find(p => p.isManual && !p.procedure_name.trim());
@@ -183,10 +225,27 @@ export default function RecordForm() {
           </div>
 
           {/* Paciente */}
+          {showOcr && <OcrCapture type="patient" onExtracted={handleOcrExtracted} onClose={() => setShowOcr(false)} />}
           <div className="form-group" style={{ position: 'relative' }}>
-            <label className="form-label">{t('recordForm.patient')} <span className="required">*</span></label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <label className="form-label" style={{ margin: 0 }}>{t('recordForm.patient')} <span className="required">*</span></label>
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => { setOcrMsg(null); setShowOcr(true); }}
+                style={{ background: 'rgba(77,184,232,0.08)', borderColor: 'var(--blue)', color: 'var(--blue)', fontWeight: 600, fontSize: 12 }}>
+                <i className="fas fa-camera" style={{ marginRight: 5 }} />Captura com IA
+              </button>
+            </div>
+            {ocrMsg && (
+              <div style={{
+                padding: '8px 12px', borderRadius: 6, fontSize: 13, marginBottom: 8,
+                background: ocrMsg.type === 'success' ? '#e8f5e9' : '#fff3cd',
+                border: `1px solid ${ocrMsg.type === 'success' ? '#a5d6a7' : '#ffc107'}`,
+                color: ocrMsg.type === 'success' ? '#2e7d32' : '#856404',
+              }}>
+                {ocrMsg.text}
+              </div>
+            )}
             <input className="form-control" placeholder={t('recordForm.searchPatient')} value={patientSearch}
-              onChange={e => { setPatientSearch(e.target.value); setForm(f => ({ ...f, patient_id: '' })); setSelectedPatient(null); }} />
+              onChange={e => { setPatientSearch(e.target.value); setForm(f => ({ ...f, patient_id: '' })); setSelectedPatient(null); setOcrMsg(null); }} />
             {patientSearch && !form.patient_id && (
               <div style={{ position: 'absolute', zIndex: 10, width: '100%', background: 'white', border: '1px solid var(--gray-200)', borderRadius: 6, maxHeight: 180, overflowY: 'auto' }}>
                 {filteredPatients.slice(0, 8).map(p => (

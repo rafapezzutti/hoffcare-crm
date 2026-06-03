@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Modal from '../components/Modal';
+import OcrCapture from '../components/OcrCapture';
 import dayjs from 'dayjs';
 
 const API_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
@@ -42,14 +43,30 @@ export default function PatientDetail() {
 
   useEffect(() => { load(); }, [id]);
 
+  // ── Validação antes de salvar ───────────────────────────────────────────────
+  const validateForm = () => {
+    if (!form.name?.trim()) return 'Nome é obrigatório.';
+    if (!form.cpf?.trim()) return 'CPF é obrigatório.';
+    const cpfDigits = form.cpf.replace(/\D/g, '');
+    if (cpfDigits.length !== 11) return 'CPF deve ter 11 dígitos.';
+    if (!form.birthdate) return 'Data de nascimento é obrigatória.';
+    const birth = dayjs(form.birthdate);
+    if (!birth.isValid() || birth.isAfter(dayjs())) return 'Data de nascimento inválida.';
+    return null;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault(); setError('');
+    const validationError = validateForm();
+    if (validationError) { setError(validationError); return; }
+    // Normaliza CPF (somente dígitos)
+    const payload = { ...form, cpf: form.cpf.replace(/\D/g, '') };
     try {
       if (isNew) {
-        const res = await api.post('/patients', form);
+        const res = await api.post('/patients', payload);
         navigate(`/patients/${res.data.id}`);
       } else {
-        await api.put(`/patients/${id}`, form);
+        await api.put(`/patients/${id}`, payload);
         setEditOpen(false);
         load();
       }
@@ -196,12 +213,40 @@ export default function PatientDetail() {
 }
 
 function PatientForm({ form, setForm, setHD, HDField, onSubmit, onCancel }) {
+  const [showOcr, setShowOcr] = useState(false);
   const f = (field) => ({ value: form[field] || '', onChange: e => setForm(p => ({ ...p, [field]: e.target.value })) });
+
+  const handleOcrExtracted = (data) => {
+    setForm(prev => ({
+      ...prev,
+      name:      data.name      || prev.name,
+      cpf:       data.cpf       ? data.cpf.replace(/\D/g, '') : prev.cpf,
+      birthdate: data.birthdate || prev.birthdate,
+      phone:     data.phone     ? data.phone.replace(/\D/g, '') : prev.phone,
+      email:     data.email     || prev.email,
+    }));
+    setShowOcr(false);
+  };
+
   return (
+    <>
+      {showOcr && (
+        <OcrCapture
+          type="patient"
+          onExtracted={handleOcrExtracted}
+          onClose={() => setShowOcr(false)}
+        />
+      )}
     <form onSubmit={onSubmit}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         <div>
-          <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: 'var(--gray-700)' }}><i className="fas fa-user" style={{ marginRight: 8 }} />Dados Pessoais</h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--gray-700)', margin: 0 }}><i className="fas fa-user" style={{ marginRight: 8 }} />Dados Pessoais</h3>
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => setShowOcr(true)}
+              style={{ background: 'rgba(77,184,232,0.08)', borderColor: 'var(--blue)', color: 'var(--blue)', fontWeight: 600 }}>
+              <i className="fas fa-camera" style={{ marginRight: 6 }} />Captura com IA
+            </button>
+          </div>
           <div className="form-group"><label className="form-label">Nome <span className="required">*</span></label><input className="form-control" {...f('name')} required /></div>
           <div className="form-group"><label className="form-label">CPF <span className="required">*</span></label><input className="form-control" {...f('cpf')} placeholder="000.000.000-00" required /></div>
           <div className="form-group"><label className="form-label">Data de Nascimento <span className="required">*</span></label><input className="form-control" type="date" {...f('birthdate')} required /></div>
@@ -233,6 +278,7 @@ function PatientForm({ form, setForm, setHD, HDField, onSubmit, onCancel }) {
         </div>
       </div>
     </form>
+    </>
   );
 }
 
