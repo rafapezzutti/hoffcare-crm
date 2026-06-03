@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Modal from '../components/Modal';
-import OcrCapture from '../components/OcrCapture';
+import OcrMultiCapture from '../components/OcrMultiCapture';
 import dayjs from 'dayjs';
 
 const API_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
@@ -231,8 +231,7 @@ function PatientForm({ form, setForm, setHD, HDField, onSubmit, onCancel }) {
   return (
     <>
       {showOcr && (
-        <OcrCapture
-          type="patient"
+        <OcrMultiCapture
           onExtracted={handleOcrExtracted}
           onClose={() => setShowOcr(false)}
         />
