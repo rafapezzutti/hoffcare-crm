@@ -119,6 +119,9 @@ export default function PatientDetail() {
             <button className="btn btn-outline" onClick={() => navigate(`/patients/${id}/evolution`)} title="Evolução Clínica">
               <i className="fas fa-notes-medical" /> Evolução
             </button>
+            <button className="btn btn-outline" onClick={() => navigate(`/patients/${id}/odontogram`)} title="Odontograma">
+              <i className="fas fa-tooth" /> Odontograma
+            </button>
             <button className="btn btn-outline" onClick={() => navigate(`/patients/${id}/before-after`)} title="Antes e Depois">
               <i className="fas fa-images" /> Antes/Depois
             </button>
