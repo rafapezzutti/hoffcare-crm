@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import Modal from '../components/Modal';
 import dayjs from 'dayjs';
@@ -7,7 +7,13 @@ import dayjs from 'dayjs';
 export default function BudgetForm() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const isEdit = !!id;
+
+  // Pré-preenche paciente vindo do perfil do paciente (?patient_id=X&patient_name=Y)
+  const urlParams = new URLSearchParams(location.search);
+  const prePatientId   = urlParams.get('patient_id');
+  const prePatientName = urlParams.get('patient_name');
 
   // Form state
   const [form, setForm] = useState({
@@ -57,6 +63,13 @@ export default function BudgetForm() {
       setProfessionals(pr.data);
       setAllProcedures(proc.data);
     });
+
+    // Pré-preenche paciente se veio do perfil (?patient_id=X&patient_name=Y)
+    if (!isEdit && prePatientId && prePatientName) {
+      setForm(p => ({ ...p, patient_id: prePatientId }));
+      setSelectedPatient({ id: prePatientId, name: prePatientName });
+      setPatientSearch(prePatientName);
+    }
 
     if (isEdit) {
       setLoading(true);
