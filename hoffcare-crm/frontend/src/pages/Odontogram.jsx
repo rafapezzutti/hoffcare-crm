@@ -6,6 +6,16 @@ import api from '../services/api';
 const UPPER = [18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28];
 const LOWER = [48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
 
+// ── Status de pagamento ───────────────────────────────────────────────────────
+const PAYMENT_STATUSES = [
+  { value: 'pendente', label: 'Pendente', color: '#fff7ed', border: '#fdba74', text: '#7c2d12', badge: 'badge-orange' },
+  { value: 'parcial',  label: 'Parcial',  color: '#eff6ff', border: '#93c5fd', text: '#1e40af', badge: 'badge-blue'   },
+  { value: 'pago',     label: 'Pago',     color: '#f0fdf4', border: '#86efac', text: '#166534', badge: 'badge-green'  },
+];
+function getPaymentStatus(val) {
+  return PAYMENT_STATUSES.find(p => p.value === (val || 'pendente')) || PAYMENT_STATUSES[0];
+}
+
 // ── Status disponíveis ────────────────────────────────────────────────────────
 const STATUSES = [
   { value: '',          label: 'Hígido',              color: '#f0fdf4', border: '#86efac', text: '#166534', dot: '#22c55e' },
@@ -39,7 +49,7 @@ export default function Odontogram() {
   const [patient,  setPatient]  = useState(null);
   const [teeth,    setTeeth]    = useState({});   // { '11': { status, procedure_name, procedure_value, notes }, ... }
   const [selected, setSelected] = useState(null); // tooth number (string)
-  const [form,     setForm]     = useState({ status: '', procedure_name: '', procedure_value: '', notes: '' });
+  const [form,     setForm]     = useState({ status: '', procedure_name: '', procedure_value: '', notes: '', payment_status: 'pendente', amount_paid: '' });
   const [saving,   setSaving]   = useState(false);
   const [dirty,    setDirty]    = useState(false);
 
@@ -66,6 +76,8 @@ export default function Odontogram() {
       procedure_name:  data.procedure_name  || '',
       procedure_value: data.procedure_value != null ? String(data.procedure_value) : '',
       notes:           data.notes           || '',
+      payment_status:  data.payment_status  || 'pendente',
+      amount_paid:     data.amount_paid     != null ? String(data.amount_paid) : '',
     });
     setDirty(false);
   };
@@ -80,6 +92,8 @@ export default function Odontogram() {
         procedure_name:  form.procedure_name  || null,
         procedure_value: form.procedure_value ? parseFloat(form.procedure_value) : null,
         notes:           form.notes           || null,
+        payment_status:  form.payment_status  || 'pendente',
+        amount_paid:     form.amount_paid     ? parseFloat(form.amount_paid) : 0,
       });
       setTeeth(prev => ({ ...prev, [selected]: res.data }));
       setDirty(false);
@@ -97,19 +111,25 @@ export default function Odontogram() {
     try {
       await api.delete(`/odontogram/${patientId}/${selected}`);
       setTeeth(prev => { const n = { ...prev }; delete n[selected]; return n; });
-      setForm({ status: '', procedure_name: '', procedure_value: '', notes: '' });
+      setForm({ status: '', procedure_name: '', procedure_value: '', notes: '', payment_status: 'pendente', amount_paid: '' });
       setDirty(false);
     } catch (err) {
       alert(err.response?.data?.error || 'Erro ao limpar.');
     }
   };
 
-  // ── Plano de tratamento ──────────────────────────────────────────────────────
+  // ── Plano de tratamento + resumo financeiro ──────────────────────────────────
   const treatmentPlan = Object.entries(teeth)
     .filter(([, t]) => t.procedure_name)
     .sort(([a], [b]) => parseInt(a) - parseInt(b));
 
-  const total = treatmentPlan.reduce((sum, [, t]) => sum + (parseFloat(t.procedure_value) || 0), 0);
+  const totalPlano = treatmentPlan.reduce((sum, [, t]) => sum + (parseFloat(t.procedure_value) || 0), 0);
+  const totalPago  = treatmentPlan.reduce((sum, [, t]) => {
+    if (t.payment_status === 'pago')    return sum + (parseFloat(t.procedure_value) || 0);
+    if (t.payment_status === 'parcial') return sum + (parseFloat(t.amount_paid) || 0);
+    return sum;
+  }, 0);
+  const totalPendente = totalPlano - totalPago;
 
   if (!patient) return <div className="loading"><div className="spinner" /></div>;
 
@@ -244,12 +264,25 @@ export default function Odontogram() {
                 <i className="fas fa-file-invoice-dollar" style={{ color: '#E8841A', marginRight: 8 }} />
                 Plano de Tratamento
               </span>
-              {treatmentPlan.length > 0 && (
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#22c55e' }}>
-                  Total: R$ {total.toFixed(2)}
-                </span>
-              )}
             </div>
+
+            {/* Resumo financeiro */}
+            {treatmentPlan.length > 0 && (
+              <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 120, padding: '12px 16px', background: '#f8f9fa', borderRadius: 10, border: '1px solid var(--gray-200)' }}>
+                  <div style={{ fontSize: 11, color: 'var(--gray-500)', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase' }}>Total do plano</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--gray-800)' }}>R$ {totalPlano.toFixed(2)}</div>
+                </div>
+                <div style={{ flex: 1, minWidth: 120, padding: '12px 16px', background: '#f0fdf4', borderRadius: 10, border: '1px solid #86efac' }}>
+                  <div style={{ fontSize: 11, color: '#166534', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase' }}>Pago</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#16a34a' }}>R$ {totalPago.toFixed(2)}</div>
+                </div>
+                <div style={{ flex: 1, minWidth: 120, padding: '12px 16px', background: '#fff7ed', borderRadius: 10, border: '1px solid #fdba74' }}>
+                  <div style={{ fontSize: 11, color: '#7c2d12', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase' }}>Pendente</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#ea580c' }}>R$ {totalPendente.toFixed(2)}</div>
+                </div>
+              </div>
+            )}
 
             {treatmentPlan.length === 0 ? (
               <p style={{ color: 'var(--gray-400)', fontSize: 13, padding: '12px 0' }}>
@@ -264,11 +297,13 @@ export default function Odontogram() {
                       <th>Situação</th>
                       <th>Procedimento</th>
                       <th>Valor</th>
+                      <th>Pagamento</th>
                     </tr>
                   </thead>
                   <tbody>
                     {treatmentPlan.map(([tooth, data]) => {
                       const st = getStatus(data.status);
+                      const ps = getPaymentStatus(data.payment_status);
                       return (
                         <tr key={tooth} style={{ cursor: 'pointer' }} onClick={() => selectTooth(parseInt(tooth))}>
                           <td>
@@ -288,15 +323,23 @@ export default function Odontogram() {
                           <td style={{ fontWeight: 600, color: '#22c55e' }}>
                             {data.procedure_value ? `R$ ${parseFloat(data.procedure_value).toFixed(2)}` : '—'}
                           </td>
+                          <td>
+                            <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: ps.color, color: ps.text, border: `1px solid ${ps.border}` }}>
+                              {ps.label}
+                              {data.payment_status === 'parcial' && data.amount_paid > 0 && (
+                                <span style={{ marginLeft: 4, opacity: 0.8 }}>R$ {parseFloat(data.amount_paid).toFixed(2)}</span>
+                              )}
+                            </span>
+                          </td>
                         </tr>
                       );
                     })}
                   </tbody>
                   <tfoot>
                     <tr style={{ background: 'var(--gray-50)', fontWeight: 700 }}>
-                      <td colSpan={3} style={{ padding: '10px 16px', fontSize: 13 }}>Total do plano</td>
+                      <td colSpan={4} style={{ padding: '10px 16px', fontSize: 13 }}>Total do plano</td>
                       <td style={{ padding: '10px 16px', fontSize: 14, color: '#22c55e' }}>
-                        R$ {total.toFixed(2)}
+                        R$ {totalPlano.toFixed(2)}
                       </td>
                     </tr>
                   </tfoot>
@@ -388,6 +431,40 @@ export default function Odontogram() {
                   style={{ resize: 'vertical' }}
                 />
               </div>
+
+              {/* Pagamento — só aparece se há procedimento */}
+              {form.procedure_name && (
+                <div style={{ marginBottom: 16, padding: '14px', background: '#f8f9fa', borderRadius: 10, border: '1px solid var(--gray-200)' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray-600)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <i className="fas fa-dollar-sign" style={{ color: '#22c55e' }} /> Pagamento
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                    {PAYMENT_STATUSES.map(ps => (
+                      <button key={ps.value} type="button"
+                        onClick={() => { setForm(p => ({ ...p, payment_status: ps.value })); setDirty(true); }}
+                        style={{
+                          flex: 1, padding: '6px 4px', borderRadius: 8, border: `1px solid ${form.payment_status === ps.value ? ps.border : 'var(--gray-200)'}`,
+                          background: form.payment_status === ps.value ? ps.color : '#fff',
+                          color: form.payment_status === ps.value ? ps.text : 'var(--gray-500)',
+                          fontSize: 11, fontWeight: form.payment_status === ps.value ? 700 : 400,
+                          cursor: 'pointer',
+                        }}>
+                        {ps.label}
+                      </button>
+                    ))}
+                  </div>
+                  {form.payment_status === 'parcial' && (
+                    <div>
+                      <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-600)', display: 'block', marginBottom: 4 }}>Valor já pago (R$)</label>
+                      <input type="number" className="form-control" min="0" step="0.01"
+                        placeholder="0,00"
+                        value={form.amount_paid}
+                        onChange={e => { setForm(p => ({ ...p, amount_paid: e.target.value })); setDirty(true); }}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Ações */}
               <div style={{ display: 'flex', gap: 8 }}>
