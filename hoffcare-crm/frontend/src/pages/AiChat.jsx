@@ -74,24 +74,40 @@ export default function AiChat() {
   });
 
   // ── Gravação de áudio ────────────────────────────────────────────────────────
+  const getBestAudioMime = () => {
+    const types = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/ogg;codecs=opus',
+      'audio/ogg',
+      'audio/mp4',
+    ];
+    for (const t of types) {
+      if (MediaRecorder.isTypeSupported(t)) return t;
+    }
+    return 'audio/webm'; // fallback
+  };
+
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      const stream   = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = getBestAudioMime();
+      const mr = new MediaRecorder(stream, { mimeType });
       const chunks = [];
       mr.ondataavailable = e => chunks.push(e.data);
       mr.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
-        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const blob = new Blob(chunks, { type: mimeType });
         const data = await blobToBase64(blob);
-        // Envia áudio automaticamente como mensagem
-        await sendMessage({ audioData: data, audioMime: 'audio/webm' });
+        // Normaliza para o tipo base (sem codecs) para o Gemini
+        const geminiMime = mimeType.split(';')[0];
+        await sendMessage({ audioData: data, audioMime: geminiMime });
       };
       mediaRef.current = mr;
       mr.start();
       setRecording(true);
     } catch {
-      setError('Não foi possível acessar o microfone.');
+      setError('Não foi possível acessar o microfone. Verifique as permissões do browser.');
     }
   };
 

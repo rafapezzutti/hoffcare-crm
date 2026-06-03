@@ -103,7 +103,13 @@ function httpPost(hostname, path, body, accessToken, project) {
 function buildParts(msg) {
   const parts = [];
 
-  if (msg.text) parts.push({ text: msg.text });
+  // Sempre inclui texto (mesmo vazio, usa instrução padrão quando há mídia)
+  if (msg.text) {
+    parts.push({ text: msg.text });
+  } else if (msg.audio) {
+    // Áudio sem texto: instrui o Gemini a transcrever e responder
+    parts.push({ text: 'Transcreva este áudio e responda em português brasileiro com base no conteúdo.' });
+  }
 
   if (Array.isArray(msg.images)) {
     for (const img of msg.images) {
@@ -112,7 +118,9 @@ function buildParts(msg) {
   }
 
   if (msg.audio) {
-    parts.push({ inline_data: { mime_type: msg.audio.mimeType || 'audio/webm', data: msg.audio.data } });
+    // Gemini suporta: audio/wav, audio/mp3, audio/aac, audio/ogg, audio/flac, audio/webm
+    const mimeType = msg.audio.mimeType || 'audio/webm';
+    parts.push({ inline_data: { mime_type: mimeType, data: msg.audio.data } });
   }
 
   return parts;
