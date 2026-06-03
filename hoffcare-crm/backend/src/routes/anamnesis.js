@@ -193,6 +193,57 @@ router.post('/', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── Templates ─────────────────────────────────────────────────────────────────
+
+async function ensureTemplatesTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS anamnesis_templates (
+      id        SERIAL PRIMARY KEY,
+      clinic_id INTEGER NOT NULL,
+      name      VARCHAR(200) NOT NULL,
+      questions JSONB NOT NULL DEFAULT '[]',
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+}
+ensureTemplatesTable().catch(console.error);
+
+// GET /api/anamnesis/templates
+router.get('/templates', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT * FROM anamnesis_templates WHERE clinic_id=$1 ORDER BY name',
+      [req.user.clinic_id]
+    );
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /api/anamnesis/templates
+router.post('/templates', auth, async (req, res) => {
+  const { name, questions } = req.body;
+  if (!name?.trim())       return res.status(400).json({ error: 'Nome obrigatório' });
+  if (!questions?.length)  return res.status(400).json({ error: 'Selecione ao menos uma pergunta' });
+  try {
+    const { rows } = await pool.query(
+      'INSERT INTO anamnesis_templates (clinic_id, name, questions) VALUES ($1,$2,$3) RETURNING *',
+      [req.user.clinic_id, name.trim(), JSON.stringify(questions)]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// DELETE /api/anamnesis/templates/:id
+router.delete('/templates/:id', auth, async (req, res) => {
+  try {
+    await pool.query(
+      'DELETE FROM anamnesis_templates WHERE id=$1 AND clinic_id=$2',
+      [req.params.id, req.user.clinic_id]
+    );
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // PUT /api/anamnesis/:id/fill — profissional preenche presencialmente
 router.put('/:id/fill', auth, async (req, res) => {
   const { responses } = req.body;

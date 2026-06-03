@@ -108,6 +108,12 @@ export default function Anamnesis() {
   const [saveToBank,   setSaveToBank]   = useState(true);
   const [loading,      setLoading]      = useState(false);
 
+  // ── Templates ────────────────────────────────────────────────────────────────
+  const [templates,       setTemplates]       = useState([]);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [templateName,    setTemplateName]    = useState('');
+  const [savingTemplate,  setSavingTemplate]  = useState(false);
+
   // ── Importação histórica via OCR ─────────────────────────────────────────────
   const [ocrOpen, setOcrOpen] = useState(false);
 
@@ -118,14 +124,16 @@ export default function Anamnesis() {
   const [fillLoading,   setFillLoading]   = useState(false);
 
   const load = async () => {
-    const [p, a, q] = await Promise.all([
+    const [p, a, q, tmpl] = await Promise.all([
       api.get(`/patients/${patientId}`),
       api.get(`/anamnesis?patient_id=${patientId}`),
       api.get('/anamnesis/questions'),
+      api.get('/anamnesis/templates').catch(() => ({ data: [] })),
     ]);
     setPatient(p.data);
     setList(a.data);
     setAllQuestions(q.data);
+    setTemplates(tmpl.data);
   };
 
   useEffect(() => { load(); }, [patientId]);
@@ -158,6 +166,53 @@ export default function Anamnesis() {
     setSelected(idsToSelect);
     setFilterCat('todas');
     setSearch('');
+  };
+
+  // Aplicar template salvo
+  const applyCustomTemplate = (tmpl) => {
+    const questions = Array.isArray(tmpl.questions) ? tmpl.questions : JSON.parse(tmpl.questions || '[]');
+    const tmpToAdd = [];
+    const idsToSelect = [];
+    questions.forEach(q => {
+      const existing = allQuestions.find(aq => aq.question === q);
+      if (existing) {
+        idsToSelect.push(existing.id);
+      } else {
+        const tmp = { id: `tmp_${Date.now()}_${Math.random()}`, question: q, category: 'personalizada', is_default: false };
+        tmpToAdd.push(tmp);
+        idsToSelect.push(tmp.id);
+      }
+    });
+    if (tmpToAdd.length) setAllQuestions(prev => [...prev, ...tmpToAdd]);
+    setSelected(idsToSelect);
+    setFilterCat('todas');
+    setSearch('');
+  };
+
+  // Salvar seleção atual como template
+  const handleSaveTemplate = async () => {
+    if (!templateName.trim()) return;
+    if (!selected.length) { alert('Selecione ao menos uma pergunta.'); return; }
+    setSavingTemplate(true);
+    try {
+      const res = await api.post('/anamnesis/templates', {
+        name:      templateName.trim(),
+        questions: selectedQuestions.map(q => q.question),
+      });
+      setTemplates(prev => [...prev, res.data].sort((a, b) => a.name.localeCompare(b.name)));
+      setTemplateName('');
+      setSaveTemplateOpen(false);
+    } catch (err) { alert(err.response?.data?.error || 'Erro ao salvar template.'); }
+    finally { setSavingTemplate(false); }
+  };
+
+  // Excluir template
+  const handleDeleteTemplate = async (tmpl) => {
+    if (!confirm(`Excluir template "${tmpl.name}"?`)) return;
+    try {
+      await api.delete(`/anamnesis/templates/${tmpl.id}`);
+      setTemplates(prev => prev.filter(t => t.id !== tmpl.id));
+    } catch (err) { alert(err.response?.data?.error || 'Erro ao excluir.'); }
   };
 
   const visible = useMemo(() => {
@@ -402,6 +457,70 @@ export default function Anamnesis() {
             </button>
           </div>
         }>
+
+        {/* ── Faixa de templates ───────────────────────────────────────────── */}
+        <div style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray-600)' }}>
+              <i className="fas fa-bookmark" style={{ marginRight: 6, color: '#f59e0b' }} />
+              Layouts salvos
+            </span>
+            {/* Botão salvar seleção atual como template */}
+            {selected.length > 0 && !saveTemplateOpen && (
+              <button type="button" onClick={() => { setTemplateName(''); setSaveTemplateOpen(true); }}
+                style={{ padding: '3px 10px', border: '1px solid #f59e0b', borderRadius: 6, background: '#fefce8', color: '#92400e', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                <i className="fas fa-save" style={{ marginRight: 4 }} />Salvar seleção atual
+              </button>
+            )}
+          </div>
+
+          {/* Input para nome do template */}
+          {saveTemplateOpen && (
+            <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+              <input className="form-control" style={{ fontSize: 12, flex: 1 }}
+                placeholder="Nome do layout (ex: Consulta Inicial Odonto)"
+                value={templateName}
+                onChange={e => setTemplateName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSaveTemplate(); } }}
+                autoFocus />
+              <button type="button" className="btn btn-primary btn-sm" disabled={savingTemplate || !templateName.trim()} onClick={handleSaveTemplate}>
+                {savingTemplate ? '...' : 'Salvar'}
+              </button>
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => setSaveTemplateOpen(false)}>×</button>
+            </div>
+          )}
+
+          {/* Lista de templates */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* Template fixo: Saúde Bucal */}
+            <button type="button" onClick={applyTemplate}
+              style={{ padding: '5px 12px', borderRadius: 20, border: '1px solid #34d399', background: '#f0fdf4', color: '#16a34a', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <i className="fas fa-tooth" style={{ fontSize: 10 }} />Saúde Bucal
+            </button>
+
+            {templates.length === 0 && (
+              <span style={{ fontSize: 12, color: 'var(--gray-400)', fontStyle: 'italic' }}>
+                Nenhum layout salvo ainda — selecione perguntas e clique em "Salvar seleção atual"
+              </span>
+            )}
+
+            {templates.map(tmpl => (
+              <div key={tmpl.id} style={{ display: 'flex', alignItems: 'center', gap: 0, borderRadius: 20, border: '1px solid #fde68a', background: '#fffbeb', overflow: 'hidden' }}>
+                <button type="button" onClick={() => applyCustomTemplate(tmpl)}
+                  style={{ padding: '5px 12px', background: 'none', border: 'none', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  <i className="fas fa-bookmark" style={{ marginRight: 4, fontSize: 10 }} />
+                  {tmpl.name}
+                  <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.6 }}>
+                    ({Array.isArray(tmpl.questions) ? tmpl.questions.length : JSON.parse(tmpl.questions || '[]').length}q)
+                  </span>
+                </button>
+                <button type="button" onClick={() => handleDeleteTemplate(tmpl)}
+                  style={{ padding: '5px 8px', background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 11, borderLeft: '1px solid #fde68a' }}
+                  title="Excluir layout">×</button>
+              </div>
+            ))}
+          </div>
+        </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, minHeight: 480 }}>
 
