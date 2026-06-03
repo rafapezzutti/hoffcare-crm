@@ -135,7 +135,7 @@ export default function Permissions() {
               <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--gray-100)', background: '#f8f9fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 15 }}>{currentUser.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{t('permissions.profile')}: <strong>{currentUser.role}</strong> · {currentUser.email}</div>
+                  <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{t('permissions.profile')}: <strong>{{ admin: 'Master', responsavel: 'Responsável', user: 'Usuário', recepcionista: 'Recepcionista' }[currentUser.role] || currentUser.role}</strong> · {currentUser.email}</div>
                 </div>
                 {currentUser.modules.some(m => m.is_override) && (
                   <button className="btn btn-outline btn-sm" style={{ fontSize: 11 }}

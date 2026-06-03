@@ -322,7 +322,7 @@
     "fullName": "Nome Completo",
     "password": "Senha",
     "passwordHint": "Deixe em branco para manter",
-    "admin": "Administrador",
+    "admin": "Master",
     "responsible": "Responsável",
     "cancel": "Cancelar",
     "save": "Salvar"
@@ -718,7 +718,7 @@
     "noEmail": "Profissional sem e-mail cadastrado.",
     "errorLoad": "Erro ao carregar extrato",
     "selectHint": "Selecione o mês e clique em Gerar Extrato",
-    "adminAllClinics": "Admin — Todas as Clínicas"
+    "adminAllClinics": "Master — Todas as Clínicas"
   },
   "profTypes": {
     "medico": "Médico",

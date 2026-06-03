@@ -49,6 +49,7 @@ export default function Layout() {
   const handleLogout = () => { logout(); navigate('/login'); };
 
   const initials = user?.name?.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+  const roleLabel = (role) => ({ admin: 'Master', responsavel: 'Responsável', user: 'Usuário', recepcionista: 'Recepcionista' }[role] || role);
 
   const handleClinicChange = (clinic) => {
     setSelectedClinic(clinic);
@@ -154,8 +155,8 @@ export default function Layout() {
           {navItems.map(renderNavItem)}
           {user?.role === 'admin' && adminItems.map(renderNavItem)}
 
-          {/* Talk to Me — visível apenas se habilitado */}
-          {user?.can_use_ai_chat && (
+          {/* Talk to Me — visível se habilitado OU se for admin */}
+          {(user?.can_use_ai_chat || user?.role === 'admin') && (
             <>
               <div className="sidebar-section">IA</div>
               <NavLink to="/ai-chat" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
@@ -175,7 +176,7 @@ export default function Layout() {
             <div style={{ overflow: 'hidden' }}>
               <div style={{ fontSize: 12, color: '#dee2e6', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</div>
               <div style={{ fontSize: 10, color: user?.is_trial ? '#f59e0b' : '#6c757d', textTransform: 'capitalize' }}>
-                {user?.is_trial ? '⏳ Trial' : user?.role}
+                {user?.is_trial ? '⏳ Trial' : roleLabel(user?.role)}
               </div>
             </div>
           </div>

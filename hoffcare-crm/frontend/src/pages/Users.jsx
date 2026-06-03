@@ -120,7 +120,7 @@ export default function Users() {
                       )}
                     </td>
                     <td>{u.email}</td>
-                    <td><span className={`badge ${u.role === 'admin' ? 'badge-orange' : 'badge-blue'}`}>{u.role === 'admin' ? t('users.admin') : t('users.responsible')}</span></td>
+                    <td><span className={`badge ${u.role === 'admin' ? 'badge-orange' : 'badge-blue'}`}>{u.role === 'admin' ? '👑 Master' : t('users.responsible')}</span></td>
                     <td>{u.clinic_name || '-'}</td>
                     <td><div className="table-actions">
                       {u.is_trial && (
@@ -129,8 +129,10 @@ export default function Users() {
                           <i className="fas fa-user-check" />
                         </button>
                       )}
-                      <button className="btn btn-outline btn-sm" onClick={() => handleOpen(u)}><i className="fas fa-pen" /></button>
-                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(u.id)}><i className="fas fa-trash" /></button>
+                      {u.role !== 'admin' && <>
+                        <button className="btn btn-outline btn-sm" onClick={() => handleOpen(u)}><i className="fas fa-pen" /></button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleDelete(u.id)}><i className="fas fa-trash" /></button>
+                      </>}
                     </div></td>
                   </tr>
                 );
@@ -184,7 +186,6 @@ export default function Users() {
             <div className="form-group"><label className="form-label">{t('users.role')} <span className="required">*</span></label>
               <select className="form-control" {...f('role')}>
                 <option value="responsavel">{t('users.responsible')}</option>
-                <option value="admin">{t('users.admin')}</option>
               </select>
             </div>
             <div className="form-group"><label className="form-label">{t('users.clinic')}</label>

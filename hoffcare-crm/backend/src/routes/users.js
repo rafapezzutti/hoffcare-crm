@@ -25,8 +25,9 @@ router.post('/', auth, adminOnly, async (req, res) => {
   if (!name || !email || !password || !role)
     return res.status(400).json({ error: 'Campos obrigatórios: nome, email, senha, perfil' });
 
-  if (!['admin', 'responsavel'].includes(role))
-    return res.status(400).json({ error: 'Perfil inválido. Use: admin ou responsavel' });
+  // role=admin é exclusivo do Master da plataforma — não pode ser criado via API
+  if (!['responsavel'].includes(role))
+    return res.status(400).json({ error: 'Perfil inválido. Use: responsavel' });
 
   try {
     const hashed = await bcrypt.hash(password, 10);
@@ -62,6 +63,18 @@ router.post('/:id/convert-trial', auth, adminOnly, async (req, res) => {
 // Update user (admin only)
 router.put('/:id', auth, adminOnly, async (req, res) => {
   const { name, email, password, role, clinic_id } = req.body;
+
+  // Impede escalar qualquer usuário para Master via API
+  if (role === 'admin') {
+    return res.status(403).json({ error: 'Não é possível atribuir o perfil Master via interface.' });
+  }
+
+  // Impede editar o próprio usuário Master (rafael.pezzutti@gmail.com)
+  const { rows: target } = await pool.query('SELECT email FROM users WHERE id=$1', [req.params.id]);
+  if (target[0]?.email === 'rafael.pezzutti@gmail.com') {
+    return res.status(403).json({ error: 'O usuário Master não pode ser editado via interface.' });
+  }
+
   try {
     let query, params;
     if (password) {
@@ -83,6 +96,11 @@ router.put('/:id', auth, adminOnly, async (req, res) => {
 // Delete user (admin only)
 router.delete('/:id', auth, adminOnly, async (req, res) => {
   try {
+    // Impede deletar o usuário Master
+    const { rows } = await pool.query('SELECT email FROM users WHERE id=$1', [req.params.id]);
+    if (rows[0]?.email === 'rafael.pezzutti@gmail.com') {
+      return res.status(403).json({ error: 'O usuário Master não pode ser removido.' });
+    }
     await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
     res.json({ message: 'Usuário removido' });
   } catch (err) {
