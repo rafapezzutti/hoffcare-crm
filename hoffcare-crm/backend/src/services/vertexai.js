@@ -213,27 +213,33 @@ function httpPost(hostname, path, body, accessToken, project) {
 
 // ── Extração a partir de texto (documentos: xlsx, csv, docx, txt, pdf) ────────
 
-const PROMPT_TEXT_BATCH = `Você é um assistente especializado em extração de dados de pacientes em português brasileiro.
-Analise o texto abaixo, que pode vir de uma planilha Excel, documento Word, CSV, TXT ou PDF.
-O texto pode conter UMA ou MAIS linhas/registros de pacientes.
-Extraia TODOS os pacientes encontrados no texto.
-Retorne APENAS um array JSON válido, sem markdown, sem blocos de código, sem explicações.
-Cada elemento representa um paciente. Use null para campos ausentes ou não identificáveis.
-CPF deve conter somente dígitos (sem pontos ou traços).
-Birthdate no formato YYYY-MM-DD se possível.
+const PROMPT_TEXT_BATCH = `Você é um assistente especializado em extração de nomes e CPFs de documentos brasileiros.
+Analise o texto abaixo — pode ser uma lista de pacientes, planilha de notas fiscais, cadastro, tabela, relatório ou qualquer documento que contenha nomes e CPFs de pessoas.
+Sua tarefa é identificar TODAS as pessoas (físicas) presentes no texto, independentemente do formato do documento.
+
+REGRAS IMPORTANTES:
+- Extraia TODA pessoa que tenha nome completo E/OU CPF identificável no texto
+- CPF pode estar formatado (000.000.000-00) ou só números — converta sempre para somente dígitos
+- Se houver texto como "Menor X" ou "(Menor X)" junto a um nome, é o nome do paciente real — use esse nome
+- Se o mesmo CPF aparece várias vezes, inclua apenas UMA vez (remova duplicatas pelo CPF)
+- Ignore totalizadores, cabeçalhos, meses, valores monetários — foque em NOMES e CPFs
+- Use null para campos não encontrados. Não invente dados.
+
+Retorne APENAS um array JSON válido, sem markdown, sem blocos de código, sem texto adicional.
+Se não encontrar nenhuma pessoa, retorne: []
 
 Estrutura obrigatória:
 [
   {
-    "name": "nome completo",
-    "cpf": "somente dígitos",
+    "name": "nome completo da pessoa",
+    "cpf": "somente 11 dígitos sem pontos ou traços",
     "birthdate": "YYYY-MM-DD ou null",
     "phone": "somente dígitos ou null",
     "email": "email ou null",
-    "address": "endereço ou null",
+    "address": "endereço completo ou null",
     "gender": "M ou F ou null",
     "profession": "profissão ou null",
-    "notes": "observações ou null"
+    "notes": "observações relevantes ou null"
   }
 ]
 
@@ -270,8 +276,16 @@ async function extractFromText(textContent) {
 
   const text  = result.candidates[0].content.parts[0].text.trim();
   const clean = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+
+  // Tenta match de array JSON
   const match = clean.match(/\[[\s\S]*\]/);
-  if (!match) throw new Error('A IA não retornou um array JSON válido.');
+  if (!match) {
+    console.warn('[OCR-DOC] Resposta da IA (não era array):', clean.slice(0, 500));
+    // Tenta objeto único e envolve em array
+    const objMatch = clean.match(/\{[\s\S]*\}/);
+    if (objMatch) return [JSON.parse(objMatch[0])];
+    throw new Error('A IA não encontrou pessoas com nome/CPF neste documento. Verifique se o arquivo contém dados de pacientes.');
+  }
   return JSON.parse(match[0]);
 }
 
