@@ -414,10 +414,43 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 }
 
 /* Responsive */
+/* Mobile topbar — visível só no celular */
+.mobile-topbar {
+  display: none;
+}
+
 @media (max-width: 768px) {
-  .sidebar { width: 0; overflow: hidden; }
-  .sidebar.open { width: 250px; }
-  .main-content { margin-left: 0; }
+  .mobile-topbar {
+    display: flex;
+    align-items: center;
+    justifyifyContent: space-between;
+    gap: 12px;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 52px;
+    background: #fff;
+    border-bottom: 1px solid var(--gray-100);
+    padding: 0 16px;
+    z-index: 990;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .mobile-topbar span:last-child { margin-left: auto; }
+
+  .sidebar {
+    width: 0;
+    overflow: hidden;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 999;
+    transition: width 0.25s ease;
+  }
+  .sidebar.open { width: 260px; }
+  .sidebar-overlay { display: block !important; }
+
+  .main-content {
+    margin-left: 0;
+    padding-top: 60px; /* espaço para a topbar */
+  }
   .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
   .page { padding: 16px; }
   .stats-grid { grid-template-columns: 1fr 1fr; }

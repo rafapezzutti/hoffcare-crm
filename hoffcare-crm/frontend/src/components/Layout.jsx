@@ -18,8 +18,9 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const { clinics, selectedClinic, setSelectedClinic } = useClinic();
   const navigate = useNavigate();
-  const [clinicOpen, setClinicOpen]   = useState(false);
-  const [sections,   setSections]     = useState(loadSections);
+  const [clinicOpen,  setClinicOpen]  = useState(false);
+  const [sections,    setSections]    = useState(loadSections);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const toggleSection = (key) => {
     setSections(prev => {
@@ -45,7 +46,9 @@ export default function Layout() {
   const NavItem = ({ to, icon, label, exact }) => {
     if (user?.is_autonomous && autonomousHidden.includes(to)) return null;
     return (
-      <NavLink to={to} end={exact} className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+      <NavLink to={to} end={exact}
+        className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+        onClick={() => setSidebarOpen(false)}>
         {icon.startsWith('fa-') ? <i className={`fas ${icon}`} /> : <span style={{ fontSize: 15 }}>{icon}</span>}
         {label}
       </NavLink>
@@ -76,7 +79,27 @@ export default function Layout() {
 
   return (
     <div className="layout">
-      <aside className="sidebar">
+      {/* Overlay mobile — fecha sidebar ao clicar fora */}
+      {sidebarOpen && (
+        <div onClick={() => setSidebarOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 998, display: 'none' }}
+          className="sidebar-overlay" />
+      )}
+
+      {/* Topbar mobile — hambúrguer + nome da clínica */}
+      <div className="mobile-topbar">
+        <button onClick={() => setSidebarOpen(o => !o)}
+          style={{ background: 'none', border: 'none', color: '#1a2535', fontSize: 22, cursor: 'pointer', padding: '0 4px' }}>
+          <i className="fas fa-bars" />
+        </button>
+        <span style={{ fontWeight: 700, fontSize: 15, color: '#1a2535' }}>
+          {selectedClinic?.name || 'HoffCare'}
+        </span>
+        <span style={{ fontSize: 13, color: '#666' }}>{user?.name?.split(' ')[0]}</span>
+      </div>
+
+      <aside className={`sidebar${sidebarOpen ? ' open' : ''}`}
+        style={sidebarOpen ? { zIndex: 999 } : {}}>
         {/* Logo P. Soluções para Saúde */}
         <div className="sidebar-logo" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 0, padding: '20px 16px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
