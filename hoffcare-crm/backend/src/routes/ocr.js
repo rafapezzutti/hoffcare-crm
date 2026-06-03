@@ -1,18 +1,30 @@
 const express  = require('express');
 const multer   = require('multer');
 const { auth } = require('../middleware/auth');
-const { extractFromImage } = require('../services/vertexai');
+const { extractFromImage, extractFromText } = require('../services/vertexai');
+const { extractText, detectType }          = require('../services/documentParser');
 
 const router = express.Router();
 
-// Armazena em memória — não grava nada em disco (LGPD: imagem não é persistida)
-const upload = multer({
+// Upload de imagens
+const uploadImage = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
     if (allowed.includes(file.mimetype)) cb(null, true);
     else cb(new Error('Formato não suportado. Use JPG, PNG ou WEBP.'));
+  },
+});
+
+// Upload de documentos (xlsx, csv, docx, txt, pdf)
+const uploadDocument = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB
+  fileFilter: (_req, file, cb) => {
+    const type = detectType(file.mimetype, file.originalname);
+    if (type) cb(null, true);
+    else cb(new Error(`Formato não suportado. Use: xlsx, xls, csv, docx, doc, txt ou pdf.`));
   },
 });
 
@@ -26,7 +38,7 @@ const VALID_TYPES = ['patient', 'patient_batch', 'anamnesis', 'financial', 'evol
  *
  * Response: { success: true, type, data: { ...campos extraídos } }
  */
-router.post('/extract', auth, upload.single('image'), async (req, res) => {
+router.post('/extract', auth, uploadImage.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Nenhuma imagem enviada.' });
@@ -70,6 +82,43 @@ router.post('/extract', auth, upload.single('image'), async (req, res) => {
     }
 
     return res.status(500).json({ error: 'Erro ao processar imagem: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/ocr/extract-document
+ * Body: multipart/form-data
+ *   file (file) — xlsx, xls, csv, docx, doc, txt, pdf
+ *
+ * Response: { success: true, count, data: [ ...pacientes ] }
+ */
+router.post('/extract-document', auth, uploadDocument.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+
+    if (!process.env.GOOGLE_CLOUD_PROJECT) {
+      return res.status(503).json({ error: 'Serviço OCR não configurado.' });
+    }
+
+    const { buffer, mimetype, originalname, size } = req.file;
+    console.log(`[OCR-DOC] Processando "${originalname}" (${(size / 1024).toFixed(0)} KB)`);
+
+    // 1. Extrai texto do arquivo
+    const text = await extractText(buffer, mimetype, originalname);
+    console.log(`[OCR-DOC] Texto extraído: ${text.length} chars`);
+
+    // 2. Manda para Gemini extrair pacientes
+    const patients = await extractFromText(text);
+    console.log(`[OCR-DOC] Pacientes encontrados: ${patients.length}`);
+
+    return res.json({ success: true, count: patients.length, data: patients });
+
+  } catch (err) {
+    console.error('[OCR-DOC] Erro:', err.message);
+    if (err.message.includes('quota') || err.message.includes('RESOURCE_EXHAUSTED')) {
+      return res.status(429).json({ error: 'Limite de requisições atingido. Aguarde alguns minutos.' });
+    }
+    return res.status(500).json({ error: 'Erro ao processar arquivo: ' + err.message });
   }
 });
 

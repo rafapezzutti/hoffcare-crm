@@ -3,13 +3,28 @@ import api from '../services/api';
 
 /**
  * OcrBatchCapture — captura em lote de pacientes via IA
- * Extrai múltiplos pacientes de uma única imagem, exibe tabela para revisão,
- * valida dados essenciais e salva em lote com progresso por linha.
+ * Aceita imagens (foto/scan) e documentos (xlsx, csv, docx, txt, pdf).
+ * Extrai múltiplos pacientes, exibe tabela para revisão e salva em lote.
  *
  * Props:
  *   onClose     — callback para fechar o modal
- *   onComplete  — callback({ saved, skipped }) chamado ao finalizar
+ *   onComplete  — callback({ saved, skipped, errors }) chamado ao finalizar
  */
+
+const IMAGE_TYPES = ['image/jpeg','image/jpg','image/png','image/webp','image/heic','image/heif'];
+const DOC_EXTS    = ['.xlsx','.xls','.csv','.docx','.doc','.txt','.pdf'];
+const DOC_LABELS  = { '.xlsx':'Excel', '.xls':'Excel', '.csv':'CSV', '.docx':'Word', '.doc':'Word', '.txt':'TXT', '.pdf':'PDF' };
+
+const isImage = (file) => IMAGE_TYPES.includes(file.type);
+const isDoc   = (file) => DOC_EXTS.some(ext => file.name.toLowerCase().endsWith(ext));
+const fileIcon = (file) => {
+  if (isImage(file)) return '🖼️';
+  if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) return '📊';
+  if (file.name.endsWith('.csv')) return '📋';
+  if (file.name.endsWith('.docx') || file.name.endsWith('.doc')) return '📝';
+  if (file.name.endsWith('.pdf')) return '📄';
+  return '📁';
+};
 
 const REQUIRED_FIELDS = ['name', 'cpf'];
 
@@ -33,49 +48,62 @@ const validateRow = (row) => {
 };
 
 export default function OcrBatchCapture({ onClose, onComplete }) {
-  const [step, setStep]         = useState('capture'); // capture | preview | review | saving | done
-  const [imageUrl, setImageUrl] = useState(null);
-  const [imageFile, setImageFile] = useState(null);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState(null);
-  const [rows, setRows]         = useState([]);       // pacientes extraídos
-  const [selected, setSelected] = useState([]);       // índices selecionados para salvar
-  const [progress, setProgress] = useState([]);       // { status, msg } por linha
-  const [summary, setSummary]   = useState(null);     // { saved, skipped, errors }
-  const fileRef  = useRef();
+  const [step, setStep]           = useState('capture');
+  const [file, setFile]           = useState(null);    // arquivo selecionado (imagem ou doc)
+  const [imageUrl, setImageUrl]   = useState(null);    // preview (só para imagens)
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState(null);
+  const [rows, setRows]           = useState([]);
+  const [selected, setSelected]   = useState([]);
+  const [progress, setProgress]   = useState([]);
+  const [summary, setSummary]     = useState(null);
+  const fileRef   = useRef();
   const cameraRef = useRef();
 
-  // ── Captura ────────────────────────────────────────────────────────────────
-  const handleFile = (file) => {
-    if (!file) return;
-    setImageFile(file);
-    setImageUrl(URL.createObjectURL(file));
+  // ── Seleção de arquivo ─────────────────────────────────────────────────────
+  const handleFile = (f) => {
+    if (!f) return;
+    if (!isImage(f) && !isDoc(f)) {
+      setError('Formato não suportado. Use: imagem, Excel, CSV, Word, TXT ou PDF.');
+      return;
+    }
+    setFile(f);
+    setImageUrl(isImage(f) ? URL.createObjectURL(f) : null);
     setError(null);
     setStep('preview');
   };
 
   // ── Extração ───────────────────────────────────────────────────────────────
   const handleExtract = async () => {
-    if (!imageFile) return;
+    if (!file) return;
     setLoading(true); setError(null);
     try {
+      let extracted;
       const form = new FormData();
-      form.append('image', imageFile);
-      form.append('type', 'patient_batch');
-      const res = await api.post('/ocr/extract', form, { headers: { 'Content-Type': 'multipart/form-data' } });
 
-      const extracted = Array.isArray(res.data.data) ? res.data.data : [res.data.data];
-      // Normaliza CPF e adiciona id temporário
+      if (isImage(file)) {
+        // Rota de imagem (OCR visual)
+        form.append('image', file);
+        form.append('type', 'patient_batch');
+        const res = await api.post('/ocr/extract', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+        extracted = Array.isArray(res.data.data) ? res.data.data : [res.data.data];
+      } else {
+        // Rota de documento (extração de texto)
+        form.append('file', file);
+        const res = await api.post('/ocr/extract-document', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+        extracted = Array.isArray(res.data.data) ? res.data.data : [res.data.data];
+      }
+
       const normalized = extracted.map((p, i) => ({
         ...p,
         _id: i,
         cpf: p.cpf ? p.cpf.replace(/\D/g, '') : '',
       }));
       setRows(normalized);
-      setSelected(normalized.map((_, i) => i)); // seleciona todos por padrão
+      setSelected(normalized.map((_, i) => i));
       setStep('review');
     } catch (err) {
-      setError(err.response?.data?.error || 'Erro ao processar imagem. Tente novamente.');
+      setError(err.response?.data?.error || 'Erro ao processar arquivo. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -191,17 +219,20 @@ export default function OcrBatchCapture({ onClose, onComplete }) {
           {step === 'capture' && (
             <div>
               <p style={{ color: '#666', fontSize: 14, marginBottom: 16 }}>
-                Tire uma foto ou faça upload de um documento com <strong>um ou mais pacientes</strong> — lista de cadastro, fichas múltiplas, tabela em papel, etc.
+                Selecione um arquivo com <strong>um ou mais pacientes</strong>. Aceita imagens, planilhas Excel, CSV, Word, TXT e PDF.
               </p>
               <div style={{ border: '2px dashed #4DB8E8', borderRadius: 12, padding: '40px 24px', textAlign: 'center', cursor: 'pointer', background: 'rgba(77,184,232,0.04)' }}
                 onClick={() => fileRef.current.click()}
                 onDrop={e => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); }}
                 onDragOver={e => e.preventDefault()}>
-                <div style={{ fontSize: 40, marginBottom: 10 }}>📄</div>
-                <div style={{ fontWeight: 600, marginBottom: 6 }}>Clique para selecionar ou arraste a imagem</div>
-                <div style={{ fontSize: 12, color: '#999' }}>JPG, PNG ou WEBP • máx. 10 MB</div>
+                <div style={{ fontSize: 40, marginBottom: 10 }}>📂</div>
+                <div style={{ fontWeight: 600, marginBottom: 6 }}>Clique para selecionar ou arraste o arquivo</div>
+                <div style={{ fontSize: 12, color: '#999' }}>Imagens (JPG/PNG) • Excel (.xlsx/.csv) • Word (.docx) • PDF • TXT • máx. 20 MB</div>
               </div>
-              <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFile(e.target.files[0])} />
+              <input ref={fileRef} type="file"
+                accept="image/*,.xlsx,.xls,.csv,.docx,.doc,.txt,.pdf"
+                style={{ display: 'none' }} onChange={e => handleFile(e.target.files[0])} />
+              {error && <div style={{ background: '#fff3cd', border: '1px solid #ffc107', borderRadius: 8, padding: '10px 14px', marginTop: 12, fontSize: 13, color: '#856404' }}>⚠️ {error}</div>}
               <div style={{ textAlign: 'center', margin: '14px 0', color: '#aaa', fontSize: 13 }}>ou</div>
               <button style={{ ...s.btn('secondary'), width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                 onClick={() => cameraRef.current.click()}>
@@ -212,10 +243,25 @@ export default function OcrBatchCapture({ onClose, onComplete }) {
           )}
 
           {/* STEP: preview */}
-          {step === 'preview' && (
+          {step === 'preview' && file && (
             <div>
-              <p style={{ color: '#666', fontSize: 14, marginBottom: 12 }}>Imagem carregada. Verifique se está nítida e legível:</p>
-              <img src={imageUrl} alt="Preview" style={{ width: '100%', maxHeight: 300, objectFit: 'contain', borderRadius: 10, border: '1px solid #eee' }} />
+              {isImage(file) ? (
+                <>
+                  <p style={{ color: '#666', fontSize: 14, marginBottom: 12 }}>Verifique se a imagem está nítida e legível:</p>
+                  <img src={imageUrl} alt="Preview" style={{ width: '100%', maxHeight: 300, objectFit: 'contain', borderRadius: 10, border: '1px solid #eee' }} />
+                </>
+              ) : (
+                <div style={{ background: '#f8f9fa', borderRadius: 12, padding: '32px 24px', textAlign: 'center', border: '1px solid #eee' }}>
+                  <div style={{ fontSize: 48, marginBottom: 12 }}>{fileIcon(file)}</div>
+                  <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 6 }}>{file.name}</div>
+                  <div style={{ fontSize: 13, color: '#888', marginBottom: 4 }}>
+                    {DOC_LABELS[DOC_EXTS.find(e => file.name.toLowerCase().endsWith(e))] || 'Documento'} • {(file.size / 1024).toFixed(0)} KB
+                  </div>
+                  <div style={{ fontSize: 13, color: '#4DB8E8', marginTop: 8 }}>
+                    ✅ Arquivo pronto para extração
+                  </div>
+                </div>
+              )}
               {error && <div style={{ background: '#fff3cd', border: '1px solid #ffc107', borderRadius: 8, padding: '10px 14px', marginTop: 12, fontSize: 14, color: '#856404' }}>⚠️ {error}</div>}
             </div>
           )}
@@ -339,7 +385,9 @@ export default function OcrBatchCapture({ onClose, onComplete }) {
           {loading && (
             <div style={{ textAlign: 'center', padding: '32px 0' }}>
               <div style={{ fontSize: 36, marginBottom: 12 }}>⏳</div>
-              <div style={{ fontWeight: 600, marginBottom: 6 }}>A IA está lendo os pacientes...</div>
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>
+                {file && isImage(file) ? 'A IA está lendo a imagem...' : 'Extraindo dados do arquivo...'}
+              </div>
               <div style={{ color: '#888', fontSize: 13 }}>Aguarde alguns segundos.</div>
             </div>
           )}
@@ -352,8 +400,10 @@ export default function OcrBatchCapture({ onClose, onComplete }) {
 
             {step === 'preview' && (
               <>
-                <button style={s.btn('secondary')} onClick={() => { setStep('capture'); setImageUrl(null); setImageFile(null); }}>Trocar imagem</button>
-                <button style={s.btn('blue')} onClick={handleExtract}>🤖 Extrair pacientes com IA</button>
+                <button style={s.btn('secondary')} onClick={() => { setStep('capture'); setFile(null); setImageUrl(null); setError(null); }}>Trocar arquivo</button>
+                <button style={s.btn('blue')} onClick={handleExtract}>
+                  🤖 Extrair pacientes com IA
+                </button>
               </>
             )}
 

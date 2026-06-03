@@ -211,4 +211,68 @@ function httpPost(hostname, path, body, accessToken, project) {
   });
 }
 
-module.exports = { extractFromImage };
+// ── Extração a partir de texto (documentos: xlsx, csv, docx, txt, pdf) ────────
+
+const PROMPT_TEXT_BATCH = `Você é um assistente especializado em extração de dados de pacientes em português brasileiro.
+Analise o texto abaixo, que pode vir de uma planilha Excel, documento Word, CSV, TXT ou PDF.
+O texto pode conter UMA ou MAIS linhas/registros de pacientes.
+Extraia TODOS os pacientes encontrados no texto.
+Retorne APENAS um array JSON válido, sem markdown, sem blocos de código, sem explicações.
+Cada elemento representa um paciente. Use null para campos ausentes ou não identificáveis.
+CPF deve conter somente dígitos (sem pontos ou traços).
+Birthdate no formato YYYY-MM-DD se possível.
+
+Estrutura obrigatória:
+[
+  {
+    "name": "nome completo",
+    "cpf": "somente dígitos",
+    "birthdate": "YYYY-MM-DD ou null",
+    "phone": "somente dígitos ou null",
+    "email": "email ou null",
+    "address": "endereço ou null",
+    "gender": "M ou F ou null",
+    "profession": "profissão ou null",
+    "notes": "observações ou null"
+  }
+]
+
+Texto para analisar:
+`;
+
+async function extractFromText(textContent) {
+  if (!process.env.GOOGLE_CREDENTIALS_JSON) {
+    throw new Error('GOOGLE_CREDENTIALS_JSON não configurado.');
+  }
+
+  const authGL = new GoogleAuth({
+    credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON),
+    scopes: ['https://www.googleapis.com/auth/generative-language'],
+  });
+  const tokenGL = await authGL.getAccessToken();
+
+  // Limita o texto a 30.000 chars para não exceder tokens
+  const truncated = textContent.length > 30000
+    ? textContent.slice(0, 30000) + '\n[... texto truncado ...]'
+    : textContent;
+
+  const body = JSON.stringify({
+    contents: [{ parts: [{ text: PROMPT_TEXT_BATCH + truncated }] }],
+    generationConfig: { maxOutputTokens: 4096, temperature: 0.1 },
+  });
+
+  const project = process.env.GOOGLE_CLOUD_PROJECT;
+  const result  = await httpPost(
+    'generativelanguage.googleapis.com',
+    `/v1beta/models/${MODEL}:generateContent`,
+    body, tokenGL, project
+  );
+
+  const text  = result.candidates[0].content.parts[0].text.trim();
+  const clean = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+  const match = clean.match(/\[[\s\S]*\]/);
+  if (!match) throw new Error('A IA não retornou um array JSON válido.');
+  return JSON.parse(match[0]);
+}
+
+module.exports = { extractFromImage, extractFromText };
