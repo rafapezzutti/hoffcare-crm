@@ -85,7 +85,11 @@ function httpPost(hostname, path, body, accessToken, project) {
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
-          if (json.error) return reject(new Error(`${json.error.message} (code: ${json.error.code})`));
+          if (json.error) {
+            const err = new Error(`${json.error.message} (code: ${json.error.code})`);
+            err.statusCode = json.error.code;
+            return reject(err);
+          }
           resolve(json);
         } catch {
           reject(new Error(`Resposta inválida: ${data.slice(0, 300)}`));
@@ -96,6 +100,25 @@ function httpPost(hostname, path, body, accessToken, project) {
     req.write(body);
     req.end();
   });
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function httpPostWithRetry(hostname, path, body, accessToken, project, maxRetries = 4) {
+  const RETRYABLE = [429, 500, 503, 529];
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await httpPost(hostname, path, body, accessToken, project);
+    } catch (err) {
+      const isRetryable = RETRYABLE.includes(err.statusCode);
+      if (!isRetryable || attempt === maxRetries) throw err;
+      const delay = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 500, 16000);
+      console.warn(`[AI-CHAT] ${hostname} erro ${err.statusCode}, tentativa ${attempt + 1}/${maxRetries} em ${Math.round(delay)}ms`);
+      await sleep(delay);
+    }
+  }
 }
 
 // ── Monta partes multimodais de uma mensagem ──────────────────────────────────
@@ -174,7 +197,7 @@ async function chat(history) {
   let lastError;
   for (const ep of endpoints) {
     try {
-      const result = await httpPost(ep.hostname, ep.path, body, ep.token, project);
+      const result = await httpPostWithRetry(ep.hostname, ep.path, body, ep.token, project);
       const raw    = result.candidates[0].content.parts[0].text.trim();
       const clean  = raw.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
 
