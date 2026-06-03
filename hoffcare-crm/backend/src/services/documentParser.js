@@ -149,13 +149,13 @@ function extractPatientsDirectly(rawText) {
         }
       }
 
-      // Também extrai CPFs inline dentro de texto "Menor X CPF"
-      const inlineMenorCPFs = extractInlineCPFs(line);
-      for (const cpf of inlineMenorCPFs) {
-        if (!patients.has(cpf)) {
-          // Tenta extrair o nome do Menor do texto
-          const menorMatch = line.match(/\bmenor\s+([A-Za-zÀ-ú\s]+?)(?:\s+\d{3}\.\d{3}|\s*[,)]|$)/i);
-          if (menorMatch) addPatient(menorMatch[1].trim(), cpf);
+      // Extrai CPFs de "Menor X" inline — associa ao nome do Menor, não do responsável
+      const menorMatches = [...line.matchAll(/\bmenor\s+([A-Za-zÀ-ú][A-Za-zÀ-ú\s]{3,}?)\s+(\d{3}\.\d{3}\.\d{3}-\d{2})/gi)];
+      for (const m of menorMatches) {
+        const menorNome = m[1].trim();
+        const menorCpf  = m[2].replace(/\D/g, '');
+        if (!patients.has(menorCpf) && looksLikeName(menorNome)) {
+          patients.set(menorCpf, { name: menorNome, cpf: menorCpf });
         }
       }
       continue;

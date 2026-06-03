@@ -159,13 +159,19 @@ export default function OcrBatchCapture({ onClose, onComplete }) {
         saved++;
       } catch (err) {
         const msg = err.response?.data?.error || 'Erro';
-        prog[i] = { status: 'error', msg: msg.includes('cpf') || msg.includes('CPF') || msg.includes('unique') ? 'CPF já cadastrado' : msg };
-        errors++;
+        const isDuplicate = msg.toLowerCase().includes('cpf') || msg.toLowerCase().includes('unique') || msg.toLowerCase().includes('duplicat') || (err.response?.status === 409);
+        if (isDuplicate) {
+          prog[i] = { status: 'skipped', msg: 'Já cadastrado ⚠️' };
+          skipped++;
+        } else {
+          prog[i] = { status: 'error', msg };
+          errors++;
+        }
       }
       setProgress([...prog]);
     }
 
-    skipped = rows.length - toSave.length;
+    skipped += rows.length - toSave.length; // adiciona os desmarcados
     setSummary({ saved, skipped, errors });
     setStep('done');
     onComplete?.({ saved, skipped, errors });
@@ -188,8 +194,8 @@ export default function OcrBatchCapture({ onClose, onComplete }) {
     input: { width: '100%', padding: '5px 7px', border: '1px solid #ddd', borderRadius: 6, fontSize: 13 },
     badge: (s) => ({
       display: 'inline-block', padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600,
-      background: s === 'success' ? '#e8f5e9' : s === 'error' ? '#ffebee' : s === 'saving' ? '#e3f2fd' : '#f5f5f5',
-      color: s === 'success' ? '#2e7d32' : s === 'error' ? '#c62828' : s === 'saving' ? '#1565c0' : '#999',
+      background: s === 'success' ? '#e8f5e9' : s === 'error' ? '#ffebee' : s === 'saving' ? '#e3f2fd' : s === 'skipped' ? '#fff8e1' : '#f5f5f5',
+      color: s === 'success' ? '#2e7d32' : s === 'error' ? '#c62828' : s === 'saving' ? '#1565c0' : s === 'skipped' ? '#f57f17' : '#999',
     }),
   };
 
