@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import dayjs from 'dayjs';
 
 // ── Numeração FDI — arcada superior e inferior ────────────────────────────────
 const UPPER = [18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28];
@@ -33,6 +34,66 @@ function getStatus(val) {
   return STATUSES.find(s => s.value === (val || '')) || STATUSES[0];
 }
 
+// ── Status de faces ───────────────────────────────────────────────────────────
+const FACE_STATUSES = [
+  { value: '',          label: 'Hígida',    bg: '#f9fafb', border: '#e5e7eb' },
+  { value: 'cariado',   label: 'Cariado',   bg: '#ef4444', border: '#dc2626' },
+  { value: 'restaurado',label: 'Restaurado',bg: '#3b82f6', border: '#2563eb' },
+  { value: 'selado',    label: 'Selado',    bg: '#eab308', border: '#ca8a04' },
+  { value: 'fraturado', label: 'Fraturado', bg: '#f97316', border: '#ea580c' },
+  { value: 'manchado',  label: 'Manchado',  bg: '#a855f7', border: '#9333ea' },
+];
+function faceColor(val) {
+  return FACE_STATUSES.find(f => f.value === (val || '')) || FACE_STATUSES[0];
+}
+
+// ── Faces de um dente — diagrama em cruz ─────────────────────────────────────
+// Layout:      V
+//           M [O] D
+//              L
+function FaceDiagram({ tooth, facesMap, onFaceClick }) {
+  const isMolar = (tooth % 10) >= 4;
+  const centerLabel = isMolar ? 'O' : 'I';
+  const faces = ['V', 'M', 'O', 'D', 'L'];
+
+  const faceCell = (face) => {
+    const fc = faceColor(facesMap[face]);
+    const isCenter = face === 'O';
+    const size = isCenter ? 32 : 26;
+    return (
+      <button key={face} onClick={() => onFaceClick(face)}
+        title={`Face ${face}${facesMap[face] ? ' — ' + faceColor(facesMap[face]).label : ''}`}
+        style={{
+          width: size, height: size,
+          background: fc.bg, border: `2px solid ${fc.border}`,
+          borderRadius: isCenter ? 6 : 4,
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 9, fontWeight: 700, color: facesMap[face] ? '#fff' : '#9ca3af',
+          transition: 'all 0.1s',
+        }}>
+        {face === 'O' ? centerLabel : face}
+      </button>
+    );
+  };
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '26px 32px 26px', gridTemplateRows: '26px 32px 26px', gap: 3, width: 'fit-content', margin: '0 auto' }}>
+      {/* Row 0: V centered */}
+      <div />
+      {faceCell('V')}
+      <div />
+      {/* Row 1: M, O, D */}
+      {faceCell('M')}
+      {faceCell('O')}
+      {faceCell('D')}
+      {/* Row 2: L centered */}
+      <div />
+      {faceCell('L')}
+      <div />
+    </div>
+  );
+}
+
 // Largura relativa por tipo de dente (incisivos menores, molares maiores)
 function toothWidth(n) {
   const d = n % 10;
@@ -47,27 +108,48 @@ export default function Odontogram() {
   const navigate = useNavigate();
 
   const [patient,  setPatient]  = useState(null);
-  const [teeth,    setTeeth]    = useState({});   // { '11': { status, procedure_name, procedure_value, notes }, ... }
-  const [selected, setSelected] = useState(null); // tooth number (string)
+  const [teeth,    setTeeth]    = useState({});
+  const [selected, setSelected] = useState(null);
   const [form,     setForm]     = useState({ status: '', procedure_name: '', procedure_value: '', notes: '', payment_status: 'pendente', amount_paid: '' });
   const [saving,   setSaving]   = useState(false);
   const [dirty,    setDirty]    = useState(false);
 
+  // ── Faces ─────────────────────────────────────────────────────────────────────
+  // allFaces: { '11': { V: 'cariado', M: '', ... }, '21': {...}, ... }
+  const [allFaces,      setAllFaces]      = useState({});
+  const [selectedFace,  setSelectedFace]  = useState(null); // face key clicked
+  const [savingFaces,   setSavingFaces]   = useState(false);
+  const [pendingFaces,  setPendingFaces]  = useState({}); // local edits before save
+
+  // ── Histórico por dente ───────────────────────────────────────────────────────
+  const [history,       setHistory]       = useState([]); // entries for selected tooth
+  const [historyForm,   setHistoryForm]   = useState({ procedure_name: '', procedure_date: dayjs().format('YYYY-MM-DD'), professional_name: '', notes: '' });
+  const [addingHistory, setAddingHistory] = useState(false);
+  const [savingHistory, setSavingHistory] = useState(false);
+
   const load = async () => {
-    const [p, t] = await Promise.all([
+    const [p, t, f] = await Promise.all([
       api.get(`/patients/${patientId}`),
       api.get(`/odontogram?patient_id=${patientId}`),
+      api.get(`/odontogram/${patientId}/faces`).catch(() => ({ data: [] })),
     ]);
     setPatient(p.data);
     const map = {};
     t.data.forEach(row => { map[row.tooth_number] = row; });
     setTeeth(map);
+    // organiza faces por dente
+    const fmap = {};
+    f.data.forEach(row => {
+      if (!fmap[row.tooth_number]) fmap[row.tooth_number] = {};
+      fmap[row.tooth_number][row.face] = row.status;
+    });
+    setAllFaces(fmap);
   };
 
   useEffect(() => { load(); }, [patientId]);
 
   // ── Selecionar dente ─────────────────────────────────────────────────────────
-  const selectTooth = (n) => {
+  const selectTooth = async (n) => {
     const key  = String(n);
     const data = teeth[key] || {};
     setSelected(key);
@@ -79,7 +161,59 @@ export default function Odontogram() {
       payment_status:  data.payment_status  || 'pendente',
       amount_paid:     data.amount_paid     != null ? String(data.amount_paid) : '',
     });
+    setPendingFaces({ ...(allFaces[key] || {}) });
+    setSelectedFace(null);
+    setAddingHistory(false);
+    setHistoryForm({ procedure_name: '', procedure_date: dayjs().format('YYYY-MM-DD'), professional_name: '', notes: '' });
     setDirty(false);
+    // Carrega histórico do dente
+    try {
+      const res = await api.get(`/odontogram/${patientId}/${key}/history`);
+      setHistory(res.data);
+    } catch { setHistory([]); }
+  };
+
+  // ── Face: clicar para editar ──────────────────────────────────────────────────
+  const handleFaceClick = (face) => {
+    setSelectedFace(prev => prev === face ? null : face);
+  };
+
+  const setFaceStatus = (face, status) => {
+    setPendingFaces(prev => ({ ...prev, [face]: status }));
+    setDirty(true);
+  };
+
+  const saveFaces = async () => {
+    if (!selected) return;
+    setSavingFaces(true);
+    try {
+      await api.put(`/odontogram/${patientId}/${selected}/faces`, { faces: pendingFaces });
+      setAllFaces(prev => ({ ...prev, [selected]: { ...pendingFaces } }));
+      setSelectedFace(null);
+    } catch (err) { alert(err.response?.data?.error || 'Erro ao salvar faces.'); }
+    finally { setSavingFaces(false); }
+  };
+
+  // ── Histórico: adicionar entrada ──────────────────────────────────────────────
+  const handleAddHistory = async (e) => {
+    e.preventDefault();
+    if (!historyForm.procedure_name.trim()) return;
+    setSavingHistory(true);
+    try {
+      const res = await api.post(`/odontogram/${patientId}/${selected}/history`, historyForm);
+      setHistory(prev => [res.data, ...prev]);
+      setHistoryForm({ procedure_name: '', procedure_date: dayjs().format('YYYY-MM-DD'), professional_name: '', notes: '' });
+      setAddingHistory(false);
+    } catch (err) { alert(err.response?.data?.error || 'Erro ao salvar.'); }
+    finally { setSavingHistory(false); }
+  };
+
+  const handleDeleteHistory = async (entryId) => {
+    if (!confirm('Remover este registro do histórico?')) return;
+    try {
+      await api.delete(`/odontogram/${patientId}/${selected}/history/${entryId}`);
+      setHistory(prev => prev.filter(h => h.id !== entryId));
+    } catch { alert('Erro ao excluir.'); }
   };
 
   // ── Salvar dente ─────────────────────────────────────────────────────────────
@@ -135,39 +269,39 @@ export default function Odontogram() {
 
   // ── Render dente ─────────────────────────────────────────────────────────────
   const ToothBtn = ({ n }) => {
-    const key  = String(n);
-    const data = teeth[key] || {};
-    const st   = getStatus(data.status);
-    const isSel = selected === key;
+    const key     = String(n);
+    const data    = teeth[key] || {};
+    const st      = getStatus(data.status);
+    const isSel   = selected === key;
     const hasProc = !!data.procedure_name;
+    const tFaces  = allFaces[key] || {};
+    const hasFaces = Object.values(tFaces).some(v => v);
+    const isUpper  = n < 30;
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-        {/* Número FDI */}
         <span style={{ fontSize: 9, color: isSel ? '#E8841A' : '#9ca3af', fontWeight: isSel ? 700 : 400 }}>{n}</span>
-        {/* Dente */}
-        <button
-          onClick={() => selectTooth(n)}
+        <button onClick={() => selectTooth(n)}
           title={`Dente ${n}${data.status ? ` — ${st.label}` : ''}${data.procedure_name ? ` | ${data.procedure_name}` : ''}`}
           style={{
             width: toothWidth(n), height: 36,
-            borderRadius: n > 30 ? '4px 4px 10px 10px' : '10px 10px 4px 4px', // raíz em cima p/ superior
+            borderRadius: isUpper ? '10px 10px 4px 4px' : '4px 4px 10px 10px',
             border: `2px solid ${isSel ? '#E8841A' : st.border}`,
             background: st.color,
-            cursor: 'pointer',
-            position: 'relative',
+            cursor: 'pointer', position: 'relative',
             boxShadow: isSel ? '0 0 0 2px #E8841A44' : '0 1px 3px rgba(0,0,0,0.08)',
-            transition: 'all 0.15s',
-            outline: 'none',
+            transition: 'all 0.15s', outline: 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-          {/* Ponto indicando procedimento planejado */}
-          {hasProc && (
+          {hasProc && !data.status && (
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#E8841A', boxShadow: '0 0 0 1px #fff' }} />
           )}
-          {/* X para ausente */}
           {data.status === 'ausente' && (
             <span style={{ fontSize: 13, color: '#9ca3af', fontWeight: 700 }}>×</span>
+          )}
+          {/* Indicador de faces marcadas */}
+          {hasFaces && (
+            <div style={{ position: 'absolute', top: 2, right: 2, width: 5, height: 5, borderRadius: '50%', background: '#8b5cf6' }} />
           )}
         </button>
       </div>
@@ -350,7 +484,7 @@ export default function Odontogram() {
         </div>
 
         {/* ── Coluna direita: painel de edição ── */}
-        <div className="card" style={{ position: 'sticky', top: 80 }}>
+        <div className="card" style={{ position: 'sticky', top: 80, maxHeight: 'calc(100vh - 100px)', overflowY: 'auto' }}>
           {!selected ? (
             <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--gray-400)' }}>
               <i className="fas fa-tooth" style={{ fontSize: 40, display: 'block', marginBottom: 12 }} />
@@ -466,8 +600,8 @@ export default function Odontogram() {
                 </div>
               )}
 
-              {/* Ações */}
-              <div style={{ display: 'flex', gap: 8 }}>
+              {/* Ações do dente */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
                 <button className="btn btn-primary" style={{ flex: 1 }}
                   disabled={saving || !dirty} onClick={saveTooth}>
                   <i className={`fas ${saving ? 'fa-spinner fa-spin' : 'fa-check'}`} style={{ marginRight: 6 }} />
@@ -477,6 +611,121 @@ export default function Odontogram() {
                   title="Limpar dados deste dente" style={{ color: '#dc2626', borderColor: '#fca5a5' }}>
                   <i className="fas fa-trash" />
                 </button>
+              </div>
+
+              {/* ── Faces do dente ── */}
+              <div style={{ borderTop: '1px solid var(--gray-100)', paddingTop: 16, marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray-600)' }}>
+                    <i className="fas fa-border-all" style={{ marginRight: 6, color: '#8b5cf6' }} />Faces do dente
+                  </span>
+                  <button className="btn btn-primary btn-sm"
+                    disabled={savingFaces} onClick={saveFaces}
+                    style={{ fontSize: 11, padding: '3px 10px' }}>
+                    {savingFaces ? '...' : 'Salvar faces'}
+                  </button>
+                </div>
+
+                <FaceDiagram
+                  tooth={parseInt(selected)}
+                  facesMap={pendingFaces}
+                  onFaceClick={handleFaceClick}
+                />
+
+                {/* Seletor de status da face clicada */}
+                {selectedFace && (
+                  <div style={{ marginTop: 12, padding: '10px 12px', background: 'var(--gray-50)', borderRadius: 8, border: '1px solid var(--gray-200)' }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-500)', marginBottom: 8 }}>
+                      Face {selectedFace} — selecione o status:
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                      {FACE_STATUSES.map(fs => (
+                        <button key={fs.value} onClick={() => setFaceStatus(selectedFace, fs.value)}
+                          style={{
+                            padding: '4px 10px', borderRadius: 20, fontSize: 11, cursor: 'pointer',
+                            border: `1px solid ${fs.border}`,
+                            background: pendingFaces[selectedFace] === fs.value ? fs.bg : '#fff',
+                            color: pendingFaces[selectedFace] === fs.value && fs.value ? '#fff' : 'var(--gray-700)',
+                            fontWeight: pendingFaces[selectedFace] === fs.value ? 700 : 400,
+                          }}>
+                          {fs.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Legenda */}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                  {FACE_STATUSES.filter(f => f.value).map(fs => (
+                    <span key={fs.value} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: 'var(--gray-500)' }}>
+                      <span style={{ width: 8, height: 8, borderRadius: 2, background: fs.bg, border: `1px solid ${fs.border}`, display: 'inline-block' }} />
+                      {fs.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Histórico de procedimentos ── */}
+              <div style={{ borderTop: '1px solid var(--gray-100)', paddingTop: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray-600)' }}>
+                    <i className="fas fa-clock-rotate-left" style={{ marginRight: 6, color: '#E8841A' }} />Histórico
+                  </span>
+                  <button onClick={() => setAddingHistory(o => !o)}
+                    style={{ padding: '3px 10px', border: '1px solid #E8841A', borderRadius: 6, background: '#fff7ed', color: '#92400e', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                    {addingHistory ? 'Cancelar' : '+ Adicionar'}
+                  </button>
+                </div>
+
+                {/* Formulário de novo registro */}
+                {addingHistory && (
+                  <form onSubmit={handleAddHistory} style={{ background: 'var(--gray-50)', borderRadius: 8, padding: 12, marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <input className="form-control" style={{ fontSize: 12 }}
+                      placeholder="Procedimento realizado *"
+                      value={historyForm.procedure_name}
+                      onChange={e => setHistoryForm(p => ({ ...p, procedure_name: e.target.value }))}
+                      required />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                      <input type="date" className="form-control" style={{ fontSize: 12 }}
+                        value={historyForm.procedure_date}
+                        onChange={e => setHistoryForm(p => ({ ...p, procedure_date: e.target.value }))} />
+                      <input className="form-control" style={{ fontSize: 12 }}
+                        placeholder="Profissional"
+                        value={historyForm.professional_name}
+                        onChange={e => setHistoryForm(p => ({ ...p, professional_name: e.target.value }))} />
+                    </div>
+                    <textarea className="form-control" rows={2} style={{ fontSize: 12, resize: 'vertical' }}
+                      placeholder="Observações (opcional)"
+                      value={historyForm.notes}
+                      onChange={e => setHistoryForm(p => ({ ...p, notes: e.target.value }))} />
+                    <button type="submit" className="btn btn-primary btn-sm" disabled={savingHistory}>
+                      {savingHistory ? 'Salvando...' : 'Salvar no histórico'}
+                    </button>
+                  </form>
+                )}
+
+                {/* Lista de histórico */}
+                {history.length === 0 ? (
+                  <p style={{ fontSize: 12, color: 'var(--gray-400)', fontStyle: 'italic' }}>Nenhum procedimento registrado neste dente.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {history.map(h => (
+                      <div key={h.id} style={{ padding: '8px 10px', background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 8, position: 'relative' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--gray-800)' }}>{h.procedure_name}</span>
+                          <button onClick={() => handleDeleteHistory(h.id)}
+                            style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 12, padding: 0 }}>×</button>
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 2 }}>
+                          {dayjs(h.procedure_date).format('DD/MM/YYYY')}
+                          {h.professional_name && ` · ${h.professional_name}`}
+                        </div>
+                        {h.notes && <div style={{ fontSize: 11, color: 'var(--gray-500)', marginTop: 4 }}>{h.notes}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
