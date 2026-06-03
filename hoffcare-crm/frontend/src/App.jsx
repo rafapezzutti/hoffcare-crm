@@ -34,6 +34,10 @@ import AnamnesisForm from './pages/AnamnesisForm';
 import Anthropometry from './pages/Anthropometry';
 import Aesthetics from './pages/Aesthetics';
 import AiChat from './pages/AiChat';
+import Inventory from './pages/Inventory';
+import Budgets from './pages/Budgets';
+import BudgetForm from './pages/BudgetForm';
+import BudgetPrint from './pages/BudgetPrint';
 
 function ProtectedRoute({ children, adminOnly }) {
   const { user } = useAuth();
@@ -81,7 +85,12 @@ export default function App() {
             <Route path="ai-chat" element={<AiChat />} />
             <Route path="message-counter" element={<MessageCounter />} />
             <Route path="aesthetics" element={<Aesthetics />} />
+            <Route path="inventory" element={<Inventory />} />
+            <Route path="budgets" element={<Budgets />} />
+            <Route path="budgets/new" element={<BudgetForm />} />
+            <Route path="budgets/:id/edit" element={<BudgetForm />} />
           </Route>
+          <Route path="/budgets/:id/print" element={<BudgetPrint />} />
         </Routes>
       </BrowserRouter>
       </ClinicProvider>

@@ -50,7 +50,9 @@ app.use('/api/anamnesis', require('./routes/anamnesis'));
 app.use('/api/anthropometry', require('./routes/anthropometry'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/ocr',     require('./routes/ocr'));
-app.use('/api/ai',      require('./routes/ai'));
+app.use('/api/ai',        require('./routes/ai'));
+app.use('/api/inventory', require('./routes/inventory'));
+app.use('/api/budgets',   require('./routes/budgets'));
 app.use('/uploads/before_after', express.static(path.join(__dirname, '../uploads/before_after')));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));

@@ -6,7 +6,7 @@ import { useClinic } from '../context/ClinicContext';
 
 // Seções colapsáveis — estado salvo no localStorage
 const STORAGE_KEY = 'sidebar_sections';
-const DEFAULT_OPEN = { principal: true, atendimento: true, registros: false, estetica: false, financeiro: false, admin: false, ia: true };
+const DEFAULT_OPEN = { principal: true, atendimento: true, registros: false, estetica: false, estoque: false, orcamentos: false, financeiro: false, admin: false, ia: true };
 
 function loadSections() {
   try { return { ...DEFAULT_OPEN, ...JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') }; }
@@ -175,6 +175,17 @@ export default function Layout() {
           {/* ── Estética ── */}
           <Section sectionKey="estetica" label={t('nav.aestheticsSection')} icon="fa-face-smile">
             <NavItem to="/aesthetics" icon="fa-face-smile" label={t('nav.aesthetics')} />
+          </Section>
+
+          {/* ── Estoque ── */}
+          <Section sectionKey="estoque" label="Estoque" icon="fa-boxes-stacked">
+            <NavItem to="/inventory" icon="fa-boxes-stacked" label="Controle de Estoque" />
+          </Section>
+
+          {/* ── Orçamentos ── */}
+          <Section sectionKey="orcamentos" label="Orçamentos" icon="fa-file-invoice">
+            <NavItem to="/budgets" icon="fa-file-invoice" label="Orçamentos" />
+            <NavItem to="/budgets/new" icon="fa-plus" label="Novo Orçamento" />
           </Section>
 
           {/* ── Financeiro ── */}

@@ -21,6 +21,13 @@ export default function Dashboard() {
   const [monthly, setMonthly] = useState(null);
   const [loadingMonthly, setLoadingMonthly] = useState(false);
 
+  // Novos: estoque e relatório de procedimentos
+  const [lowStock, setLowStock]           = useState({ count: 0, items: [] });
+  const [procReport, setProcReport]       = useState(null);
+  const [reportFrom, setReportFrom]       = useState(dayjs().startOf('month').format('YYYY-MM-DD'));
+  const [reportTo,   setReportTo]         = useState(dayjs().format('YYYY-MM-DD'));
+  const [loadingReport, setLoadingReport] = useState(false);
+
   useEffect(() => {
     const today = dayjs().format('YYYY-MM-DD');
     Promise.all([
@@ -28,11 +35,21 @@ export default function Dashboard() {
       api.get('/professionals').catch(() => ({ data: [] })),
       api.get(`/appointments?start=${today}T00:00:00&end=${today}T23:59:59`).catch(() => ({ data: [] })),
       api.get('/records').catch(() => ({ data: [] })),
-    ]).then(([p, pr, a, r]) => {
+      api.get('/inventory/low-stock').catch(() => ({ data: { count: 0, items: [] } })),
+    ]).then(([p, pr, a, r, ls]) => {
       setStats({ patients: p.data.length, professionals: pr.data.length, appointments: a.data.length, records: r.data.length });
       setTodayAppointments(a.data.slice(0, 8));
+      setLowStock(ls.data);
     });
   }, []);
+
+  const loadProcReport = () => {
+    setLoadingReport(true);
+    api.get(`/records/monthly?year=${selYear}&month=${selMonth}`)
+      .then(r => setProcReport(r.data))
+      .catch(() => setProcReport(null))
+      .finally(() => setLoadingReport(false));
+  };
 
   useEffect(() => {
     if (tab !== 'monthly') return;
@@ -164,6 +181,97 @@ export default function Dashboard() {
                 ))}
               </div>
             </div>
+          </div>
+
+          {/* ── Widgets novos: Estoque Crítico + Ticket Médio + Relatório ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20, marginTop: 20 }}>
+
+            {/* Estoque Crítico */}
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title">
+                  <i className="fas fa-boxes-stacked" style={{ color: lowStock.count > 0 ? '#dc3545' : 'var(--blue)', marginRight: 8 }} />
+                  Estoque Crítico
+                </span>
+                <button className="btn btn-outline btn-sm" onClick={() => navigate('/inventory')}>Ver tudo</button>
+              </div>
+              {lowStock.count === 0 ? (
+                <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--gray-400)', fontSize: 13 }}>
+                  <i className="fas fa-check-circle" style={{ fontSize: 24, marginBottom: 8, display: 'block', color: '#28a745' }} />
+                  Estoque OK
+                </div>
+              ) : (
+                <div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: '#dc3545', marginBottom: 8 }}>
+                    {lowStock.count} <span style={{ fontSize: 13, fontWeight: 400 }}>item{lowStock.count !== 1 ? 's' : ''} abaixo do mínimo</span>
+                  </div>
+                  {lowStock.items?.slice(0, 4).map(item => (
+                    <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0', borderBottom: '1px solid var(--gray-100)' }}>
+                      <span style={{ color: 'var(--gray-700)' }}>{item.name}</span>
+                      <span style={{ color: '#dc3545', fontWeight: 600 }}>{item.current_stock} {item.unit}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Ticket Médio */}
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title">
+                  <i className="fas fa-receipt" style={{ color: 'var(--orange)', marginRight: 8 }} />
+                  Ticket Médio
+                </span>
+              </div>
+              <div style={{ padding: '8px 0' }}>
+                <div style={{ fontSize: 11, color: 'var(--gray-400)', marginBottom: 4 }}>Mês atual</div>
+                {monthly ? (
+                  <>
+                    <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--orange)' }}>
+                      R$ {monthly.total_records > 0 ? (parseFloat(monthly.total_revenue || 0) / monthly.total_records).toFixed(2) : '0,00'}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 6 }}>
+                      {monthly.total_records} atendimento{monthly.total_records !== 1 ? 's' : ''} · R$ {parseFloat(monthly.total_revenue || 0).toFixed(2)} total
+                    </div>
+                    <button className="btn btn-outline btn-sm" style={{ marginTop: 12 }} onClick={() => setTab('monthly')}>
+                      Ver relatório mensal
+                    </button>
+                  </>
+                ) : (
+                  <button className="btn btn-outline btn-sm" onClick={() => { setTab('monthly'); }}>
+                    Carregar dados do mês
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Orçamentos em aberto */}
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title">
+                  <i className="fas fa-file-invoice" style={{ color: '#6f42c1', marginRight: 8 }} />
+                  Orçamentos
+                </span>
+                <button className="btn btn-outline btn-sm" onClick={() => navigate('/budgets')}>Ver todos</button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 4 }}>
+                {[
+                  { status: 'aguardando', label: 'Aguardando', color: '#E8841A' },
+                  { status: 'enviado',    label: 'Enviados',   color: '#4DB8E8' },
+                  { status: 'aceito',     label: 'Aceitos',    color: '#28a745' },
+                ].map(s => (
+                  <div key={s.status} onClick={() => navigate(`/budgets?status=${s.status}`)}
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', borderRadius: 8, background: 'var(--gray-50)', cursor: 'pointer' }}>
+                    <span style={{ fontSize: 13, color: 'var(--gray-700)' }}>{s.label}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: s.color }}>→</span>
+                  </div>
+                ))}
+                <button className="btn btn-primary btn-sm" style={{ marginTop: 4 }} onClick={() => navigate('/budgets/new')}>
+                  + Novo Orçamento
+                </button>
+              </div>
+            </div>
+
           </div>
         </>
       )}
