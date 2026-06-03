@@ -4,76 +4,73 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useClinic } from '../context/ClinicContext';
 
+// Seções colapsáveis — estado salvo no localStorage
+const STORAGE_KEY = 'sidebar_sections';
+const DEFAULT_OPEN = { principal: true, atendimento: true, registros: false, estetica: false, financeiro: false, admin: false, ia: true };
+
+function loadSections() {
+  try { return { ...DEFAULT_OPEN, ...JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') }; }
+  catch { return DEFAULT_OPEN; }
+}
+
 export default function Layout() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
   const { clinics, selectedClinic, setSelectedClinic } = useClinic();
   const navigate = useNavigate();
-  const [clinicOpen, setClinicOpen] = useState(false);
+  const [clinicOpen, setClinicOpen]   = useState(false);
+  const [sections,   setSections]     = useState(loadSections);
 
-  const navItems = [
-    { section: t('nav.principal') },
-    { to: '/', icon: 'fa-house', label: t('nav.dashboard'), exact: true },
-    { to: '/calendar/daily', icon: 'fa-calendar-day', label: t('nav.dailyCalendar') },
-    { to: '/calendar/monthly', icon: 'fa-calendar-alt', label: t('nav.monthlyCalendar') },
-
-    { section: t('nav.registros') },
-    { to: '/patients', icon: 'fa-user-injured', label: t('nav.patients') },
-    { to: '/professionals', icon: 'fa-user-md', label: t('nav.professionals') },
-    { to: '/rooms', icon: 'fa-door-open', label: t('nav.rooms') },
-    { to: '/procedures', icon: 'fa-list-check', label: t('nav.procedures') },
-
-    { section: t('nav.atendimento') },
-    { to: '/records/new', icon: 'fa-file-medical', label: t('nav.newRecord') },
-    { to: '/records', icon: 'fa-clipboard-list', label: t('nav.records') },
-    { to: '/history', icon: 'fa-clock-rotate-left', label: t('nav.history') },
-
-    { section: t('nav.aestheticsSection') },
-    { to: '/aesthetics', icon: 'fa-face-smile', label: t('nav.aesthetics') },
-
-    { section: t('nav.financial') },
-    { to: '/rentals', icon: 'fa-key', label: t('nav.rentals') },
-    { to: '/settlements', icon: 'fa-handshake', label: t('nav.settlements') },
-    { to: '/statement', icon: 'fa-file-invoice-dollar', label: t('nav.monthlyStatement') },
-    { to: '/bank-statement', icon: 'fa-table-list', label: t('nav.bankStatement') },
-    { to: '/message-counter', icon: 'fa-chart-bar', label: t('nav.messageCounter') },
-  ];
-
-  const adminItems = [
-    { section: t('nav.admin') },
-    { to: '/clinics', icon: 'fa-hospital', label: t('nav.clinics') },
-    { to: '/users', icon: 'fa-users-gear', label: t('nav.users') },
-    { to: '/permissions', icon: 'fa-shield-halved', label: t('nav.permissions') },
-  ];
+  const toggleSection = (key) => {
+    setSections(prev => {
+      const next = { ...prev, [key]: !prev[key] };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
 
   const handleLogout = () => { logout(); navigate('/login'); };
-
-  const initials = user?.name?.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+  const initials  = user?.name?.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
   const roleLabel = (role) => ({ admin: 'Master', responsavel: 'Responsável', user: 'Usuário', recepcionista: 'Recepcionista' }[role] || role);
 
   const handleClinicChange = (clinic) => {
     setSelectedClinic(clinic);
     setClinicOpen(false);
-    // Recarrega a página para aplicar o novo filtro de clínica
     window.location.reload();
   };
 
-  // Itens ocultos para usuários autônomos (salas não fazem sentido para autônomos)
   const autonomousHidden = ['/rooms'];
 
-  const renderNavItem = (item, i) => {
-    if (item.section) return <div key={i} className="sidebar-section">{item.section}</div>;
-    if (user?.is_autonomous && autonomousHidden.includes(item.to)) return null;
+  // Renderiza um item de nav
+  const NavItem = ({ to, icon, label, exact }) => {
+    if (user?.is_autonomous && autonomousHidden.includes(to)) return null;
     return (
-      <NavLink
-        key={item.to}
-        to={item.to}
-        end={item.exact}
-        className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-      >
-        <i className={`fas ${item.icon}`} />
-        {item.label}
+      <NavLink to={to} end={exact} className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+        {icon.startsWith('fa-') ? <i className={`fas ${icon}`} /> : <span style={{ fontSize: 15 }}>{icon}</span>}
+        {label}
       </NavLink>
+    );
+  };
+
+  // Renderiza um grupo colapsável
+  const Section = ({ sectionKey, label, icon, children }) => {
+    const open = sections[sectionKey];
+    return (
+      <>
+        <button onClick={() => toggleSection(sectionKey)} style={{
+          width: '100%', background: 'none', border: 'none', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '6px 16px', marginTop: 4,
+          color: '#8899aa', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1,
+        }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {icon && <i className={`fas ${icon}`} style={{ fontSize: 9 }} />}
+            {label}
+          </span>
+          <i className={`fas fa-chevron-${open ? 'up' : 'down'}`} style={{ fontSize: 8, opacity: 0.6 }} />
+        </button>
+        {open && children}
+      </>
     );
   };
 
@@ -151,21 +148,60 @@ export default function Layout() {
           </div>
         </div>
 
-        <nav className="sidebar-nav" style={{ marginTop: 8 }}>
-          {navItems.map(renderNavItem)}
-          {user?.role === 'admin' && adminItems.map(renderNavItem)}
+        <nav className="sidebar-nav" style={{ marginTop: 4 }}>
 
-          {/* Talk to Me — visível se habilitado OU se for admin */}
-          {(user?.can_use_ai_chat || user?.role === 'admin') && (
-            <>
-              <div className="sidebar-section">IA</div>
-              <NavLink to="/ai-chat" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-                style={({ isActive }) => isActive ? {} : {}}>
-                <span style={{ fontSize: 15 }}>🤖</span>
-                Talk to Me
-              </NavLink>
-            </>
+          {/* ── Principal (sempre visível) ── */}
+          <Section sectionKey="principal" label={t('nav.principal')} icon="fa-house">
+            <NavItem to="/" icon="fa-house" label={t('nav.dashboard')} exact />
+            <NavItem to="/calendar/daily" icon="fa-calendar-day" label={t('nav.dailyCalendar')} />
+            <NavItem to="/calendar/monthly" icon="fa-calendar-alt" label={t('nav.monthlyCalendar')} />
+          </Section>
+
+          {/* ── Atendimento ── */}
+          <Section sectionKey="atendimento" label={t('nav.atendimento')} icon="fa-stethoscope">
+            <NavItem to="/records/new" icon="fa-file-medical" label={t('nav.newRecord')} />
+            <NavItem to="/records" icon="fa-clipboard-list" label={t('nav.records')} />
+            <NavItem to="/history" icon="fa-clock-rotate-left" label={t('nav.history')} />
+          </Section>
+
+          {/* ── Cadastros ── */}
+          <Section sectionKey="registros" label={t('nav.registros')} icon="fa-folder-open">
+            <NavItem to="/patients" icon="fa-user-injured" label={t('nav.patients')} />
+            <NavItem to="/professionals" icon="fa-user-md" label={t('nav.professionals')} />
+            {!user?.is_autonomous && <NavItem to="/rooms" icon="fa-door-open" label={t('nav.rooms')} />}
+            <NavItem to="/procedures" icon="fa-list-check" label={t('nav.procedures')} />
+          </Section>
+
+          {/* ── Estética ── */}
+          <Section sectionKey="estetica" label={t('nav.aestheticsSection')} icon="fa-face-smile">
+            <NavItem to="/aesthetics" icon="fa-face-smile" label={t('nav.aesthetics')} />
+          </Section>
+
+          {/* ── Financeiro ── */}
+          <Section sectionKey="financeiro" label={t('nav.financial')} icon="fa-dollar-sign">
+            <NavItem to="/rentals" icon="fa-key" label={t('nav.rentals')} />
+            <NavItem to="/settlements" icon="fa-handshake" label={t('nav.settlements')} />
+            <NavItem to="/statement" icon="fa-file-invoice-dollar" label={t('nav.monthlyStatement')} />
+            <NavItem to="/bank-statement" icon="fa-table-list" label={t('nav.bankStatement')} />
+            <NavItem to="/message-counter" icon="fa-chart-bar" label={t('nav.messageCounter')} />
+          </Section>
+
+          {/* ── Admin (só Master) ── */}
+          {user?.role === 'admin' && (
+            <Section sectionKey="admin" label={t('nav.admin')} icon="fa-shield-halved">
+              <NavItem to="/clinics" icon="fa-hospital" label={t('nav.clinics')} />
+              <NavItem to="/users" icon="fa-users-gear" label={t('nav.users')} />
+              <NavItem to="/permissions" icon="fa-shield-halved" label={t('nav.permissions')} />
+            </Section>
           )}
+
+          {/* ── IA — Talk to Me ── */}
+          {(user?.can_use_ai_chat || user?.role === 'admin') && (
+            <Section sectionKey="ia" label="IA" icon="fa-robot">
+              <NavItem to="/ai-chat" icon="🤖" label="Talk to Me" />
+            </Section>
+          )}
+
         </nav>
 
         <div className="sidebar-bottom">
