@@ -2,7 +2,7 @@ const express  = require('express');
 const multer   = require('multer');
 const { auth } = require('../middleware/auth');
 const { extractFromImage, extractFromText } = require('../services/vertexai');
-const { extractText, detectType }          = require('../services/documentParser');
+const { extractText, detectType, extractPatientsFromDocument } = require('../services/documentParser');
 
 // Normaliza CPF em qualquer dado retornado pela IA (objeto ou array)
 function normalizeCPF(data) {
@@ -113,14 +113,24 @@ router.post('/extract-document', auth, uploadDocument.single('file'), async (req
     const { buffer, mimetype, originalname, size } = req.file;
     console.log(`[OCR-DOC] Processando "${originalname}" (${(size / 1024).toFixed(0)} KB)`);
 
-    // 1. Extrai texto do arquivo
-    const text = await extractText(buffer, mimetype, originalname);
-    console.log(`[OCR-DOC] Texto extraído: ${text.length} chars`);
+    // 1. Extrai texto do arquivo + tenta extração direta por regex
+    const { direct, raw: rawText } = await extractPatientsFromDocument(buffer, mimetype, originalname);
+    console.log(`[OCR-DOC] Extração direta: ${direct.length} pacientes`);
 
-    // 2. Manda para Gemini extrair pacientes
-    const raw      = await extractFromText(text);
-    const patients = normalizeCPF(raw); // normaliza CPFs independente do formato
-    console.log(`[OCR-DOC] Pacientes encontrados: ${patients.length}`);
+    let patients;
+
+    if (direct.length > 0) {
+      // Documento estruturado — usa extração direta (sem IA, 100% preciso)
+      patients = direct.map(p => ({ ...p, birthdate: null, phone: null, email: null, address: null, gender: null, profession: null, notes: null }));
+      console.log(`[OCR-DOC] Usando extração direta: ${patients.length} pacientes`);
+    } else {
+      // Documento não estruturado — envia para a IA
+      console.log(`[OCR-DOC] Sem extração direta, enviando para IA...`);
+      const text = await extractText(buffer, mimetype, originalname);
+      const raw  = await extractFromText(text);
+      patients   = normalizeCPF(raw);
+      console.log(`[OCR-DOC] IA retornou: ${patients.length} pacientes`);
+    }
 
     return res.json({ success: true, count: patients.length, data: patients });
 
