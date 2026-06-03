@@ -248,7 +248,7 @@ async function extractRawTextFromImage(imageBase64, mimeType) {
         { text: PROMPT_OCR_TEXT }
       ]
     }],
-    generationConfig: { maxOutputTokens: 4096, temperature: 0 }
+    generationConfig: { maxOutputTokens: 8192, temperature: 0 }
   });
 
   const project  = process.env.GOOGLE_CLOUD_PROJECT;
@@ -333,7 +333,7 @@ async function extractFromText(textContent) {
 
   const body = JSON.stringify({
     contents: [{ parts: [{ text: PROMPT_TEXT_BATCH + truncated }] }],
-    generationConfig: { maxOutputTokens: 4096, temperature: 0.1 },
+    generationConfig: { maxOutputTokens: 8192, temperature: 0.1 },
   });
 
   const project = process.env.GOOGLE_CLOUD_PROJECT;

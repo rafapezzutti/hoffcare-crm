@@ -75,22 +75,14 @@ router.post('/extract', auth, uploadImage.single('image'), async (req, res) => {
 
     let raw;
     if (type === 'patient_batch') {
-      // Tenta extração visual direta. Se falhar ou retornar vazio,
-      // usa fallback híbrido: extrai texto da imagem → processa como documento.
-      try {
-        raw = await extractFromImage(imageBase64, mimeType, type);
-        if (!Array.isArray(raw) || raw.length === 0) {
-          console.warn('[OCR] Extração visual retornou vazio, tentando fallback OCR→texto...');
-          throw new Error('resultado vazio');
-        }
-        console.log(`[OCR] Extração visual: ${raw.length} pacientes`);
-      } catch (visErr) {
-        console.warn(`[OCR] Fallback OCR→texto ativado (${visErr.message})`);
-        const rawText = await extractRawTextFromImage(imageBase64, mimeType);
-        console.log(`[OCR] Texto extraído da imagem (${rawText.length} chars), enviando para IA...`);
-        raw = await extractFromText(rawText);
-        console.log(`[OCR] Fallback retornou ${raw.length} pacientes`);
-      }
+      // Para lote de imagens, sempre usa pipeline híbrido: OCR → texto → extractFromText.
+      // Isso garante o mesmo resultado completo e confiável do pipeline de docx/xlsx,
+      // evitando limitação de tokens da extração visual direta.
+      console.log('[OCR] Patient batch: pipeline OCR→texto');
+      const rawText = await extractRawTextFromImage(imageBase64, mimeType);
+      console.log(`[OCR] Texto extraído da imagem (${rawText.length} chars)`);
+      raw = await extractFromText(rawText);
+      console.log(`[OCR] Pipeline retornou ${raw.length} pacientes`);
     } else {
       raw = await extractFromImage(imageBase64, mimeType, type);
     }
