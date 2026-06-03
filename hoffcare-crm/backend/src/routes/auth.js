@@ -178,7 +178,8 @@ router.get('/me', auth, async (req, res) => {
     const result = await pool.query(
       `SELECT u.id, u.name, u.email, u.role, u.clinic_id,
               COALESCE(c.is_autonomous, false) as is_autonomous,
-              u.is_trial, u.trial_starts_at, u.trial_expires_at, u.trial_blocked_at
+              u.is_trial, u.trial_starts_at, u.trial_expires_at, u.trial_blocked_at,
+              COALESCE(u.can_use_ai_chat, false) as can_use_ai_chat
        FROM users u
        LEFT JOIN clinics c ON c.id = u.clinic_id
        WHERE u.id = $1`,

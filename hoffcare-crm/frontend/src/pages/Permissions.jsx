@@ -11,12 +11,19 @@ export default function Permissions() {
   const [data, setData] = useState(null);
   const [saving, setSaving] = useState({});
   const [selectedUser, setSelectedUser] = useState(null);
+  const [aiUsers, setAiUsers] = useState([]);        // [{ id, name, role, can_use_ai_chat }]
+  const [aiSaving, setAiSaving] = useState({});       // { userId: true }
+  const [confirmAi, setConfirmAi] = useState(null);   // userId aguardando confirmação
 
   const load = async () => {
     try {
-      const res = await api.get('/permissions');
-      setData(res.data);
-      if (res.data.users?.length > 0 && !selectedUser) setSelectedUser(res.data.users[0].id);
+      const [permRes, aiRes] = await Promise.all([
+        api.get('/permissions'),
+        api.get('/permissions/ai-chat'),
+      ]);
+      setData(permRes.data);
+      setAiUsers(aiRes.data);
+      if (permRes.data.users?.length > 0 && !selectedUser) setSelectedUser(permRes.data.users[0].id);
     } catch {}
   };
 
@@ -47,6 +54,31 @@ export default function Permissions() {
       await api.delete(`/permissions/${userId}/${module}`);
       load();
     } catch { alert(t('permissions.errorReset')); }
+  };
+
+  const toggleAiChat = async (userId, currentValue) => {
+    if (!currentValue) {
+      // Ativar: pede confirmação com aviso de custo
+      setConfirmAi(userId);
+      return;
+    }
+    // Desativar: sem confirmação
+    setAiSaving(p => ({ ...p, [userId]: true }));
+    try {
+      await api.put(`/permissions/${userId}/ai-chat`, { enabled: false });
+      setAiUsers(prev => prev.map(u => u.id === userId ? { ...u, can_use_ai_chat: false } : u));
+    } catch { alert('Erro ao salvar.'); }
+    finally { setAiSaving(p => { const n = { ...p }; delete n[userId]; return n; }); }
+  };
+
+  const confirmEnableAi = async (userId) => {
+    setConfirmAi(null);
+    setAiSaving(p => ({ ...p, [userId]: true }));
+    try {
+      await api.put(`/permissions/${userId}/ai-chat`, { enabled: true });
+      setAiUsers(prev => prev.map(u => u.id === userId ? { ...u, can_use_ai_chat: true } : u));
+    } catch { alert('Erro ao salvar.'); }
+    finally { setAiSaving(p => { const n = { ...p }; delete n[userId]; return n; }); }
   };
 
   if (!data) return <div className="page"><div className="empty-state"><div className="spinner" /></div></div>;
@@ -170,6 +202,82 @@ export default function Permissions() {
           )}
         </div>
       </div>
+
+      {/* ── Seção IA — Talk to Me ─────────────────────────────────────────── */}
+      <div className="card" style={{ marginTop: 20 }}>
+        <div className="card-header" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 20 }}>🤖</span>
+          <div>
+            <span className="card-title">Recursos de IA — Talk to Me</span>
+            <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 2 }}>
+              Permite ao usuário utilizar o assistente IA integrado ao Gemini. Limite: 20 usos e 2 imagens por dia, reset à meia-noite (horário SP).
+            </div>
+          </div>
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table className="table" style={{ fontSize: 13 }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left', minWidth: 200 }}>Usuário</th>
+                <th style={{ textAlign: 'left', width: 120 }}>Perfil</th>
+                <th style={{ textAlign: 'center', width: 160 }}>Talk to Me</th>
+              </tr>
+            </thead>
+            <tbody>
+              {aiUsers.map((u, i) => (
+                <tr key={u.id} style={{ background: i % 2 === 0 ? '#f8f9fa' : 'white' }}>
+                  <td style={{ padding: '10px 16px', fontWeight: 500 }}>{u.name}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--gray-500)', textTransform: 'capitalize' }}>{u.role}</td>
+                  <td style={{ padding: '8px', textAlign: 'center' }}>
+                    <button
+                      onClick={() => toggleAiChat(u.id, u.can_use_ai_chat)}
+                      disabled={!!aiSaving[u.id]}
+                      style={{
+                        padding: '5px 16px', borderRadius: 20, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12,
+                        background: u.can_use_ai_chat ? '#d4edda' : '#f8d7da',
+                        color: u.can_use_ai_chat ? '#1e8449' : '#c0392b',
+                        opacity: aiSaving[u.id] ? 0.5 : 1,
+                        minWidth: 80,
+                      }}>
+                      {aiSaving[u.id] ? '...' : u.can_use_ai_chat ? '✓ Sim' : '✗ Não'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ padding: '10px 16px', background: 'rgba(232,132,26,0.06)', borderTop: '1px solid var(--gray-100)', borderRadius: '0 0 8px 8px', fontSize: 12, color: 'var(--gray-600)' }}>
+          💰 <strong>Custo:</strong> R$ 20,00 / mês por usuário habilitado (cobrado pelo administrador da plataforma).
+        </div>
+      </div>
+
+      {/* Modal de confirmação de custo */}
+      {confirmAi && (() => {
+        const u = aiUsers.find(x => x.id === confirmAi);
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+            <div style={{ background: '#fff', borderRadius: 14, padding: 28, maxWidth: 420, width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+              <div style={{ fontSize: 36, textAlign: 'center', marginBottom: 12 }}>🤖</div>
+              <div style={{ fontWeight: 700, fontSize: 17, textAlign: 'center', marginBottom: 8 }}>Habilitar Talk to Me</div>
+              <div style={{ fontSize: 14, color: 'var(--gray-600)', textAlign: 'center', lineHeight: 1.6, marginBottom: 20 }}>
+                Você está habilitando o <strong>Talk to Me</strong> para <strong>{u?.name}</strong>.<br /><br />
+                ⚠️ Este recurso tem um custo de <strong style={{ color: '#E8841A' }}>R$ 20,00 por mês</strong> por usuário, cobrado pelo administrador da plataforma.<br /><br />
+                Deseja confirmar?
+              </div>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                <button className="btn btn-outline" onClick={() => setConfirmAi(null)}>Cancelar</button>
+                <button className="btn btn-primary" onClick={() => confirmEnableAi(confirmAi)}>
+                  ✓ Confirmar e habilitar
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
     </div>
   );
 }

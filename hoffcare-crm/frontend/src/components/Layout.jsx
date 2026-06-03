@@ -153,6 +153,18 @@ export default function Layout() {
         <nav className="sidebar-nav" style={{ marginTop: 8 }}>
           {navItems.map(renderNavItem)}
           {user?.role === 'admin' && adminItems.map(renderNavItem)}
+
+          {/* Talk to Me — visível apenas se habilitado */}
+          {user?.can_use_ai_chat && (
+            <>
+              <div className="sidebar-section">IA</div>
+              <NavLink to="/ai-chat" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+                style={({ isActive }) => isActive ? {} : {}}>
+                <span style={{ fontSize: 15 }}>🤖</span>
+                Talk to Me
+              </NavLink>
+            </>
+          )}
         </nav>
 
         <div className="sidebar-bottom">

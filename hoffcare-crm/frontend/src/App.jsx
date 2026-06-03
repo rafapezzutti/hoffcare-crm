@@ -33,6 +33,7 @@ import Anamnesis from './pages/Anamnesis';
 import AnamnesisForm from './pages/AnamnesisForm';
 import Anthropometry from './pages/Anthropometry';
 import Aesthetics from './pages/Aesthetics';
+import AiChat from './pages/AiChat';
 
 function ProtectedRoute({ children, adminOnly }) {
   const { user } = useAuth();
@@ -77,6 +78,7 @@ export default function App() {
             <Route path="statement" element={<ProfessionalStatement />} />
             <Route path="bank-statement" element={<BankStatement />} />
             <Route path="permissions" element={<Permissions />} />
+            <Route path="ai-chat" element={<AiChat />} />
             <Route path="message-counter" element={<MessageCounter />} />
             <Route path="aesthetics" element={<Aesthetics />} />
           </Route>
