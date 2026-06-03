@@ -36,6 +36,16 @@ export default function Patients() {
     return `${years} ${t('patients.years')}`;
   };
 
+  const handleDelete = async (p) => {
+    if (!confirm(`Excluir o paciente "${p.name}"?\n\nEsta ação não pode ser desfeita.`)) return;
+    try {
+      await api.delete(`/patients/${p.id}`);
+      load(search);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Erro ao excluir paciente');
+    }
+  };
+
   return (
     <div className="page">
       {showBatch && (
@@ -79,6 +89,7 @@ export default function Patients() {
                     <td><div className="table-actions">
                       <button className="btn btn-outline btn-sm" onClick={() => navigate(`/patients/${p.id}`)}><i className="fas fa-eye" /></button>
                       <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/records/new?patient_id=${p.id}`)}><i className="fas fa-file-medical" /></button>
+                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(p)} title="Excluir paciente"><i className="fas fa-trash" /></button>
                     </div></td>
                   </tr>
                 ))}

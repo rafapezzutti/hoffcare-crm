@@ -155,6 +155,23 @@ router.post('/:id/attachments', auth, upload.single('file'), async (req, res) =>
   }
 });
 
+// Delete patient
+router.delete('/:id', auth, async (req, res) => {
+  const clinic_id = req.user.clinic_id;
+  try {
+    const check = await pool.query(
+      'SELECT id FROM patients WHERE id = $1 AND clinic_id = $2',
+      [req.params.id, clinic_id]
+    );
+    if (!check.rows[0]) return res.status(404).json({ error: 'Paciente não encontrado' });
+
+    await pool.query('DELETE FROM patients WHERE id = $1 AND clinic_id = $2', [req.params.id, clinic_id]);
+    res.json({ message: 'Paciente removido' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Delete attachment
 router.delete('/:id/attachments/:attachId', auth, async (req, res) => {
   try {
