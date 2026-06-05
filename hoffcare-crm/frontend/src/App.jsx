@@ -41,6 +41,7 @@ import Inventory from './pages/Inventory';
 import Budgets from './pages/Budgets';
 import BudgetForm from './pages/BudgetForm';
 import BudgetPrint from './pages/BudgetPrint';
+import Expenses from './pages/Expenses';
 
 function ProtectedRoute({ children, adminOnly }) {
   const { user } = useAuth();
@@ -63,7 +64,7 @@ export default function App() {
           <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route index element={<Dashboard />} />
             <Route path="clinics" element={<ProtectedRoute adminOnly><Clinics /></ProtectedRoute>} />
-            <Route path="users" element={<ProtectedRoute adminOnly><Users /></ProtectedRoute>} />
+            <Route path="users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
             <Route path="autonomous" element={<Navigate to="/clinics" replace />} />
             <Route path="professionals" element={<Professionals />} />
             <Route path="rooms" element={<Rooms />} />
@@ -95,6 +96,7 @@ export default function App() {
             <Route path="budgets" element={<Budgets />} />
             <Route path="budgets/new" element={<BudgetForm />} />
             <Route path="budgets/:id/edit" element={<BudgetForm />} />
+            <Route path="expenses" element={<Expenses />} />
           </Route>
           <Route path="/budgets/:id/print" element={<BudgetPrint />} />
         </Routes>

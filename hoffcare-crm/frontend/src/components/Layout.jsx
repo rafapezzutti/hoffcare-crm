@@ -211,6 +211,7 @@ export default function Layout() {
 
           {/* ── Financeiro ── */}
           <Section sectionKey="financeiro" label={t('nav.financial')} icon="fa-dollar-sign">
+            <NavItem to="/expenses" icon="fa-file-invoice-dollar" label="Despesas" />
             <NavItem to="/rentals" icon="fa-key" label={t('nav.rentals')} />
             <NavItem to="/settlements" icon="fa-handshake" label={t('nav.settlements')} />
             <NavItem to="/statement" icon="fa-file-invoice-dollar" label={t('nav.monthlyStatement')} />

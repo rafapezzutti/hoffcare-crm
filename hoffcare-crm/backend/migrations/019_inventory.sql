@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS inventory_movements (
   quantity   DECIMAL(10,2) NOT NULL,
   unit_cost  DECIMAL(10,2),
   notes      TEXT,
-  record_id  INTEGER REFERENCES records(id) ON DELETE SET NULL,
+  record_id  INTEGER REFERENCES medical_records(id) ON DELETE SET NULL,
   user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMP DEFAULT NOW()
 );
