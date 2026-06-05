@@ -311,19 +311,4 @@ export default function Layout() {
                 <button
                   key={c.id}
                   className="btn btn-outline"
-                  style={{ justifyContent: 'flex-start', gap: 10, padding: '12px 16px' }}
-                  onClick={() => { setSelectedClinic(c); window.location.reload(); }}
-                >
-                  <i className="fas fa-hospital" style={{ color: 'var(--orange)' }} />
-                  {c.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <Outlet />
-        )}
-      </main>
-    </div>
-  );
-}
+                  style={{ ju

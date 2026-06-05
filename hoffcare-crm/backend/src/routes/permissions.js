@@ -133,11 +133,4 @@ router.put('/:user_id/:module', auth, async (req, res) => {
 router.delete('/:user_id/:module', auth, async (req, res) => {
   try {
     await pool.query(
-      `DELETE FROM user_permissions WHERE clinic_id=$1 AND user_id=$2 AND module=$3`,
-      [req.user.clinic_id, req.params.user_id, req.params.module]
-    );
-    res.json({ ok: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-module.exports = router;
+      `DELETE FROM user_permissions WHERE clinic_id=$1 AND user_id=$2 
