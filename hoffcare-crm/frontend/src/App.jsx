@@ -42,6 +42,7 @@ import Budgets from './pages/Budgets';
 import BudgetForm from './pages/BudgetForm';
 import BudgetPrint from './pages/BudgetPrint';
 import Expenses from './pages/Expenses';
+import CashFlow from './pages/CashFlow';
 
 function ProtectedRoute({ children, adminOnly }) {
   const { user } = useAuth();
@@ -97,6 +98,7 @@ export default function App() {
             <Route path="budgets/new" element={<BudgetForm />} />
             <Route path="budgets/:id/edit" element={<BudgetForm />} />
             <Route path="expenses" element={<Expenses />} />
+            <Route path="cash-flow" element={<CashFlow />} />
           </Route>
           <Route path="/budgets/:id/print" element={<BudgetPrint />} />
         </Routes>

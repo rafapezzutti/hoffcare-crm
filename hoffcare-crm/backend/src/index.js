@@ -55,7 +55,8 @@ app.use('/api/inventory', require('./routes/inventory'));
 app.use('/api/budgets',   require('./routes/budgets'));
 app.use('/api/evolution',   require('./routes/evolution'));
 app.use('/api/odontogram', require('./routes/odontogram'));
-app.use('/api/expenses',   require('./routes/expenses'));
+app.use('/api/expenses',    require('./routes/expenses'));
+app.use('/api/cash-flow',  require('./routes/cash-flow'));
 app.use('/uploads/before_after', express.static(path.join(__dirname, '../uploads/before_after')));
 app.use('/uploads/evolution',    express.static(path.join(__dirname, '../uploads/evolution')));
 
