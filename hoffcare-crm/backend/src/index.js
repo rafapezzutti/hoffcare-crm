@@ -27,6 +27,9 @@ app.use(cors({
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// Auditoria — registra automaticamente todas as ações de escrita
+app.use(require('./middleware/audit'));
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
@@ -58,6 +61,7 @@ app.use('/api/odontogram', require('./routes/odontogram'));
 app.use('/api/expenses',    require('./routes/expenses'));
 app.use('/api/cash-flow',   require('./routes/cash-flow'));
 app.use('/api/employees',  require('./routes/employees'));
+app.use('/api/audit',      require('./routes/audit'));
 app.use('/uploads/before_after', express.static(path.join(__dirname, '../uploads/before_after')));
 app.use('/uploads/evolution',    express.static(path.join(__dirname, '../uploads/evolution')));
 

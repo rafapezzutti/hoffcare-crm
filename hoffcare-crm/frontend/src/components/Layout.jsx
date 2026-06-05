@@ -227,6 +227,7 @@ export default function Layout() {
               <NavItem to="/clinics" icon="fa-hospital" label={t('nav.clinics')} />
               <NavItem to="/users" icon="fa-users-gear" label={t('nav.users')} />
               <NavItem to="/permissions" icon="fa-shield-halved" label={t('nav.permissions')} />
+              <NavItem to="/audit" icon="fa-clipboard-check" label="Auditoria" />
             </Section>
           )}
 
@@ -235,6 +236,7 @@ export default function Layout() {
             <Section sectionKey="admin" label="Configurações" icon="fa-gear">
               <NavItem to="/users" icon="fa-users-gear" label="Usuários" />
               <NavItem to="/permissions" icon="fa-shield-halved" label="Permissões" />
+              <NavItem to="/audit" icon="fa-clipboard-check" label="Auditoria" />
             </Section>
           )}
 
