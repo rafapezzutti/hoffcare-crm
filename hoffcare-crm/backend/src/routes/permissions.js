@@ -27,12 +27,14 @@ const ROLE_DEFAULTS = {
   responsavel:  { can_view: true,  can_create: true,  can_edit: true,  can_delete: true  },
   user:         { can_view: true,  can_create: true,  can_edit: true,  can_delete: false },
   recepcionista:{ can_view: true,  can_create: true,  can_edit: false, can_delete: false },
+  profissional: { can_view: true,  can_create: true,  can_edit: true,  can_delete: false },
 };
 
 // Módulos restritos por role (false = sem acesso padrão)
 const ROLE_RESTRICTIONS = {
   user:         ['users', 'clinics'],
   recepcionista:['users', 'clinics', 'rentals', 'settlements', 'statement', 'bank_statement'],
+  profissional: ['users', 'clinics', 'professionals', 'rooms', 'rentals', 'settlements', 'statement', 'bank_statement'],
 };
 
 // GET /api/permissions — lista permissões da clínica

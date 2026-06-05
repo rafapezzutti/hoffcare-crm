@@ -32,7 +32,7 @@ export default function Layout() {
 
   const handleLogout = () => { logout(); navigate('/login'); };
   const initials  = user?.name?.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
-  const roleLabel = (role) => ({ admin: 'Master', responsavel: 'Responsável', user: 'Usuário', recepcionista: 'Recepcionista' }[role] || role);
+  const roleLabel = (role) => ({ admin: 'Master', responsavel: 'Responsável', user: 'Usuário', recepcionista: 'Recepcionista', profissional: 'Profissional' }[role] || role);
 
   const handleClinicChange = (clinic) => {
     setSelectedClinic(clinic);
@@ -224,6 +224,14 @@ export default function Layout() {
               <NavItem to="/clinics" icon="fa-hospital" label={t('nav.clinics')} />
               <NavItem to="/users" icon="fa-users-gear" label={t('nav.users')} />
               <NavItem to="/permissions" icon="fa-shield-halved" label={t('nav.permissions')} />
+            </Section>
+          )}
+
+          {/* Responsável também pode gerenciar usuários da sua clínica */}
+          {user?.role === 'responsavel' && (
+            <Section sectionKey="admin" label="Configurações" icon="fa-gear">
+              <NavItem to="/users" icon="fa-users-gear" label="Usuários" />
+              <NavItem to="/permissions" icon="fa-shield-halved" label="Permissões" />
             </Section>
           )}
 
