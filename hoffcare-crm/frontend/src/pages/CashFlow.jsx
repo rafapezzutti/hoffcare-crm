@@ -8,6 +8,7 @@ const SOURCE_META = {
   'Aluguéis':     { icon: 'fa-key',               color: '#8b5cf6' },
   'Acertos':      { icon: 'fa-handshake',          color: '#0ea5e9' },
   'Despesas':     { icon: 'fa-file-invoice-dollar',color: '#ef4444' },
+  'Funcionários': { icon: 'fa-id-badge',           color: '#f97316' },
 };
 
 function nowMonthRange() {

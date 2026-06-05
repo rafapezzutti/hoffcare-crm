@@ -22,7 +22,7 @@ router.get('/', auth, async (req, res) => {
   const end   = req.query.end   || def.end;
 
   try {
-    const [recordsRes, rentalsRes, settlementsRes, expensesRes] = await Promise.all([
+    const [recordsRes, rentalsRes, settlementsRes, expensesRes, payrollRes] = await Promise.all([
 
       // Atendimentos — soma de procedimentos por dia de consulta
       pool.query(`
@@ -63,6 +63,17 @@ router.get('/', auth, async (req, res) => {
         WHERE clinic_id = $1 AND status = 'pago'
           AND paid_date BETWEEN $2 AND $3
         ORDER BY paid_date
+      `, [clinic_id, start, end]),
+
+      // Folha de pagamento paga no período
+      pool.query(`
+        SELECT pr.paid_date AS date, pr.total_employer_cost AS amount,
+               e.name AS description, e.contract_type
+        FROM payroll pr
+        JOIN employees e ON pr.employee_id = e.id
+        WHERE pr.clinic_id = $1 AND pr.status = 'pago'
+          AND pr.paid_date BETWEEN $2 AND $3
+        ORDER BY pr.paid_date
       `, [clinic_id, start, end]),
     ]);
 
@@ -110,6 +121,17 @@ router.get('/', auth, async (req, res) => {
         source_key: 'expenses',
         amount:     parseNum(r.amount),
         description: r.description || r.category,
+      });
+    }
+
+    for (const r of payrollRes.rows) {
+      transactions.push({
+        date:       r.date,
+        type:       'saida',
+        source:     'Funcionários',
+        source_key: 'payroll',
+        amount:     parseNum(r.amount),
+        description: `Folha — ${r.description} (${r.contract_type})`,
       });
     }
 

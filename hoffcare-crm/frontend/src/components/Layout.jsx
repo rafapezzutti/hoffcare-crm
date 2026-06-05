@@ -189,6 +189,7 @@ export default function Layout() {
           <Section sectionKey="registros" label={t('nav.registros')} icon="fa-folder-open">
             <NavItem to="/patients" icon="fa-user-injured" label={t('nav.patients')} />
             <NavItem to="/professionals" icon="fa-user-md" label={t('nav.professionals')} />
+            <NavItem to="/employees" icon="fa-id-badge" label="Funcionários" />
             {!user?.is_autonomous && <NavItem to="/rooms" icon="fa-door-open" label={t('nav.rooms')} />}
             <NavItem to="/procedures" icon="fa-list-check" label={t('nav.procedures')} />
           </Section>
