@@ -4,11 +4,12 @@ import api from '../services/api';
 const MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
 const SOURCE_META = {
-  'Atendimentos': { icon: 'fa-stethoscope',      color: '#3b82f6' },
-  'Aluguéis':     { icon: 'fa-key',               color: '#8b5cf6' },
-  'Acertos':      { icon: 'fa-handshake',          color: '#0ea5e9' },
-  'Despesas':     { icon: 'fa-file-invoice-dollar',color: '#ef4444' },
-  'Funcionários': { icon: 'fa-id-badge',           color: '#f97316' },
+  'Atendimentos': { icon: 'fa-stethoscope',       color: '#3b82f6' },
+  'Aluguéis':     { icon: 'fa-key',                color: '#8b5cf6' },
+  'Acertos':      { icon: 'fa-handshake',           color: '#0ea5e9' },
+  'Despesas':     { icon: 'fa-file-invoice-dollar', color: '#ef4444' },
+  'Funcionários': { icon: 'fa-id-badge',            color: '#f97316' },
+  'Orçamentos':   { icon: 'fa-file-contract',       color: '#10b981' },
 };
 
 function nowMonthRange() {
@@ -20,16 +21,13 @@ function nowMonthRange() {
 }
 
 const PRESETS = [
-  {
-    label: 'Este mês',
-    get: () => nowMonthRange(),
-  },
+  { label: 'Este mês', get: () => nowMonthRange() },
   {
     label: 'Mês anterior',
     get: () => {
-      const n  = new Date();
-      const m  = n.getMonth() === 0 ? 12 : n.getMonth();
-      const y  = n.getMonth() === 0 ? n.getFullYear() - 1 : n.getFullYear();
+      const n = new Date();
+      const m = n.getMonth() === 0 ? 12 : n.getMonth();
+      const y = n.getMonth() === 0 ? n.getFullYear() - 1 : n.getFullYear();
       return { start: `${y}-${String(m).padStart(2, '0')}-01`, end: new Date(y, m, 0).toISOString().slice(0, 10) };
     },
   },
@@ -43,29 +41,39 @@ const PRESETS = [
   },
   {
     label: 'Este ano',
-    get: () => {
-      const y = new Date().getFullYear();
-      return { start: `${y}-01-01`, end: `${y}-12-31` };
-    },
+    get: () => { const y = new Date().getFullYear(); return { start: `${y}-01-01`, end: `${y}-12-31` }; },
   },
+];
+
+const HORIZONS = [
+  { label: '30 dias',  days: 30  },
+  { label: '60 dias',  days: 60  },
+  { label: '90 dias',  days: 90  },
+  { label: '180 dias', days: 180 },
+  { label: '360 dias', days: 360 },
 ];
 
 function fmt(val) {
   return Number(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
-
 function fmtDate(d) {
   if (!d) return '—';
   return new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR');
 }
+function fmtMonthLabel(key) {
+  // key = "YYYY-MM"
+  const [y, m] = key.split('-');
+  return `${MONTHS[parseInt(m, 10) - 1]} ${y}`;
+}
 
-export default function CashFlow() {
-  const now           = new Date();
-  const [period,      setPeriod]      = useState(nowMonthRange);
-  const [activePreset,setActivePreset]= useState(0);
-  const [data,        setData]        = useState(null);
-  const [monthly,     setMonthly]     = useState([]);
-  const [loading,     setLoading]     = useState(true);
+// ─── TAB: REALIZADO ───────────────────────────────────────────────────────────
+function TabRealizado() {
+  const now = new Date();
+  const [period,       setPeriod]       = useState(nowMonthRange);
+  const [activePreset, setActivePreset] = useState(0);
+  const [data,         setData]         = useState(null);
+  const [monthly,      setMonthly]      = useState([]);
+  const [loading,      setLoading]      = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -76,32 +84,18 @@ export default function CashFlow() {
       ]);
       setData(summaryRes.data);
       setMonthly(monthlyRes.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   }, [period.start, period.end]);
 
   useEffect(() => { load(); }, [load]);
 
-  const applyPreset = (idx) => {
-    setActivePreset(idx);
-    setPeriod(PRESETS[idx].get());
-  };
-
+  const applyPreset = (idx) => { setActivePreset(idx); setPeriod(PRESETS[idx].get()); };
   const maxBar   = Math.max(...monthly.map(m => Math.max(m.entradas, m.saidas)), 1);
   const saldoPos = (data?.saldo || 0) >= 0;
 
   return (
-    <div className="page">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Fluxo de Caixa</h1>
-          <p className="page-subtitle">Entradas e saídas realizadas no período</p>
-        </div>
-      </div>
-
+    <>
       {/* Seletor de período */}
       <div className="card" style={{ marginBottom: 20, padding: '14px 20px' }}>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -119,38 +113,28 @@ export default function CashFlow() {
             <span style={{ color: 'var(--gray-400)', fontSize: 12 }}>até</span>
             <input type="date" className="form-control" style={{ width: 140 }} value={period.end}
               onChange={e => { setPeriod(p => ({ ...p, end: e.target.value })); setActivePreset(-1); }} />
-            <button className="btn btn-outline btn-sm" onClick={load}>
-              <i className="fas fa-rotate-right" />
-            </button>
+            <button className="btn btn-outline btn-sm" onClick={load}><i className="fas fa-rotate-right" /></button>
           </div>
         </div>
       </div>
 
-      {/* Cards de resumo */}
+      {/* Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
         <div className="card" style={{ padding: '20px 24px' }}>
           <div style={{ fontSize: 11, color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
-            <i className="fas fa-arrow-trend-up" style={{ color: '#22c55e', marginRight: 6 }} />
-            Total Entradas
+            <i className="fas fa-arrow-trend-up" style={{ color: '#22c55e', marginRight: 6 }} />Total Entradas
           </div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#22c55e', lineHeight: 1 }}>
-            {fmt(data?.totalEntradas)}
-          </div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#22c55e', lineHeight: 1 }}>{fmt(data?.totalEntradas)}</div>
         </div>
         <div className="card" style={{ padding: '20px 24px' }}>
           <div style={{ fontSize: 11, color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
-            <i className="fas fa-arrow-trend-down" style={{ color: '#ef4444', marginRight: 6 }} />
-            Total Saídas
+            <i className="fas fa-arrow-trend-down" style={{ color: '#ef4444', marginRight: 6 }} />Total Saídas
           </div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#ef4444', lineHeight: 1 }}>
-            {fmt(data?.totalSaidas)}
-          </div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#ef4444', lineHeight: 1 }}>{fmt(data?.totalSaidas)}</div>
         </div>
         <div className="card" style={{ padding: '20px 24px', background: saldoPos ? '#f0fdf4' : '#fef2f2', border: `1px solid ${saldoPos ? '#86efac' : '#fca5a5'}` }}>
           <div style={{ fontSize: 11, color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
-            <i className={`fas ${saldoPos ? 'fa-circle-check' : 'fa-circle-exclamation'}`}
-              style={{ color: saldoPos ? '#22c55e' : '#ef4444', marginRight: 6 }} />
-            Saldo Líquido
+            <i className={`fas ${saldoPos ? 'fa-circle-check' : 'fa-circle-exclamation'}`} style={{ color: saldoPos ? '#22c55e' : '#ef4444', marginRight: 6 }} />Saldo Líquido
           </div>
           <div style={{ fontSize: 28, fontWeight: 800, color: saldoPos ? '#16a34a' : '#dc2626', lineHeight: 1 }}>
             {saldoPos ? '+' : ''}{fmt(data?.saldo)}
@@ -159,7 +143,6 @@ export default function CashFlow() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 20, marginBottom: 20 }}>
-
         {/* Gráfico anual */}
         <div className="card">
           <div style={{ padding: '16px 20px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--gray-100)' }}>
@@ -199,11 +182,11 @@ export default function CashFlow() {
           </div>
           <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {data && Object.entries(data.bySource).map(([source, vals]) => {
-              const sm     = SOURCE_META[source] || { icon: 'fa-tag', color: '#94a3b8' };
+              const sm = SOURCE_META[source] || { icon: 'fa-tag', color: '#94a3b8' };
               const isIncome = vals.entradas >= vals.saidas;
-              const main   = isIncome ? vals.entradas : vals.saidas;
-              const sign   = isIncome ? '+' : '−';
-              const clr    = isIncome ? '#22c55e' : '#ef4444';
+              const main = isIncome ? vals.entradas : vals.saidas;
+              const sign = isIncome ? '+' : '−';
+              const clr  = isIncome ? '#22c55e' : '#ef4444';
               return (
                 <div key={source} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 30, height: 30, borderRadius: 7, background: sm.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -224,48 +207,31 @@ export default function CashFlow() {
               );
             })}
             {data && Object.keys(data.bySource).length === 0 && (
-              <div style={{ textAlign: 'center', color: 'var(--gray-400)', fontSize: 13, padding: '16px 0' }}>
-                Nenhum lançamento
-              </div>
+              <div style={{ textAlign: 'center', color: 'var(--gray-400)', fontSize: 13, padding: '16px 0' }}>Nenhum lançamento</div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Tabela de lançamentos */}
+      {/* Lançamentos */}
       <div className="card">
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--gray-100)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontWeight: 600, fontSize: 14 }}>
             Lançamentos
-            {data?.transactions?.length > 0 && (
-              <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--gray-400)' }}>({data.transactions.length})</span>
-            )}
+            {data?.transactions?.length > 0 && <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--gray-400)' }}>({data.transactions.length})</span>}
           </span>
         </div>
         <div className="table-container">
           <table className="table">
             <thead>
               <tr>
-                <th>Data</th>
-                <th>Origem</th>
-                <th>Descrição</th>
-                <th>Tipo</th>
-                <th style={{ textAlign: 'right' }}>Valor</th>
+                <th>Data</th><th>Origem</th><th>Descrição</th><th>Tipo</th><th style={{ textAlign: 'right' }}>Valor</th>
               </tr>
             </thead>
             <tbody>
-              {loading && (
-                <tr><td colSpan={5}>
-                  <div className="empty-state"><i className="fas fa-spinner fa-spin" /><p>Carregando...</p></div>
-                </td></tr>
-              )}
+              {loading && <tr><td colSpan={5}><div className="empty-state"><i className="fas fa-spinner fa-spin" /><p>Carregando...</p></div></td></tr>}
               {!loading && !data?.transactions?.length && (
-                <tr><td colSpan={5}>
-                  <div className="empty-state">
-                    <i className="fas fa-money-bill-trend-up" />
-                    <p>Nenhum lançamento no período selecionado</p>
-                  </div>
-                </td></tr>
+                <tr><td colSpan={5}><div className="empty-state"><i className="fas fa-money-bill-trend-up" /><p>Nenhum lançamento no período selecionado</p></div></td></tr>
               )}
               {data?.transactions?.map((t, i) => {
                 const sm = SOURCE_META[t.source] || { icon: 'fa-tag', color: '#94a3b8' };
@@ -280,11 +246,7 @@ export default function CashFlow() {
                       </div>
                     </td>
                     <td style={{ fontSize: 13, color: 'var(--gray-600)' }}>{t.description || '—'}</td>
-                    <td>
-                      <span className={`badge ${isEntrada ? 'badge-green' : 'badge-red'}`}>
-                        {isEntrada ? '↑ Entrada' : '↓ Saída'}
-                      </span>
-                    </td>
+                    <td><span className={`badge ${isEntrada ? 'badge-green' : 'badge-red'}`}>{isEntrada ? '↑ Entrada' : '↓ Saída'}</span></td>
                     <td style={{ textAlign: 'right', fontSize: 14, fontWeight: 600, color: isEntrada ? '#22c55e' : '#ef4444', whiteSpace: 'nowrap' }}>
                       {isEntrada ? '+' : '−'}{fmt(t.amount)}
                     </td>
@@ -295,6 +257,204 @@ export default function CashFlow() {
           </table>
         </div>
       </div>
+    </>
+  );
+}
+
+// ─── TAB: PROJETADO ───────────────────────────────────────────────────────────
+function TabProjetado() {
+  const [horizon,       setHorizon]       = useState(90);
+  const [data,          setData]          = useState(null);
+  const [loading,       setLoading]       = useState(true);
+  const [expandedMonths,setExpandedMonths]= useState({});
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/cash-flow/projection', { params: { days: horizon } });
+      setData(res.data);
+      // Auto-expand first month
+      const keys = Object.keys(res.data.byMonth || {});
+      if (keys.length) setExpandedMonths({ [keys[0]]: true });
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
+  }, [horizon]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const saldoPos = (data?.saldo || 0) >= 0;
+
+  const toggleMonth = (key) => setExpandedMonths(prev => ({ ...prev, [key]: !prev[key] }));
+
+  return (
+    <>
+      {/* Seletor de horizonte */}
+      <div className="card" style={{ marginBottom: 20, padding: '14px 20px' }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, color: 'var(--gray-500)', marginRight: 4 }}>Horizonte:</span>
+          {HORIZONS.map(h => (
+            <button key={h.days} onClick={() => setHorizon(h.days)}
+              className={horizon === h.days ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm'}>
+              {h.label}
+            </button>
+          ))}
+          <button className="btn btn-outline btn-sm" style={{ marginLeft: 4 }} onClick={load}>
+            <i className="fas fa-rotate-right" />
+          </button>
+          <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--gray-400)' }}>
+            {data && `Até ${fmtDate(data.horizonStr)}`}
+          </span>
+        </div>
+      </div>
+
+      {/* Legenda de confiança */}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 16, alignItems: 'center' }}>
+        <span style={{ fontSize: 11, color: 'var(--gray-500)' }}>Confiança:</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11 }}>
+          <span style={{ background: '#dcfce7', color: '#16a34a', padding: '2px 7px', borderRadius: 10, fontWeight: 600 }}>Confirmado</span>
+          despesa já cadastrada com vencimento futuro
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11 }}>
+          <span style={{ background: '#fef9c3', color: '#92400e', padding: '2px 7px', borderRadius: 10, fontWeight: 600 }}>Estimado</span>
+          calculado com base em recorrências
+        </span>
+      </div>
+
+      {/* Cards de resumo */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
+        <div className="card" style={{ padding: '20px 24px' }}>
+          <div style={{ fontSize: 11, color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+            <i className="fas fa-arrow-trend-up" style={{ color: '#22c55e', marginRight: 6 }} />Entradas Previstas
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#22c55e', lineHeight: 1 }}>{fmt(data?.totalEntradas)}</div>
+        </div>
+        <div className="card" style={{ padding: '20px 24px' }}>
+          <div style={{ fontSize: 11, color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+            <i className="fas fa-arrow-trend-down" style={{ color: '#ef4444', marginRight: 6 }} />Saídas Previstas
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#ef4444', lineHeight: 1 }}>{fmt(data?.totalSaidas)}</div>
+        </div>
+        <div className="card" style={{ padding: '20px 24px', background: saldoPos ? '#f0fdf4' : '#fef2f2', border: `1px solid ${saldoPos ? '#86efac' : '#fca5a5'}` }}>
+          <div style={{ fontSize: 11, color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+            <i className={`fas ${saldoPos ? 'fa-circle-check' : 'fa-circle-exclamation'}`} style={{ color: saldoPos ? '#22c55e' : '#ef4444', marginRight: 6 }} />Saldo Projetado
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: saldoPos ? '#16a34a' : '#dc2626', lineHeight: 1 }}>
+            {saldoPos ? '+' : ''}{fmt(data?.saldo)}
+          </div>
+        </div>
+      </div>
+
+      {/* Accordion por mês */}
+      {loading && (
+        <div className="empty-state"><i className="fas fa-spinner fa-spin" /><p>Calculando projeção...</p></div>
+      )}
+      {!loading && data && Object.keys(data.byMonth).length === 0 && (
+        <div className="card" style={{ padding: 32 }}>
+          <div className="empty-state">
+            <i className="fas fa-calendar-xmark" />
+            <p>Nenhum lançamento projetado para este horizonte</p>
+          </div>
+        </div>
+      )}
+      {!loading && data && Object.entries(data.byMonth).map(([key, month]) => {
+        const isExpanded = expandedMonths[key];
+        const monthSaldoPos = (month.entradas - month.saidas) >= 0;
+        return (
+          <div key={key} className="card" style={{ marginBottom: 12, overflow: 'hidden' }}>
+            {/* Cabeçalho do mês */}
+            <div onClick={() => toggleMonth(key)}
+              style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+                background: isExpanded ? 'var(--gray-50)' : 'transparent',
+                borderBottom: isExpanded ? '1px solid var(--gray-100)' : 'none' }}>
+              <i className={`fas fa-chevron-${isExpanded ? 'down' : 'right'}`}
+                style={{ fontSize: 11, color: 'var(--gray-400)', width: 10 }} />
+              <span style={{ fontWeight: 600, fontSize: 14, flex: 1 }}>{fmtMonthLabel(key)}</span>
+              <div style={{ display: 'flex', gap: 20 }}>
+                <span style={{ fontSize: 12, color: '#22c55e' }}>
+                  <i className="fas fa-arrow-up" style={{ marginRight: 4 }} />{fmt(month.entradas)}
+                </span>
+                <span style={{ fontSize: 12, color: '#ef4444' }}>
+                  <i className="fas fa-arrow-down" style={{ marginRight: 4 }} />{fmt(month.saidas)}
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: monthSaldoPos ? '#16a34a' : '#dc2626', minWidth: 90, textAlign: 'right' }}>
+                  {monthSaldoPos ? '+' : ''}{fmt(month.entradas - month.saidas)}
+                </span>
+              </div>
+            </div>
+
+            {/* Itens do mês */}
+            {isExpanded && (
+              <div>
+                {month.items.map((t, i) => {
+                  const sm = SOURCE_META[t.source] || { icon: 'fa-tag', color: '#94a3b8' };
+                  const isEntrada = t.type === 'entrada';
+                  const isConfirmed = t.confidence === 'confirmed';
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px 10px 44px',
+                      borderBottom: i < month.items.length - 1 ? '1px solid var(--gray-50)' : 'none' }}>
+                      <span style={{ fontSize: 12, color: 'var(--gray-400)', width: 76, flexShrink: 0 }}>{fmtDate(t.date)}</span>
+                      <div style={{ width: 26, height: 26, borderRadius: 6, background: sm.color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <i className={`fas ${sm.icon}`} style={{ color: sm.color, fontSize: 11 }} />
+                      </div>
+                      <span style={{ fontSize: 13, flex: 1, color: 'var(--gray-700)' }}>{t.description || t.source}</span>
+                      <span style={{
+                        fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 10, flexShrink: 0,
+                        background: isConfirmed ? '#dcfce7' : '#fef9c3',
+                        color:      isConfirmed ? '#16a34a' : '#92400e',
+                      }}>
+                        {isConfirmed ? 'Confirmado' : 'Estimado'}
+                      </span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: isEntrada ? '#22c55e' : '#ef4444', textAlign: 'right', minWidth: 100, flexShrink: 0 }}>
+                        {isEntrada ? '+' : '−'}{fmt(t.amount)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+// ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
+export default function CashFlow() {
+  const [tab, setTab] = useState('realizado');
+
+  return (
+    <div className="page">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Fluxo de Caixa</h1>
+          <p className="page-subtitle">
+            {tab === 'realizado' ? 'Entradas e saídas realizadas no período' : 'Projeção de entradas e saídas futuras'}
+          </p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '2px solid var(--gray-100)', paddingBottom: 0 }}>
+        {[
+          { key: 'realizado',  label: 'Realizado',  icon: 'fa-circle-check' },
+          { key: 'projetado',  label: 'Projetado',  icon: 'fa-chart-line'   },
+        ].map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: '10px 20px', fontSize: 14, fontWeight: tab === t.key ? 700 : 500,
+              color: tab === t.key ? 'var(--primary)' : 'var(--gray-500)',
+              borderBottom: tab === t.key ? '2px solid var(--primary)' : '2px solid transparent',
+              marginBottom: -2, transition: 'color 0.15s',
+            }}>
+            <i className={`fas ${t.icon}`} style={{ marginRight: 6 }} />
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'realizado' ? <TabRealizado /> : <TabProjetado />}
     </div>
   );
 }

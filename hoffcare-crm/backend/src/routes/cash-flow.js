@@ -203,4 +203,150 @@ router.get('/monthly', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Helpers de cálculo de folha (para projeção)
+function calcINSSProj(salary) {
+  const bands = [{l:1412,r:.075},{l:2666.68,r:.09},{l:4000.03,r:.12},{l:7786.02,r:.14}];
+  let inss = 0, prev = 0;
+  for (const b of bands) {
+    if (salary <= prev) break;
+    inss += (Math.min(salary, b.l) - prev) * b.r;
+    prev  = b.l;
+  }
+  return Math.min(Math.round(inss * 100) / 100, 908.86);
+}
+
+function calcEmployerCost(emp) {
+  const sal = parseNum(emp.salary);
+  if (emp.contract_type === 'PJ') return sal;
+  const fgts = Math.round(sal * .08 * 100) / 100;
+  const th13 = Math.round((sal / 12) * 100) / 100;
+  const vac  = Math.round((sal / 12) * (4/3) * 100) / 100;
+  const ben  = parseNum(emp.vr_value) + parseNum(emp.vt_value) + parseNum(emp.health_plan) + parseNum(emp.other_benefits);
+  return Math.round((sal + fgts + th13 + vac + ben) * 100) / 100;
+}
+
+// GET /api/cash-flow/projection?days=90
+router.get('/projection', auth, async (req, res) => {
+  const clinic_id = req.user.clinic_id;
+  if (!clinic_id) return res.json({ totalEntradas: 0, totalSaidas: 0, saldo: 0, transactions: [], byMonth: {} });
+
+  const days = Math.min(parseInt(req.query.days) || 90, 365);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const horizon   = new Date(today.getTime() + days * 24 * 60 * 60 * 1000);
+  const todayStr   = today.toISOString().slice(0, 10);
+  const horizonStr = horizon.toISOString().slice(0, 10);
+
+  try {
+    const [expensesRes, rentalsRes, employeesRes, budgetsRes] = await Promise.all([
+
+      // Despesas pendentes com vencimento futuro (confirmadas)
+      pool.query(`
+        SELECT due_date AS date, amount, category, description
+        FROM expenses
+        WHERE clinic_id=$1 AND status='pendente' AND due_date BETWEEN $2 AND $3
+        ORDER BY due_date
+      `, [clinic_id, todayStr, horizonStr]),
+
+      // Aluguéis ativos
+      pool.query(`SELECT * FROM rentals WHERE clinic_id=$1 AND status='active'`, [clinic_id]),
+
+      // Funcionários ativos
+      pool.query(`SELECT * FROM employees WHERE clinic_id=$1 AND status='ativo'`, [clinic_id]),
+
+      // Orçamentos aprovados pendentes
+      pool.query(`
+        SELECT COALESCE(SUM(bi.price * bi.quantity), 0) AS total, COUNT(DISTINCT b.id) AS count
+        FROM budgets b LEFT JOIN budget_items bi ON bi.budget_id = b.id
+        WHERE b.clinic_id=$1 AND b.status='aprovado'
+      `, [clinic_id]),
+    ]);
+
+    const transactions = [];
+
+    // 1. Despesas pendentes (confirmadas)
+    for (const r of expensesRes.rows) {
+      transactions.push({
+        date:        String(r.date).slice(0, 10),
+        type:        'saida',
+        source:      'Despesas',
+        amount:      parseNum(r.amount),
+        description: r.description || r.category,
+        confidence:  'confirmed',
+      });
+    }
+
+    // 2. Folha projetada por funcionário/mês
+    for (const emp of employeesRes.rows) {
+      const cost = calcEmployerCost(emp);
+      let d = new Date(today.getFullYear(), today.getMonth(), 5);
+      if (d < today) d = new Date(d.getFullYear(), d.getMonth() + 1, 5);
+      while (d <= horizon) {
+        transactions.push({
+          date:        d.toISOString().slice(0, 10),
+          type:        'saida',
+          source:      'Funcionários',
+          amount:      cost,
+          description: `Folha — ${emp.name} (${emp.contract_type})`,
+          confidence:  'estimated',
+        });
+        d = new Date(d.getFullYear(), d.getMonth() + 1, 5);
+      }
+    }
+
+    // 3. Aluguéis mensais projetados
+    for (const rental of rentalsRes.rows) {
+      const dayOfMonth = new Date(rental.start_date + 'T12:00:00').getDate();
+      let d = new Date(today.getFullYear(), today.getMonth(), dayOfMonth);
+      if (d < today) d = new Date(d.getFullYear(), d.getMonth() + 1, dayOfMonth);
+      while (d <= horizon) {
+        if (!rental.end_date || d <= new Date(rental.end_date + 'T12:00:00')) {
+          transactions.push({
+            date:        d.toISOString().slice(0, 10),
+            type:        'entrada',
+            source:      'Aluguéis',
+            amount:      parseNum(rental.value),
+            description: rental.tenant_name,
+            confidence:  'estimated',
+          });
+        }
+        d = new Date(d.getFullYear(), d.getMonth() + 1, dayOfMonth);
+      }
+    }
+
+    // 4. Orçamentos aprovados pendentes (estimativa +15 dias)
+    const budgetTotal = parseNum(budgetsRes.rows[0]?.total);
+    const budgetCount = parseInt(budgetsRes.rows[0]?.count) || 0;
+    if (budgetTotal > 0) {
+      const receiveDate = new Date(today.getTime() + 15 * 24 * 60 * 60 * 1000);
+      if (receiveDate <= horizon) {
+        transactions.push({
+          date:        receiveDate.toISOString().slice(0, 10),
+          type:        'entrada',
+          source:      'Orçamentos',
+          amount:      budgetTotal,
+          description: `${budgetCount} orçamento(s) aprovado(s)`,
+          confidence:  'estimated',
+        });
+      }
+    }
+
+    transactions.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const totalEntradas = transactions.filter(t => t.type === 'entrada').reduce((s, t) => s + t.amount, 0);
+    const totalSaidas   = transactions.filter(t => t.type === 'saida').reduce((s, t) => s + t.amount, 0);
+
+    // Agrupamento por mês
+    const byMonth = {};
+    for (const t of transactions) {
+      const key = t.date.slice(0, 7);
+      if (!byMonth[key]) byMonth[key] = { entradas: 0, saidas: 0, items: [] };
+      if (t.type === 'entrada') byMonth[key].entradas += t.amount;
+      else                      byMonth[key].saidas   += t.amount;
+      byMonth[key].items.push(t);
+    }
+
+    res.json({ totalEntradas, totalSaidas, saldo: totalEntradas - totalSaidas, transactions, byMonth, days, horizonStr });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;
