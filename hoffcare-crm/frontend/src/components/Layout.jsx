@@ -6,7 +6,7 @@ import { useClinic } from '../context/ClinicContext';
 
 // Seções colapsáveis — estado salvo no localStorage
 const STORAGE_KEY = 'sidebar_sections';
-const DEFAULT_OPEN = { principal: true, atendimento: true, registros: false, estetica: false, estoque: false, orcamentos: false, financeiro: false, admin: false, ia: true };
+const DEFAULT_OPEN = { principal: false, atendimento: false, registros: false, estetica: false, estoque: false, orcamentos: false, financeiro: false, admin: false, ia: false };
 
 function loadSections() {
   try { return { ...DEFAULT_OPEN, ...JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') }; }
