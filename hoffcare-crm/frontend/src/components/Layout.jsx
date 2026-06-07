@@ -25,12 +25,10 @@ export default function Layout() {
   const [finAlert,    setFinAlert]    = useState(null); // contas a receber em atraso
 
   useEffect(() => {
-    const check = () => api.get('/receivables/summary')
+    // Checa uma vez ao carregar o sistema (controle de recebimento é manual)
+    api.get('/receivables/summary')
       .then(r => setFinAlert(r.data?.tem_atraso ? r.data : null))
       .catch(() => {});
-    check();
-    const t = setInterval(check, 10 * 60 * 1000); // a cada 10 min
-    return () => clearInterval(t);
   }, []);
 
   const toggleSection = (key) => {
