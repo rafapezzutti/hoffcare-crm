@@ -25,6 +25,13 @@ const ensureTokenTable = async () => {
 };
 ensureTokenTable().catch(console.error);
 
+// Tabela de eventos de login (para o painel de atividade no Master) — autocria
+pool.query(`CREATE TABLE IF NOT EXISTS login_events (
+  id BIGSERIAL PRIMARY KEY, user_id INTEGER, user_name TEXT, user_role TEXT, ip TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+)`).catch(() => {});
+pool.query('CREATE INDEX IF NOT EXISTS idx_login_events_created ON login_events(created_at DESC)').catch(() => {});
+
 // Login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
@@ -57,6 +64,9 @@ router.post('/login', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '12h' }
     );
+
+    pool.query('INSERT INTO login_events (user_id, user_name, user_role, ip) VALUES ($1,$2,$3,$4)',
+      [user.id, user.name, user.role, (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip]).catch(() => {});
 
     res.json({
       token,
