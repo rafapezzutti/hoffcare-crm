@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useClinic } from '../context/ClinicContext';
+import api from '../services/api';
 
 // Seções colapsáveis — estado salvo no localStorage
 const STORAGE_KEY = 'sidebar_sections';
@@ -21,6 +22,16 @@ export default function Layout() {
   const [clinicOpen,  setClinicOpen]  = useState(false);
   const [sections,    setSections]    = useState(loadSections);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [finAlert,    setFinAlert]    = useState(null); // contas a receber em atraso
+
+  useEffect(() => {
+    const check = () => api.get('/receivables/summary')
+      .then(r => setFinAlert(r.data?.tem_atraso ? r.data : null))
+      .catch(() => {});
+    check();
+    const t = setInterval(check, 10 * 60 * 1000); // a cada 10 min
+    return () => clearInterval(t);
+  }, []);
 
   const toggleSection = (key) => {
     setSections(prev => {
@@ -169,6 +180,26 @@ export default function Layout() {
           </div>
         </div>
 
+        {/* ── Alerta financeiro (parcelas em atraso) ── */}
+        {finAlert && (
+          <button
+            onClick={() => { navigate('/receivables'); setSidebarOpen(false); }}
+            title="Questões financeiras requerem sua atenção"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8, width: 'calc(100% - 24px)',
+              margin: '8px 12px 0', padding: '8px 12px', cursor: 'pointer',
+              background: '#fef9c3', border: '1px solid #facc15', borderRadius: 8, textAlign: 'left',
+            }}>
+            <span style={{ fontSize: 16 }}>❓</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#854d0e', lineHeight: 1.3 }}>
+              Questões financeiras requerem sua atenção
+              <span style={{ display: 'block', fontWeight: 400, color: '#a16207' }}>
+                {finAlert.parcelas_vencidas} parcela{finAlert.parcelas_vencidas > 1 ? 's' : ''} vencida{finAlert.parcelas_vencidas > 1 ? 's' : ''}
+              </span>
+            </span>
+          </button>
+        )}
+
         <nav className="sidebar-nav" style={{ marginTop: 4 }}>
 
           {/* ── Principal (sempre visível) ── */}
@@ -213,6 +244,7 @@ export default function Layout() {
           {/* ── Financeiro ── */}
           <Section sectionKey="financeiro" label={t('nav.financial')} icon="fa-dollar-sign">
             <NavItem to="/cash-flow" icon="fa-chart-line" label="Fluxo de Caixa" />
+            <NavItem to="/receivables" icon="fa-hand-holding-dollar" label="Contas a Receber" />
             <NavItem to="/expenses" icon="fa-file-invoice-dollar" label="Despesas" />
             <NavItem to="/rentals" icon="fa-key" label={t('nav.rentals')} />
             <NavItem to="/settlements" icon="fa-handshake" label={t('nav.settlements')} />

@@ -2,7 +2,28 @@ const express = require('express');
 const pool = require('../config/db');
 const { auth } = require('../middleware/auth');
 const { Resend } = require('resend');
+const { upsertReceivable } = require('./receivables');
 const router = express.Router();
+
+// Sincroniza o orçamento com o contas a receber (não bloqueia o save)
+async function syncBudgetReceivable(budget) {
+  try {
+    if (!budget.payment_method || !(Number(budget.total) > 0)) return;
+    const { rows } = await pool.query('SELECT name FROM patients WHERE id=$1', [budget.patient_id]);
+    await upsertReceivable({
+      clinic_id: budget.clinic_id,
+      source_type: 'orcamento',
+      source_id: budget.id,
+      patient_id: budget.patient_id,
+      patient_name: rows[0]?.name || null,
+      descricao: `Orçamento ${budget.number || budget.id}`,
+      payment_method: budget.payment_method,
+      installments: budget.installments || 1,
+      total: budget.total,
+      base_date: new Date().toISOString().slice(0, 10),
+    });
+  } catch (e) { console.error('[receivable] sync orçamento:', e.message); }
+}
 
 // GET /api/budgets — list budgets for clinic
 router.get('/', auth, async (req, res) => {
@@ -74,7 +95,7 @@ router.post('/', auth, async (req, res) => {
   const clinic_id = req.user.clinic_id;
   if (!clinic_id) return res.status(400).json({ error: 'Selecione uma clínica antes de cadastrar' });
 
-  const { patient_id, professional_id, valid_until, notes, items } = req.body;
+  const { patient_id, professional_id, valid_until, notes, items, payment_method, installments } = req.body;
   const budgetItems = Array.isArray(items) ? items : [];
 
   const total = budgetItems.reduce((sum, item) => {
@@ -91,8 +112,8 @@ router.post('/', auth, async (req, res) => {
 
     const budgetRes = await client.query(
       `INSERT INTO budgets
-         (clinic_id, number, patient_id, professional_id, valid_until, notes, total, status, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'rascunho', NOW())
+         (clinic_id, number, patient_id, professional_id, valid_until, notes, total, status, created_at, payment_method, installments)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'rascunho', NOW(), $8, $9)
        RETURNING *`,
       [
         clinic_id,
@@ -102,6 +123,8 @@ router.post('/', auth, async (req, res) => {
         valid_until || null,
         notes || null,
         total,
+        payment_method || null,
+        payment_method === 'credito' ? (parseInt(installments) || 1) : 1,
       ]
     );
 
@@ -130,6 +153,7 @@ router.post('/', auth, async (req, res) => {
     }
 
     await client.query('COMMIT');
+    syncBudgetReceivable(budget); // contas a receber (assíncrono)
     budget.items = insertedItems;
     res.status(201).json(budget);
   } catch (err) {
@@ -143,7 +167,7 @@ router.post('/', auth, async (req, res) => {
 // PUT /api/budgets/:id — update budget (only if rascunho)
 router.put('/:id', auth, async (req, res) => {
   const clinic_id = req.user.clinic_id;
-  const { patient_id, professional_id, valid_until, notes, items } = req.body;
+  const { patient_id, professional_id, valid_until, notes, items, payment_method, installments } = req.body;
   const budgetItems = Array.isArray(items) ? items : [];
 
   const client = await pool.connect();
@@ -170,8 +194,9 @@ router.put('/:id', auth, async (req, res) => {
 
     const budgetRes = await client.query(
       `UPDATE budgets
-       SET patient_id=$1, professional_id=$2, valid_until=$3, notes=$4, total=$5, updated_at=NOW()
-       WHERE id=$6 AND clinic_id=$7
+       SET patient_id=$1, professional_id=$2, valid_until=$3, notes=$4, total=$5, updated_at=NOW(),
+           payment_method=$6, installments=$7
+       WHERE id=$8 AND clinic_id=$9
        RETURNING *`,
       [
         patient_id || null,
@@ -179,6 +204,8 @@ router.put('/:id', auth, async (req, res) => {
         valid_until || null,
         notes || null,
         total,
+        payment_method || null,
+        payment_method === 'credito' ? (parseInt(installments) || 1) : 1,
         req.params.id,
         clinic_id,
       ]
@@ -211,6 +238,7 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     await client.query('COMMIT');
+    syncBudgetReceivable(budget); // contas a receber (assíncrono)
     budget.items = insertedItems;
     res.json(budget);
   } catch (err) {

@@ -1,7 +1,29 @@
 const express = require('express');
 const pool = require('../config/db');
 const { auth } = require('../middleware/auth');
+const { upsertReceivable } = require('./receivables');
 const router = express.Router();
+
+// Cria/atualiza o título no contas a receber a partir do atendimento (não bloqueia o save)
+async function syncReceivable(record, procedures) {
+  try {
+    if (!record.payment_method || !(Number(record.total_value) > 0)) return;
+    const { rows } = await pool.query('SELECT name FROM patients WHERE id=$1', [record.patient_id]);
+    const desc = (procedures || []).map(p => p.procedure_name).filter(Boolean).join(', ').slice(0, 200);
+    await upsertReceivable({
+      clinic_id: record.clinic_id,
+      source_type: 'procedimento',
+      source_id: record.id,
+      patient_id: record.patient_id,
+      patient_name: rows[0]?.name || null,
+      descricao: desc || `Atendimento ${record.type || ''}`.trim(),
+      payment_method: record.payment_method,
+      installments: record.installments || 1,
+      total: record.total_value,
+      base_date: String(record.consultation_date).slice(0, 10),
+    });
+  } catch (e) { console.error('[receivable] sync procedimento:', e.message); }
+}
 
 // List records (history)
 router.get('/', auth, async (req, res) => {
@@ -160,7 +182,7 @@ router.get('/:id', auth, async (req, res) => {
 
 // Create record
 router.post('/', auth, async (req, res) => {
-  const { type, patient_id, professional_id, consultation_date, procedures, repasse_type, repasse_value } = req.body;
+  const { type, patient_id, professional_id, consultation_date, procedures, repasse_type, repasse_value, payment_method, installments } = req.body;
   if (!type || !patient_id || !professional_id || !consultation_date)
     return res.status(400).json({ error: 'Tipo, paciente, profissional e data são obrigatórios' });
 
@@ -173,10 +195,11 @@ router.post('/', auth, async (req, res) => {
     const total = (procedures || []).reduce((sum, p) => sum + (parseFloat(p.value) || 0), 0);
 
     const record = await client.query(
-      `INSERT INTO medical_records (type, patient_id, professional_id, clinic_id, consultation_date, total_value, repasse_type, repasse_value)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      `INSERT INTO medical_records (type, patient_id, professional_id, clinic_id, consultation_date, total_value, repasse_type, repasse_value, payment_method, installments)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
       [type, patient_id, professional_id, clinic_id, consultation_date, total,
-       repasse_type || null, repasse_value != null && repasse_value !== '' ? parseFloat(repasse_value) : null]
+       repasse_type || null, repasse_value != null && repasse_value !== '' ? parseFloat(repasse_value) : null,
+       payment_method || null, payment_method === 'credito' ? (parseInt(installments) || 1) : 1]
     );
     const recordId = record.rows[0].id;
 
@@ -189,6 +212,7 @@ router.post('/', auth, async (req, res) => {
     }
 
     await client.query('COMMIT');
+    syncReceivable(record.rows[0], procedures); // contas a receber (assíncrono)
     res.status(201).json({ ...record.rows[0], procedures: procedures || [] });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -200,7 +224,7 @@ router.post('/', auth, async (req, res) => {
 
 // Update record
 router.put('/:id', auth, async (req, res) => {
-  const { type, patient_id, professional_id, consultation_date, procedures, repasse_type, repasse_value } = req.body;
+  const { type, patient_id, professional_id, consultation_date, procedures, repasse_type, repasse_value, payment_method, installments } = req.body;
   const clinic_id = req.user.clinic_id;
   const client = await pool.connect();
   try {
@@ -209,10 +233,11 @@ router.put('/:id', auth, async (req, res) => {
 
     const record = await client.query(
       `UPDATE medical_records SET type=$1, patient_id=$2, professional_id=$3, consultation_date=$4, total_value=$5,
-       repasse_type=$6, repasse_value=$7
-       WHERE id=$8 AND clinic_id=$9 RETURNING *`,
+       repasse_type=$6, repasse_value=$7, payment_method=$8, installments=$9
+       WHERE id=$10 AND clinic_id=$11 RETURNING *`,
       [type, patient_id, professional_id, consultation_date, total,
        repasse_type || null, repasse_value != null && repasse_value !== '' ? parseFloat(repasse_value) : null,
+       payment_method || null, payment_method === 'credito' ? (parseInt(installments) || 1) : 1,
        req.params.id, clinic_id]
     );
     if (!record.rows[0]) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Registro não encontrado' }); }
@@ -227,6 +252,7 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     await client.query('COMMIT');
+    syncReceivable(record.rows[0], procedures); // contas a receber (assíncrono)
     res.json({ ...record.rows[0], procedures: procedures || [] });
   } catch (err) {
     await client.query('ROLLBACK');

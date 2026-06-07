@@ -24,6 +24,8 @@ export default function RecordForm() {
     procedures: [],
     repasse_type: null,
     repasse_value: '',
+    payment_method: 'pix',
+    installments: 1,
   });
 
   const [patients, setPatients] = useState([]);
@@ -72,7 +74,11 @@ export default function RecordForm() {
           patient_id: rec.patient_id,
           professional_id: rec.professional_id,
           consultation_date: rec.consultation_date?.slice(0, 10),
-          procedures: rec.procedures || []
+          procedures: rec.procedures || [],
+          repasse_type: rec.repasse_type || null,
+          repasse_value: rec.repasse_value || '',
+          payment_method: rec.payment_method || 'pix',
+          installments: rec.installments || 1,
         });
         setPatientSearch(rec.patient_name);
         setSelectedPatient({ name: rec.patient_name, cpf: rec.patient_cpf });
@@ -396,6 +402,41 @@ export default function RecordForm() {
               <span style={{ fontSize: 20 }}>R$ {total.toFixed(2)}</span>
             </div>
           )}
+
+          {/* ── Forma de pagamento ── */}
+          <div style={{ marginTop: 16, background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 8, padding: '10px 14px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: 13, marginBottom: 8, color: 'var(--gray-700)' }}>
+              <i className="fas fa-credit-card" style={{ color: '#22c55e', fontSize: 12 }} />
+              Forma de pagamento
+            </label>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+              {[{ v: 'pix', l: '💠 Pix' }, { v: 'debito', l: '🏦 Cartão de Débito' }, { v: 'credito', l: '💳 Cartão de Crédito' }].map(opt => (
+                <button key={opt.v} type="button"
+                  onClick={() => setForm(f => ({ ...f, payment_method: opt.v, installments: opt.v === 'credito' ? (f.installments || 1) : 1 }))}
+                  style={{
+                    padding: '5px 12px', borderRadius: 6, border: '1px solid', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    background: form.payment_method === opt.v ? '#22c55e' : 'white',
+                    color: form.payment_method === opt.v ? 'white' : 'var(--gray-500)',
+                    borderColor: form.payment_method === opt.v ? '#22c55e' : 'var(--gray-200)',
+                  }}>{opt.l}</button>
+              ))}
+            </div>
+            {form.payment_method === 'credito' && (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 13 }}>Parcelamento</span>
+                <select className="form-control" style={{ maxWidth: 220 }}
+                  value={form.installments}
+                  onChange={e => setForm(f => ({ ...f, installments: parseInt(e.target.value) }))}>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map(n => (
+                    <option key={n} value={n}>
+                      {n}x de R$ {total > 0 ? (total / n).toFixed(2) : '0.00'} sem juros
+                    </option>
+                  ))}
+                </select>
+                <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>1ª parcela no ato</span>
+              </div>
+            )}
+          </div>
 
           {/* ── Ajuste de repasse desta consulta ── */}
           <div style={{ marginTop: 16, background: 'rgba(77,184,232,0.05)', border: '1px solid rgba(77,184,232,0.2)', borderRadius: 8, padding: '10px 14px' }}>

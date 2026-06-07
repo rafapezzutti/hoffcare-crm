@@ -22,6 +22,8 @@ export default function BudgetForm() {
     valid_until: dayjs().add(30, 'day').format('YYYY-MM-DD'),
     notes: '',
     status: 'rascunho',
+    payment_method: null,
+    installments: 1,
   });
   const [items, setItems] = useState([]); // { procedure_id, procedure_name, qty, unit_value }
 
@@ -82,6 +84,8 @@ export default function BudgetForm() {
             valid_until: b.valid_until ? b.valid_until.slice(0, 10) : '',
             notes: b.notes || '',
             status: b.status,
+            payment_method: b.payment_method || null,
+            installments: b.installments || 1,
           });
           setSelectedPatient({ id: b.patient_id, name: b.patient_name });
           setPatientSearch(b.patient_name || '');
@@ -313,6 +317,32 @@ export default function BudgetForm() {
           <div className="form-group">
             <label className="form-label">Válido até</label>
             <input className="form-control" type="date" {...ff('valid_until')} />
+          </div>
+
+          {/* Forma de pagamento (quando o orçamento for fechado) */}
+          <div className="form-group">
+            <label className="form-label">Forma de pagamento <span style={{ fontWeight: 400, color: 'var(--gray-400)', fontSize: 11 }}>(defina ao fechar — gera o contas a receber)</span></label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+              {[{ v: null, l: 'Não definida' }, { v: 'pix', l: '💠 Pix' }, { v: 'debito', l: '🏦 Débito' }, { v: 'credito', l: '💳 Crédito' }].map(opt => (
+                <button key={opt.v ?? 'null'} type="button"
+                  onClick={() => setForm(f => ({ ...f, payment_method: opt.v, installments: opt.v === 'credito' ? (f.installments || 1) : 1 }))}
+                  style={{
+                    padding: '5px 12px', borderRadius: 6, border: '1px solid', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    background: form.payment_method === opt.v ? '#22c55e' : 'white',
+                    color: form.payment_method === opt.v ? 'white' : 'var(--gray-500)',
+                    borderColor: form.payment_method === opt.v ? '#22c55e' : 'var(--gray-200)',
+                  }}>{opt.l}</button>
+              ))}
+            </div>
+            {form.payment_method === 'credito' && (
+              <select className="form-control" style={{ maxWidth: 220 }}
+                value={form.installments}
+                onChange={e => setForm(f => ({ ...f, installments: parseInt(e.target.value) }))}>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map(n => (
+                  <option key={n} value={n}>{n}x de R$ {total > 0 ? (total / n).toFixed(2) : '0.00'} sem juros</option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* Notes */}
