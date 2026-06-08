@@ -34,6 +34,18 @@ function getStatus(val) {
   return STATUSES.find(s => s.value === (val || '')) || STATUSES[0];
 }
 
+// ── Status de tratamento ─────────────────────────────────────────────────────
+const TREATMENT_STATUSES = [
+  { value: 'nao_iniciado',          label: 'Não iniciado',              color: '#f9fafb', border: '#d1d5db', text: '#6b7280', dot: '#9ca3af' },
+  { value: 'orcamento_apresentado', label: 'Orçamento apresentado',     color: '#faf5ff', border: '#c4b5fd', text: '#5b21b6', dot: '#8b5cf6' },
+  { value: 'iniciado',              label: 'Iniciado',                  color: '#eff6ff', border: '#93c5fd', text: '#1e40af', dot: '#3b82f6' },
+  { value: 'concluido',             label: 'Concluído',                 color: '#f0fdf4', border: '#86efac', text: '#166534', dot: '#22c55e' },
+  { value: 'interrompido',          label: 'Interrompido pelo paciente',color: '#fef2f2', border: '#fca5a5', text: '#991b1b', dot: '#ef4444' },
+];
+function getTreatmentStatus(val) {
+  return TREATMENT_STATUSES.find(s => s.value === (val || 'nao_iniciado')) || TREATMENT_STATUSES[0];
+}
+
 // ── Status de faces ───────────────────────────────────────────────────────────
 const FACE_STATUSES = [
   { value: '',          label: 'Hígida',    bg: '#f9fafb', border: '#e5e7eb' },
@@ -110,7 +122,7 @@ export default function Odontogram() {
   const [patient,  setPatient]  = useState(null);
   const [teeth,    setTeeth]    = useState({});
   const [selected, setSelected] = useState(null);
-  const [form,     setForm]     = useState({ status: '', procedure_name: '', procedure_value: '', notes: '', payment_status: 'pendente', amount_paid: '' });
+  const [form,     setForm]     = useState({ status: '', procedure_name: '', procedure_value: '', notes: '', payment_status: 'pendente', amount_paid: '', treatment_status: 'nao_iniciado', treatment_date: '' });
   const [saving,   setSaving]   = useState(false);
   const [dirty,    setDirty]    = useState(false);
 
@@ -154,12 +166,14 @@ export default function Odontogram() {
     const data = teeth[key] || {};
     setSelected(key);
     setForm({
-      status:          data.status          || '',
-      procedure_name:  data.procedure_name  || '',
-      procedure_value: data.procedure_value != null ? String(data.procedure_value) : '',
-      notes:           data.notes           || '',
-      payment_status:  data.payment_status  || 'pendente',
-      amount_paid:     data.amount_paid     != null ? String(data.amount_paid) : '',
+      status:           data.status           || '',
+      procedure_name:   data.procedure_name   || '',
+      procedure_value:  data.procedure_value  != null ? String(data.procedure_value) : '',
+      notes:            data.notes            || '',
+      payment_status:   data.payment_status   || 'pendente',
+      amount_paid:      data.amount_paid      != null ? String(data.amount_paid) : '',
+      treatment_status: data.treatment_status || 'nao_iniciado',
+      treatment_date:   data.treatment_date   ? String(data.treatment_date).slice(0, 10) : '',
     });
     setPendingFaces({ ...(allFaces[key] || {}) });
     setSelectedFace(null);
@@ -222,12 +236,14 @@ export default function Odontogram() {
     setSaving(true);
     try {
       const res = await api.put(`/odontogram/${patientId}/${selected}`, {
-        status:          form.status          || null,
-        procedure_name:  form.procedure_name  || null,
-        procedure_value: form.procedure_value ? parseFloat(form.procedure_value) : null,
-        notes:           form.notes           || null,
-        payment_status:  form.payment_status  || 'pendente',
-        amount_paid:     form.amount_paid     ? parseFloat(form.amount_paid) : 0,
+        status:           form.status           || null,
+        procedure_name:   form.procedure_name   || null,
+        procedure_value:  form.procedure_value  ? parseFloat(form.procedure_value) : null,
+        notes:            form.notes            || null,
+        payment_status:   form.payment_status   || 'pendente',
+        amount_paid:      form.amount_paid      ? parseFloat(form.amount_paid) : 0,
+        treatment_status: form.treatment_status || 'nao_iniciado',
+        treatment_date:   form.treatment_date   || null,
       });
       setTeeth(prev => ({ ...prev, [selected]: res.data }));
       setDirty(false);
@@ -245,7 +261,7 @@ export default function Odontogram() {
     try {
       await api.delete(`/odontogram/${patientId}/${selected}`);
       setTeeth(prev => { const n = { ...prev }; delete n[selected]; return n; });
-      setForm({ status: '', procedure_name: '', procedure_value: '', notes: '', payment_status: 'pendente', amount_paid: '' });
+      setForm({ status: '', procedure_name: '', procedure_value: '', notes: '', payment_status: 'pendente', amount_paid: '', treatment_status: 'nao_iniciado', treatment_date: '' });
       setDirty(false);
     } catch (err) {
       alert(err.response?.data?.error || 'Erro ao limpar.');
@@ -430,6 +446,8 @@ export default function Odontogram() {
                       <th>Dente</th>
                       <th>Situação</th>
                       <th>Procedimento</th>
+                      <th>Status Trat.</th>
+                      <th>Data Trat.</th>
                       <th>Valor</th>
                       <th>Pagamento</th>
                     </tr>
@@ -438,6 +456,7 @@ export default function Odontogram() {
                     {treatmentPlan.map(([tooth, data]) => {
                       const st = getStatus(data.status);
                       const ps = getPaymentStatus(data.payment_status);
+                      const ts = getTreatmentStatus(data.treatment_status);
                       return (
                         <tr key={tooth} style={{ cursor: 'pointer' }} onClick={() => selectTooth(parseInt(tooth))}>
                           <td>
@@ -454,6 +473,15 @@ export default function Odontogram() {
                             )}
                           </td>
                           <td style={{ fontSize: 13 }}>{data.procedure_name}</td>
+                          <td>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: ts.color, color: ts.text, border: `1px solid ${ts.border}` }}>
+                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: ts.dot, flexShrink: 0 }} />
+                              {ts.label}
+                            </span>
+                          </td>
+                          <td style={{ fontSize: 12, color: 'var(--gray-500)' }}>
+                            {data.treatment_date ? dayjs(data.treatment_date).format('DD/MM/YYYY') : '—'}
+                          </td>
                           <td style={{ fontWeight: 600, color: '#22c55e' }}>
                             {data.procedure_value ? `R$ ${parseFloat(data.procedure_value).toFixed(2)}` : '—'}
                           </td>
@@ -471,7 +499,7 @@ export default function Odontogram() {
                   </tbody>
                   <tfoot>
                     <tr style={{ background: 'var(--gray-50)', fontWeight: 700 }}>
-                      <td colSpan={4} style={{ padding: '10px 16px', fontSize: 13 }}>Total do plano</td>
+                      <td colSpan={6} style={{ padding: '10px 16px', fontSize: 13 }}>Total do plano</td>
                       <td style={{ padding: '10px 16px', fontSize: 14, color: '#22c55e' }}>
                         R$ {totalPlano.toFixed(2)}
                       </td>
@@ -563,6 +591,42 @@ export default function Odontogram() {
                   value={form.notes}
                   onChange={e => { setForm(p => ({ ...p, notes: e.target.value })); setDirty(true); }}
                   style={{ resize: 'vertical' }}
+                />
+              </div>
+
+              {/* Status de tratamento */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-600)', display: 'block', marginBottom: 6 }}>
+                  Status do tratamento
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {TREATMENT_STATUSES.map(s => (
+                    <label key={s.value} style={{
+                      display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
+                      borderRadius: 8, cursor: 'pointer',
+                      border: `1px solid ${form.treatment_status === s.value ? s.border : 'transparent'}`,
+                      background: form.treatment_status === s.value ? s.color : 'transparent',
+                      transition: 'all 0.12s',
+                    }}>
+                      <input type="radio" name="treatment_status" value={s.value}
+                        checked={form.treatment_status === s.value}
+                        onChange={() => { setForm(p => ({ ...p, treatment_status: s.value })); setDirty(true); }}
+                        style={{ display: 'none' }} />
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: s.dot, flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, color: s.text, fontWeight: form.treatment_status === s.value ? 600 : 400 }}>{s.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Data do tratamento */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-600)', display: 'block', marginBottom: 4 }}>
+                  Data de realização
+                </label>
+                <input type="date" className="form-control"
+                  value={form.treatment_date}
+                  onChange={e => { setForm(p => ({ ...p, treatment_date: e.target.value })); setDirty(true); }}
                 />
               </div>
 

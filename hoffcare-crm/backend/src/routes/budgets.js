@@ -95,8 +95,12 @@ router.post('/', auth, async (req, res) => {
   const clinic_id = req.user.clinic_id;
   if (!clinic_id) return res.status(400).json({ error: 'Selecione uma clínica antes de cadastrar' });
 
-  const { patient_id, professional_id, valid_until, notes, items, payment_method, installments } = req.body;
+  const { patient_id, professional_id, valid_until, notes, items, payment_method, installments, payment_splits } = req.body;
   const budgetItems = Array.isArray(items) ? items : [];
+
+  const splits = Array.isArray(payment_splits) && payment_splits.length > 0 ? payment_splits : null;
+  const effMethod = splits ? (splits[0]?.method || null) : (payment_method || null);
+  const effInstallments = splits ? (splits[0]?.installments || 1) : (payment_method === 'credito' ? (parseInt(installments) || 1) : 1);
 
   const total = budgetItems.reduce((sum, item) => {
     return sum + (parseFloat(item.unit_value) || 0) * (parseInt(item.quantity) || 1);
@@ -112,8 +116,8 @@ router.post('/', auth, async (req, res) => {
 
     const budgetRes = await client.query(
       `INSERT INTO budgets
-         (clinic_id, number, patient_id, professional_id, valid_until, notes, total, status, created_at, payment_method, installments)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'rascunho', NOW(), $8, $9)
+         (clinic_id, number, patient_id, professional_id, valid_until, notes, total, status, created_at, payment_method, installments, payment_splits)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'rascunho', NOW(), $8, $9, $10)
        RETURNING *`,
       [
         clinic_id,
@@ -123,8 +127,9 @@ router.post('/', auth, async (req, res) => {
         valid_until || null,
         notes || null,
         total,
-        payment_method || null,
-        payment_method === 'credito' ? (parseInt(installments) || 1) : 1,
+        effMethod,
+        effInstallments,
+        splits ? JSON.stringify(splits) : null,
       ]
     );
 
@@ -167,8 +172,12 @@ router.post('/', auth, async (req, res) => {
 // PUT /api/budgets/:id — update budget (only if rascunho)
 router.put('/:id', auth, async (req, res) => {
   const clinic_id = req.user.clinic_id;
-  const { patient_id, professional_id, valid_until, notes, items, payment_method, installments } = req.body;
+  const { patient_id, professional_id, valid_until, notes, items, payment_method, installments, payment_splits } = req.body;
   const budgetItems = Array.isArray(items) ? items : [];
+
+  const splits = Array.isArray(payment_splits) && payment_splits.length > 0 ? payment_splits : null;
+  const effMethod = splits ? (splits[0]?.method || null) : (payment_method || null);
+  const effInstallments = splits ? (splits[0]?.installments || 1) : (payment_method === 'credito' ? (parseInt(installments) || 1) : 1);
 
   const client = await pool.connect();
   try {
@@ -195,8 +204,8 @@ router.put('/:id', auth, async (req, res) => {
     const budgetRes = await client.query(
       `UPDATE budgets
        SET patient_id=$1, professional_id=$2, valid_until=$3, notes=$4, total=$5, updated_at=NOW(),
-           payment_method=$6, installments=$7
-       WHERE id=$8 AND clinic_id=$9
+           payment_method=$6, installments=$7, payment_splits=$8
+       WHERE id=$9 AND clinic_id=$10
        RETURNING *`,
       [
         patient_id || null,
@@ -204,8 +213,9 @@ router.put('/:id', auth, async (req, res) => {
         valid_until || null,
         notes || null,
         total,
-        payment_method || null,
-        payment_method === 'credito' ? (parseInt(installments) || 1) : 1,
+        effMethod,
+        effInstallments,
+        splits ? JSON.stringify(splits) : null,
         req.params.id,
         clinic_id,
       ]

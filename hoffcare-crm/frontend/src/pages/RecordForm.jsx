@@ -26,7 +26,9 @@ export default function RecordForm() {
     repasse_value: '',
     payment_method: 'pix',
     installments: 1,
+    payment_splits: [],
   });
+  const [splitMode, setSplitMode] = useState(false);
 
   const [patients, setPatients] = useState([]);
   const [professionals, setProfessionals] = useState([]);
@@ -79,7 +81,9 @@ export default function RecordForm() {
           repasse_value: rec.repasse_value || '',
           payment_method: rec.payment_method || 'pix',
           installments: rec.installments || 1,
+          payment_splits: Array.isArray(rec.payment_splits) ? rec.payment_splits : [],
         });
+        if (Array.isArray(rec.payment_splits) && rec.payment_splits.length > 1) setSplitMode(true);
         setPatientSearch(rec.patient_name);
         setSelectedPatient({ name: rec.patient_name, cpf: rec.patient_cpf });
         setSelectedProfessional({ name: rec.professional_name, crm_cro: rec.crm_cro, type: rec.type });
@@ -176,9 +180,13 @@ export default function RecordForm() {
     if (emptyManual) { setError(t('recordForm.errorManual')); return; }
 
     setSaving(true); setError('');
+    const payload = {
+      ...form,
+      payment_splits: splitMode && form.payment_splits.length > 0 ? form.payment_splits : null,
+    };
     try {
-      if (isEdit) await api.put(`/records/${id}`, form);
-      else { const r = await api.post('/records', form); navigate(`/records/${r.data.id}/view`); return; }
+      if (isEdit) await api.put(`/records/${id}`, payload);
+      else { const r = await api.post('/records', payload); navigate(`/records/${r.data.id}/view`); return; }
       navigate(`/records/${id}/view`);
     } catch (err) {
       setError(err.response?.data?.error || t('recordForm.errorSave'));
@@ -404,39 +412,122 @@ export default function RecordForm() {
           )}
 
           {/* ── Forma de pagamento ── */}
-          <div style={{ marginTop: 16, background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 8, padding: '10px 14px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: 13, marginBottom: 8, color: 'var(--gray-700)' }}>
-              <i className="fas fa-credit-card" style={{ color: '#22c55e', fontSize: 12 }} />
-              Forma de pagamento
-            </label>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
-              {[{ v: 'pix', l: '💠 Pix' }, { v: 'debito', l: '🏦 Cartão de Débito' }, { v: 'credito', l: '💳 Cartão de Crédito' }].map(opt => (
-                <button key={opt.v} type="button"
-                  onClick={() => setForm(f => ({ ...f, payment_method: opt.v, installments: opt.v === 'credito' ? (f.installments || 1) : 1 }))}
-                  style={{
-                    padding: '5px 12px', borderRadius: 6, border: '1px solid', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                    background: form.payment_method === opt.v ? '#22c55e' : 'white',
-                    color: form.payment_method === opt.v ? 'white' : 'var(--gray-500)',
-                    borderColor: form.payment_method === opt.v ? '#22c55e' : 'var(--gray-200)',
-                  }}>{opt.l}</button>
-              ))}
-            </div>
-            {form.payment_method === 'credito' && (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 13 }}>Parcelamento</span>
-                <select className="form-control" style={{ maxWidth: 220 }}
-                  value={form.installments}
-                  onChange={e => setForm(f => ({ ...f, installments: parseInt(e.target.value) }))}>
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map(n => (
-                    <option key={n} value={n}>
-                      {n}x de R$ {total > 0 ? (total / n).toFixed(2) : '0.00'} sem juros
-                    </option>
-                  ))}
-                </select>
-                <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>1ª parcela no ato</span>
+          {(() => {
+            const PAY_OPTS = [
+              { v: 'pix',     l: '💠 Pix' },
+              { v: 'debito',  l: '🏦 Débito' },
+              { v: 'credito', l: '💳 Crédito' },
+              { v: 'dinheiro',l: '💵 Dinheiro' },
+              { v: 'boleto',  l: '📄 Boleto' },
+            ];
+            const addSplit = () => setForm(f => ({
+              ...f,
+              payment_splits: [...f.payment_splits, { method: 'pix', amount: '', installments: 1 }],
+            }));
+            const removeSplit = (i) => setForm(f => ({
+              ...f,
+              payment_splits: f.payment_splits.filter((_, idx) => idx !== i),
+            }));
+            const updateSplit = (i, field, value) => setForm(f => ({
+              ...f,
+              payment_splits: f.payment_splits.map((s, idx) => idx === i ? { ...s, [field]: value } : s),
+            }));
+            const splitTotal = form.payment_splits.reduce((s, sp) => s + (parseFloat(sp.amount) || 0), 0);
+            const splitDiff = total - splitTotal;
+
+            return (
+              <div style={{ marginTop: 16, background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 8, padding: '10px 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: 13, margin: 0, color: 'var(--gray-700)' }}>
+                    <i className="fas fa-credit-card" style={{ color: '#22c55e', fontSize: 12 }} />
+                    Forma de pagamento
+                  </label>
+                  <button type="button" onClick={() => {
+                    setSplitMode(m => {
+                      if (!m && form.payment_splits.length === 0)
+                        setForm(f => ({ ...f, payment_splits: [{ method: f.payment_method, amount: String(total || ''), installments: f.installments || 1 }] }));
+                      return !m;
+                    });
+                  }}
+                    style={{ padding: '3px 10px', border: '1px solid', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                      background: splitMode ? '#22c55e' : 'white', color: splitMode ? 'white' : 'var(--gray-500)',
+                      borderColor: splitMode ? '#22c55e' : 'var(--gray-200)' }}>
+                    <i className="fas fa-split" style={{ marginRight: 4 }} />Dividir
+                  </button>
+                </div>
+
+                {!splitMode ? (
+                  <>
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+                      {PAY_OPTS.map(opt => (
+                        <button key={opt.v} type="button"
+                          onClick={() => setForm(f => ({ ...f, payment_method: opt.v, installments: opt.v === 'credito' ? (f.installments || 1) : 1 }))}
+                          style={{
+                            padding: '5px 10px', borderRadius: 6, border: '1px solid', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                            background: form.payment_method === opt.v ? '#22c55e' : 'white',
+                            color: form.payment_method === opt.v ? 'white' : 'var(--gray-500)',
+                            borderColor: form.payment_method === opt.v ? '#22c55e' : 'var(--gray-200)',
+                          }}>{opt.l}</button>
+                      ))}
+                    </div>
+                    {form.payment_method === 'credito' && (
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 13 }}>Parcelamento</span>
+                        <select className="form-control" style={{ maxWidth: 220 }}
+                          value={form.installments}
+                          onChange={e => setForm(f => ({ ...f, installments: parseInt(e.target.value) }))}>
+                          {Array.from({ length: 12 }, (_, i) => i + 1).map(n => (
+                            <option key={n} value={n}>
+                              {n}x de R$ {total > 0 ? (total / n).toFixed(2) : '0.00'} sem juros
+                            </option>
+                          ))}
+                        </select>
+                        <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>1ª parcela no ato</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div>
+                    {form.payment_splits.map((sp, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8, background: '#f9fafb', borderRadius: 8, padding: '8px 10px', border: '1px solid var(--gray-200)' }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray-500)', minWidth: 20 }}>#{i + 1}</span>
+                        <select className="form-control" style={{ flex: 1, fontSize: 12 }}
+                          value={sp.method}
+                          onChange={e => updateSplit(i, 'method', e.target.value)}>
+                          {PAY_OPTS.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
+                        </select>
+                        <input type="number" className="form-control" style={{ width: 100, fontSize: 12 }}
+                          placeholder="R$ valor" min="0" step="0.01"
+                          value={sp.amount}
+                          onChange={e => updateSplit(i, 'amount', e.target.value)} />
+                        {sp.method === 'credito' && (
+                          <select className="form-control" style={{ width: 80, fontSize: 12 }}
+                            value={sp.installments || 1}
+                            onChange={e => updateSplit(i, 'installments', parseInt(e.target.value))}>
+                            {Array.from({ length: 12 }, (_, x) => x + 1).map(n => (
+                              <option key={n} value={n}>{n}x</option>
+                            ))}
+                          </select>
+                        )}
+                        <button type="button" onClick={() => removeSplit(i)}
+                          style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>×</button>
+                      </div>
+                    ))}
+                    <button type="button" onClick={addSplit}
+                      style={{ padding: '4px 12px', border: '1px dashed var(--gray-300)', borderRadius: 6, background: 'white', color: 'var(--gray-500)', fontSize: 12, cursor: 'pointer', marginBottom: 8 }}>
+                      + Adicionar método
+                    </button>
+                    {form.payment_splits.length > 0 && (
+                      <div style={{ fontSize: 12, color: Math.abs(splitDiff) < 0.01 ? '#166534' : '#991b1b', fontWeight: 600, padding: '4px 0' }}>
+                        Total dividido: R$ {splitTotal.toFixed(2)} / R$ {total.toFixed(2)}
+                        {Math.abs(splitDiff) >= 0.01 && ` (diferença: R$ ${Math.abs(splitDiff).toFixed(2)})`}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            );
+          })()}
 
           {/* ── Ajuste de repasse desta consulta ── */}
           <div style={{ marginTop: 16, background: 'rgba(77,184,232,0.05)', border: '1px solid rgba(77,184,232,0.2)', borderRadius: 8, padding: '10px 14px' }}>

@@ -15,6 +15,8 @@ export default function Evolution() {
   const [editing,    setEditing]    = useState(null); // null = novo, obj = editar
   const [loading,    setLoading]    = useState(false);
   const [deleting,   setDeleting]   = useState(null);
+  const [aiLoading,  setAiLoading]  = useState(false);
+  const [aiError,    setAiError]    = useState('');
   const [lightbox,   setLightbox]   = useState(null); // { src }
   const fileRef = useRef();
 
@@ -43,6 +45,7 @@ export default function Evolution() {
     setNewImages([]);
     setPreviews([]);
     setKeepImages([]);
+    setAiError('');
     setModalOpen(true);
   };
 
@@ -56,6 +59,7 @@ export default function Evolution() {
     setKeepImages((ev.images || []).map(i => i.filename));
     setNewImages([]);
     setPreviews([]);
+    setAiError('');
     setModalOpen(true);
   };
 
@@ -100,6 +104,27 @@ export default function Evolution() {
       alert(err.response?.data?.error || 'Erro ao salvar.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ── IA: estruturar anotação ─────────────────────────────────────────────────
+  const handleAiStructure = async () => {
+    if (!form.note.trim()) return;
+    setAiLoading(true);
+    setAiError('');
+    try {
+      const prompt = `Você é um assistente médico. Receba a seguinte anotação clínica bruta e reescreva como uma nota clínica estruturada profissional em português. Use seções como: Queixa Principal, Histórico, Exame Clínico, Hipótese Diagnóstica e Conduta/Plano — incluindo apenas as seções relevantes ao conteúdo fornecido. Preserve todas as informações originais sem adicionar dados inventados. Anotação bruta:\n\n${form.note.trim()}`;
+      const res = await api.post('/ai/chat', { history: [{ role: 'user', text: prompt }] });
+      const structured = res.data?.text || res.data?.response || '';
+      if (structured) setForm(p => ({ ...p, note: structured }));
+    } catch (err) {
+      if (err.response?.status === 403) {
+        setAiError('Permissão de IA não habilitada para este usuário.');
+      } else {
+        setAiError('Erro ao chamar a IA. Tente novamente.');
+      }
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -265,14 +290,34 @@ export default function Evolution() {
               </div>
 
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-600)', display: 'block', marginBottom: 4 }}>
-                  Anotação clínica <span style={{ color: '#dc2626' }}>*</span>
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-600)', margin: 0 }}>
+                    Anotação clínica <span style={{ color: '#dc2626' }}>*</span>
+                  </label>
+                  <button type="button"
+                    onClick={handleAiStructure}
+                    disabled={aiLoading || !form.note.trim()}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      padding: '4px 10px', border: '1px solid #8b5cf6', borderRadius: 6,
+                      background: aiLoading ? '#f5f3ff' : '#fff', color: '#7c3aed',
+                      fontSize: 11, fontWeight: 600, cursor: aiLoading || !form.note.trim() ? 'not-allowed' : 'pointer',
+                      opacity: !form.note.trim() ? 0.5 : 1,
+                    }}>
+                    <i className={`fas ${aiLoading ? 'fa-spinner fa-spin' : 'fa-wand-magic-sparkles'}`} />
+                    {aiLoading ? 'Estruturando...' : 'Estruturar com IA'}
+                  </button>
+                </div>
+                {aiError && (
+                  <div style={{ padding: '6px 10px', borderRadius: 6, background: '#fef2f2', border: '1px solid #fca5a5', color: '#991b1b', fontSize: 12, marginBottom: 6 }}>
+                    {aiError}
+                  </div>
+                )}
                 <textarea className="form-control"
                   rows={6}
                   placeholder="Descreva a evolução do tratamento, observações clínicas, procedimentos realizados..."
                   value={form.note}
-                  onChange={e => setForm(p => ({ ...p, note: e.target.value }))}
+                  onChange={e => { setForm(p => ({ ...p, note: e.target.value })); setAiError(''); }}
                   required
                   style={{ resize: 'vertical' }}
                 />

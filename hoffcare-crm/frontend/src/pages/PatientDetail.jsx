@@ -30,21 +30,24 @@ export default function PatientDetail() {
   const [records,       setRecords]       = useState([]);
   const [anamneses,     setAnamneses]     = useState([]);
   const [budgets,       setBudgets]       = useState([]);
+  const [evolutions,    setEvolutions]    = useState([]);
   const [error,         setError]         = useState('');
   const fileRef = useRef();
 
   const load = async () => {
     if (isNew) return;
-    const [p, r, a, b] = await Promise.all([
+    const [p, r, a, b, ev] = await Promise.all([
       api.get(`/patients/${id}`),
       api.get(`/records?patient_id=${id}`),
       api.get(`/anamnesis?patient_id=${id}`),
       api.get(`/budgets?patient_id=${id}`).catch(() => ({ data: [] })),
+      api.get(`/evolution?patient_id=${id}`).catch(() => ({ data: [] })),
     ]);
     setPatient(p.data);
     setRecords(r.data);
     setAnamneses(a.data);
     setBudgets(b.data);
+    setEvolutions(ev.data);
     setForm({
       name:      p.data.name,
       cpf:       p.data.cpf,
@@ -289,33 +292,53 @@ export default function PatientDetail() {
               }
             </div>
 
-            {/* Histórico de atendimentos */}
+            {/* Evolução Clínica */}
             <div className="card">
               <div className="card-header">
                 <span className="card-title">
-                  <i className="fas fa-clock-rotate-left" style={{ color: 'var(--orange)', marginRight: 8 }} />
-                  Histórico de Atendimentos
+                  <i className="fas fa-notes-medical" style={{ color: '#8b5cf6', marginRight: 8 }} />
+                  Evolução Clínica
                 </span>
+                <button className="btn btn-outline btn-sm" onClick={() => navigate(`/patients/${id}/evolution`)}>
+                  <i className="fas fa-arrow-right" /> Ver todas
+                </button>
               </div>
-              {records.length === 0
-                ? <div className="empty-state"><i className="fas fa-file-medical" /><p>Sem registros</p></div>
-                : records.map(r => (
-                    <div key={r.id}
-                      style={{ padding: '12px 0', borderBottom: '1px solid var(--gray-100)', cursor: 'pointer' }}
-                      onClick={() => navigate(`/records/${r.id}/view`)}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontWeight: 500 }}>{dayjs(r.consultation_date).format('DD/MM/YYYY')}</span>
-                        <span className={`badge ${r.type === 'medico' ? 'badge-orange' : 'badge-blue'}`}>
-                          {r.type === 'medico' ? 'Médico' : 'Odonto'}
+              {evolutions.length === 0 ? (
+                <div style={{ padding: '12px 0', color: 'var(--gray-400)', fontSize: 13 }}>
+                  Nenhuma evolução registrada.
+                  <button className="btn btn-outline btn-sm" style={{ marginLeft: 10 }}
+                    onClick={() => navigate(`/patients/${id}/evolution`)}>
+                    <i className="fas fa-plus" /> Adicionar
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {evolutions.slice(0, 3).map(ev => (
+                    <div key={ev.id}
+                      style={{ padding: '10px 12px', background: 'var(--gray-50)', borderRadius: 8, border: '1px solid var(--gray-200)', borderLeft: '3px solid #8b5cf6', cursor: 'pointer' }}
+                      onClick={() => navigate(`/patients/${id}/evolution`)}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-600)' }}>
+                          {dayjs(ev.evolution_date).format('DD/MM/YYYY')}
                         </span>
+                        {ev.professional_name && (
+                          <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>{ev.professional_name}</span>
+                        )}
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 2 }}>{r.professional_name}</div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--success)', marginTop: 4 }}>
-                        R$ {Number(r.total_value).toFixed(2)}
-                      </div>
+                      <p style={{ margin: 0, fontSize: 13, color: 'var(--gray-700)', lineHeight: 1.4,
+                        display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {ev.note}
+                      </p>
                     </div>
-                  ))
-              }
+                  ))}
+                  {evolutions.length > 3 && (
+                    <button style={{ background: 'none', border: 'none', color: '#4DB8E8', cursor: 'pointer', fontSize: 12, padding: 0, textAlign: 'left' }}
+                      onClick={() => navigate(`/patients/${id}/evolution`)}>
+                      + {evolutions.length - 3} registros mais antigos
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

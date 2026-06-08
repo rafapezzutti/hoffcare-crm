@@ -18,6 +18,8 @@ async function ensureTable() {
       notes            TEXT,
       payment_status   VARCHAR(20) DEFAULT 'pendente',
       amount_paid      DECIMAL(10,2) DEFAULT 0,
+      treatment_status VARCHAR(30) DEFAULT 'nao_iniciado',
+      treatment_date   DATE,
       updated_at       TIMESTAMP DEFAULT NOW(),
       UNIQUE(clinic_id, patient_id, tooth_number)
     )
@@ -41,21 +43,23 @@ router.get('/', auth, async (req, res) => {
 // PUT /api/odontogram/:patient_id/:tooth — upsert de um dente
 router.put('/:patient_id/:tooth', auth, async (req, res) => {
   const { patient_id, tooth } = req.params;
-  const { status, procedure_name, procedure_value, notes, payment_status, amount_paid } = req.body;
+  const { status, procedure_name, procedure_value, notes, payment_status, amount_paid, treatment_status, treatment_date } = req.body;
   try {
     const { rows } = await pool.query(
       `INSERT INTO odontogram_teeth
-         (clinic_id, patient_id, tooth_number, status, procedure_name, procedure_value, notes, payment_status, amount_paid, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW())
+         (clinic_id, patient_id, tooth_number, status, procedure_name, procedure_value, notes, payment_status, amount_paid, treatment_status, treatment_date, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW())
        ON CONFLICT (clinic_id, patient_id, tooth_number)
        DO UPDATE SET
-         status          = EXCLUDED.status,
-         procedure_name  = EXCLUDED.procedure_name,
-         procedure_value = EXCLUDED.procedure_value,
-         notes           = EXCLUDED.notes,
-         payment_status  = EXCLUDED.payment_status,
-         amount_paid     = EXCLUDED.amount_paid,
-         updated_at      = NOW()
+         status           = EXCLUDED.status,
+         procedure_name   = EXCLUDED.procedure_name,
+         procedure_value  = EXCLUDED.procedure_value,
+         notes            = EXCLUDED.notes,
+         payment_status   = EXCLUDED.payment_status,
+         amount_paid      = EXCLUDED.amount_paid,
+         treatment_status = EXCLUDED.treatment_status,
+         treatment_date   = EXCLUDED.treatment_date,
+         updated_at       = NOW()
        RETURNING *`,
       [
         req.user.clinic_id, patient_id, tooth,
@@ -64,6 +68,8 @@ router.put('/:patient_id/:tooth', auth, async (req, res) => {
         notes || null,
         payment_status || 'pendente',
         amount_paid ? parseFloat(amount_paid) : 0,
+        treatment_status || 'nao_iniciado',
+        treatment_date || null,
       ]
     );
     res.json(rows[0]);

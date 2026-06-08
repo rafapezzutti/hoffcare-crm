@@ -182,12 +182,18 @@ router.get('/:id', auth, async (req, res) => {
 
 // Create record
 router.post('/', auth, async (req, res) => {
-  const { type, patient_id, professional_id, consultation_date, procedures, repasse_type, repasse_value, payment_method, installments } = req.body;
+  const { type, patient_id, professional_id, consultation_date, procedures, repasse_type, repasse_value, payment_method, installments, payment_splits } = req.body;
   if (!type || !patient_id || !professional_id || !consultation_date)
     return res.status(400).json({ error: 'Tipo, paciente, profissional e data são obrigatórios' });
 
   const clinic_id = req.user.clinic_id;
   if (!clinic_id) return res.status(400).json({ error: 'Selecione uma clínica antes de cadastrar' });
+
+  // Resolve método e parcelas efetivos (single ou split)
+  const splits = Array.isArray(payment_splits) && payment_splits.length > 0 ? payment_splits : null;
+  const effMethod = splits ? (splits[0]?.method || null) : (payment_method || null);
+  const effInstallments = splits ? (splits[0]?.installments || 1) : (payment_method === 'credito' ? (parseInt(installments) || 1) : 1);
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -195,11 +201,11 @@ router.post('/', auth, async (req, res) => {
     const total = (procedures || []).reduce((sum, p) => sum + (parseFloat(p.value) || 0), 0);
 
     const record = await client.query(
-      `INSERT INTO medical_records (type, patient_id, professional_id, clinic_id, consultation_date, total_value, repasse_type, repasse_value, payment_method, installments)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+      `INSERT INTO medical_records (type, patient_id, professional_id, clinic_id, consultation_date, total_value, repasse_type, repasse_value, payment_method, installments, payment_splits)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
       [type, patient_id, professional_id, clinic_id, consultation_date, total,
        repasse_type || null, repasse_value != null && repasse_value !== '' ? parseFloat(repasse_value) : null,
-       payment_method || null, payment_method === 'credito' ? (parseInt(installments) || 1) : 1]
+       effMethod, effInstallments, splits ? JSON.stringify(splits) : null]
     );
     const recordId = record.rows[0].id;
 
@@ -224,8 +230,13 @@ router.post('/', auth, async (req, res) => {
 
 // Update record
 router.put('/:id', auth, async (req, res) => {
-  const { type, patient_id, professional_id, consultation_date, procedures, repasse_type, repasse_value, payment_method, installments } = req.body;
+  const { type, patient_id, professional_id, consultation_date, procedures, repasse_type, repasse_value, payment_method, installments, payment_splits } = req.body;
   const clinic_id = req.user.clinic_id;
+
+  const splits = Array.isArray(payment_splits) && payment_splits.length > 0 ? payment_splits : null;
+  const effMethod = splits ? (splits[0]?.method || null) : (payment_method || null);
+  const effInstallments = splits ? (splits[0]?.installments || 1) : (payment_method === 'credito' ? (parseInt(installments) || 1) : 1);
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -233,11 +244,11 @@ router.put('/:id', auth, async (req, res) => {
 
     const record = await client.query(
       `UPDATE medical_records SET type=$1, patient_id=$2, professional_id=$3, consultation_date=$4, total_value=$5,
-       repasse_type=$6, repasse_value=$7, payment_method=$8, installments=$9
-       WHERE id=$10 AND clinic_id=$11 RETURNING *`,
+       repasse_type=$6, repasse_value=$7, payment_method=$8, installments=$9, payment_splits=$10
+       WHERE id=$11 AND clinic_id=$12 RETURNING *`,
       [type, patient_id, professional_id, consultation_date, total,
        repasse_type || null, repasse_value != null && repasse_value !== '' ? parseFloat(repasse_value) : null,
-       payment_method || null, payment_method === 'credito' ? (parseInt(installments) || 1) : 1,
+       effMethod, effInstallments, splits ? JSON.stringify(splits) : null,
        req.params.id, clinic_id]
     );
     if (!record.rows[0]) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Registro não encontrado' }); }
