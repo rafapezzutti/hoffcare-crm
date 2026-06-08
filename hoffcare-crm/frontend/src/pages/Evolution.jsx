@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import dayjs from 'dayjs';
@@ -17,6 +17,12 @@ export default function Evolution() {
   const [deleting,   setDeleting]   = useState(null);
   const [aiLoading,  setAiLoading]  = useState(false);
   const [aiError,    setAiError]    = useState('');
+
+  // ── Gravação de áudio ────────────────────────────────────────────────────────
+  const [recording,    setRecording]    = useState(false);
+  const [audioLoading, setAudioLoading] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef   = useRef([]);
 
   // ── Bulk AI import ───────────────────────────────────────────────────────────
   const [bulkOpen,    setBulkOpen]    = useState(false);
@@ -55,6 +61,8 @@ export default function Evolution() {
     setPreviews([]);
     setKeepImages([]);
     setAiError('');
+    setRecording(false);
+    setAudioLoading(false);
     setModalOpen(true);
   };
 
@@ -69,6 +77,8 @@ export default function Evolution() {
     setNewImages([]);
     setPreviews([]);
     setAiError('');
+    setRecording(false);
+    setAudioLoading(false);
     setModalOpen(true);
   };
 
@@ -212,6 +222,60 @@ ${bulkText.trim()}`;
     setBulkOpen(true);
   };
 
+  // ── Transcrição por áudio ───────────────────────────────────────────────────
+  const startRecording = useCallback(async () => {
+    setAiError('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
+      const mr = new MediaRecorder(stream, { mimeType });
+      audioChunksRef.current = [];
+      mr.ondataavailable = e => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+      mr.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        setAudioLoading(true);
+        try {
+          const base64 = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          const res = await api.post('/ai/chat', {
+            history: [{
+              role: 'user',
+              text: 'Transcreva este áudio fielmente em texto para uma nota de evolução clínica em português. Retorne apenas o texto transcrito, sem comentários adicionais.',
+              audio: { base64, mimeType },
+            }]
+          });
+          const transcribed = res.data?.text || res.data?.response || '';
+          if (transcribed) {
+            setForm(p => ({ ...p, note: p.note ? p.note + '\n\n' + transcribed : transcribed }));
+          }
+        } catch (err) {
+          if (err.response?.status === 403) {
+            setAiError('Permissão de IA não habilitada para este usuário.');
+          } else {
+            setAiError('Erro ao transcrever o áudio. Tente novamente.');
+          }
+        } finally {
+          setAudioLoading(false);
+        }
+      };
+      mr.start();
+      mediaRecorderRef.current = mr;
+      setRecording(true);
+    } catch {
+      setAiError('Não foi possível acessar o microfone. Verifique as permissões do navegador.');
+    }
+  }, []);
+
+  const stopRecording = useCallback(() => {
+    mediaRecorderRef.current?.stop();
+    setRecording(false);
+  }, []);
+
   // ── Excluir ──────────────────────────────────────────────────────────────────
   const handleDelete = async (id) => {
     if (!confirm('Excluir este registro de evolução?')) return;
@@ -234,6 +298,12 @@ ${bulkText.trim()}`;
 
   return (
     <div className="page">
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
 
       {/* Header */}
       <div className="page-header">
@@ -381,9 +451,54 @@ ${bulkText.trim()}`;
               </div>
 
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-600)', display: 'block', marginBottom: 4 }}>
-                  Anotação clínica <span style={{ color: '#dc2626' }}>*</span>
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-600)' }}>
+                    Anotação clínica <span style={{ color: '#dc2626' }}>*</span>
+                  </label>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    {audioLoading && (
+                      <span style={{ fontSize: 11, color: '#7c3aed', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <i className="fas fa-spinner fa-spin" /> Transcrevendo...
+                      </span>
+                    )}
+                    <button type="button"
+                      onClick={recording ? stopRecording : startRecording}
+                      disabled={audioLoading}
+                      title={recording ? 'Parar gravação' : 'Gravar áudio para transcrição'}
+                      style={{
+                        padding: '4px 10px', borderRadius: 6, border: 'none', cursor: audioLoading ? 'not-allowed' : 'pointer',
+                        background: recording ? '#dc2626' : '#f3e8ff',
+                        color: recording ? '#fff' : '#7c3aed',
+                        fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5,
+                        transition: 'all 0.2s',
+                      }}>
+                      <i className={`fas ${recording ? 'fa-stop' : 'fa-microphone'}`}
+                        style={recording ? { animation: 'pulse 1s infinite' } : {}} />
+                      {recording ? 'Parar' : 'Áudio'}
+                    </button>
+                    {!recording && form.note.trim() && (
+                      <button type="button"
+                        onClick={handleAiStructure}
+                        disabled={aiLoading}
+                        title="Estruturar nota com IA"
+                        style={{ padding: '4px 10px', borderRadius: 6, border: 'none', cursor: aiLoading ? 'not-allowed' : 'pointer', background: '#f3e8ff', color: '#7c3aed', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <i className={`fas ${aiLoading ? 'fa-spinner fa-spin' : 'fa-wand-magic-sparkles'}`} />
+                        {aiLoading ? 'Estruturando...' : 'Estruturar'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {recording && (
+                  <div style={{ padding: '6px 12px', borderRadius: 6, background: '#fef2f2', border: '1px solid #fca5a5', color: '#991b1b', fontSize: 12, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc2626', display: 'inline-block', animation: 'pulse 1s infinite' }} />
+                    Gravando... Clique em <strong>Parar</strong> quando terminar.
+                  </div>
+                )}
+                {aiError && (
+                  <div style={{ padding: '6px 12px', borderRadius: 6, background: '#fef2f2', border: '1px solid #fca5a5', color: '#991b1b', fontSize: 12, marginBottom: 6 }}>
+                    {aiError}
+                  </div>
+                )}
                 <textarea className="form-control"
                   rows={7}
                   placeholder="Descreva a evolução do tratamento, observações clínicas, procedimentos realizados..."

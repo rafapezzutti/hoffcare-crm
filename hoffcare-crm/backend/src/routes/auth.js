@@ -41,9 +41,11 @@ router.post('/login', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT u.*, c.is_autonomous,
-              COALESCE(u.can_use_ai_chat, false) as can_use_ai_chat
+              COALESCE(u.can_use_ai_chat, false) as can_use_ai_chat,
+              p.type as professional_type, p.id as professional_id
        FROM users u
        LEFT JOIN clinics c ON c.id = u.clinic_id
+       LEFT JOIN professionals p ON p.email = u.email AND p.clinic_id = u.clinic_id
        WHERE u.email = $1`,
       [email]
     );
@@ -78,6 +80,8 @@ router.post('/login', async (req, res) => {
         trial_expires_at: user.trial_expires_at || null,
         trial_blocked_at: user.trial_blocked_at || null,
         can_use_ai_chat: !!user.can_use_ai_chat,
+        professional_type: user.professional_type || null,
+        professional_id:   user.professional_id   || null,
       }
     });
   } catch (err) {
@@ -191,9 +195,11 @@ router.get('/me', auth, async (req, res) => {
       `SELECT u.id, u.name, u.email, u.role, u.clinic_id,
               COALESCE(c.is_autonomous, false) as is_autonomous,
               u.is_trial, u.trial_starts_at, u.trial_expires_at, u.trial_blocked_at,
-              COALESCE(u.can_use_ai_chat, false) as can_use_ai_chat
+              COALESCE(u.can_use_ai_chat, false) as can_use_ai_chat,
+              p.type as professional_type, p.id as professional_id
        FROM users u
        LEFT JOIN clinics c ON c.id = u.clinic_id
+       LEFT JOIN professionals p ON p.email = u.email AND p.clinic_id = u.clinic_id
        WHERE u.id = $1`,
       [req.user.id]
     );

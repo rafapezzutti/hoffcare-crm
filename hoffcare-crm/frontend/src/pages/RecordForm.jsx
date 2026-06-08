@@ -17,7 +17,7 @@ export default function RecordForm() {
   const isAutonomous = !!user?.is_autonomous;
 
   const [form, setForm] = useState({
-    type: 'medico',
+    type: user?.professional_type || 'medico',
     patient_id: params.get('patient_id') || '',
     professional_id: '',
     consultation_date: dayjs().format('YYYY-MM-DD'),
@@ -53,11 +53,15 @@ export default function RecordForm() {
       setAllProcedures(proc.data);
       setProfessionals(pr.data);
 
-      // Autônomo: pré-seleciona automaticamente o único profissional dele
-      if (isAutonomous && pr.data.length > 0 && !isEdit) {
-        const prof = pr.data[0];
-        setForm(f => ({ ...f, type: prof.type, professional_id: prof.id }));
-        setSelectedProfessional(prof);
+      // Pré-seleciona profissional vinculado ao usuário logado (autônomo ou com professional_id)
+      if (!isEdit) {
+        const linkedProf = user?.professional_id
+          ? pr.data.find(p => p.id === user.professional_id)
+          : (isAutonomous && pr.data.length > 0 ? pr.data[0] : null);
+        if (linkedProf) {
+          setForm(f => ({ ...f, type: linkedProf.type, professional_id: linkedProf.id }));
+          setSelectedProfessional(linkedProf);
+        }
       }
     });
 
