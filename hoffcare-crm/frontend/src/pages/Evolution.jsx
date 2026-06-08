@@ -227,13 +227,24 @@ ${bulkText.trim()}`;
     setAiError('');
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
-      const mr = new MediaRecorder(stream, { mimeType });
+
+      // Detecta mimeType suportado pelo navegador
+      const mimeType = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/ogg',
+        'audio/mp4',
+      ].find(t => MediaRecorder.isTypeSupported(t)) || '';
+
+      const mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      const actualMime = mr.mimeType || mimeType || 'audio/webm';
+
       audioChunksRef.current = [];
       mr.ondataavailable = e => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
       mr.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
-        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        const blob = new Blob(audioChunksRef.current, { type: actualMime });
         setAudioLoading(true);
         try {
           const base64 = await new Promise((resolve, reject) => {
@@ -242,22 +253,32 @@ ${bulkText.trim()}`;
             reader.onerror = reject;
             reader.readAsDataURL(blob);
           });
+
+          // Normaliza para tipo simples que o Gemini aceita
+          const geminiMime = actualMime.startsWith('audio/webm') ? 'audio/webm'
+                           : actualMime.startsWith('audio/ogg')  ? 'audio/ogg'
+                           : actualMime.startsWith('audio/mp4')  ? 'audio/mp4'
+                           : 'audio/webm';
+
           const res = await api.post('/ai/chat', {
             history: [{
               role: 'user',
               text: 'Transcreva este áudio fielmente em texto para uma nota de evolução clínica em português. Retorne apenas o texto transcrito, sem comentários adicionais.',
-              audio: { data: base64, mimeType },
+              audio: { data: base64, mimeType: geminiMime },
             }]
           });
           const transcribed = res.data?.message || res.data?.text || res.data?.response || '';
           if (transcribed) {
             setForm(p => ({ ...p, note: p.note ? p.note + '\n\n' + transcribed : transcribed }));
+          } else {
+            setAiError('A IA não retornou transcrição. Tente novamente.');
           }
         } catch (err) {
+          console.error('[Audio transcription error]', err);
           if (err.response?.status === 403) {
             setAiError('Permissão de IA não habilitada para este usuário.');
           } else {
-            setAiError('Erro ao transcrever o áudio. Tente novamente.');
+            setAiError('Erro ao transcrever: ' + (err.response?.data?.error || err.message));
           }
         } finally {
           setAudioLoading(false);
@@ -266,7 +287,8 @@ ${bulkText.trim()}`;
       mr.start();
       mediaRecorderRef.current = mr;
       setRecording(true);
-    } catch {
+    } catch (err) {
+      console.error('[Mic error]', err);
       setAiError('Não foi possível acessar o microfone. Verifique as permissões do navegador.');
     }
   }, []);
