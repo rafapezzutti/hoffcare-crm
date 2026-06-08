@@ -18,11 +18,10 @@ export default function Evolution() {
   const [aiLoading,  setAiLoading]  = useState(false);
   const [aiError,    setAiError]    = useState('');
 
-  // ── Gravação de áudio ────────────────────────────────────────────────────────
+  // ── Gravação de áudio (Web Speech API) ──────────────────────────────────────
   const [recording,    setRecording]    = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef   = useRef([]);
+  const speechRef = useRef(null);
 
   // ── Bulk AI import ───────────────────────────────────────────────────────────
   const [bulkOpen,    setBulkOpen]    = useState(false);
@@ -222,79 +221,46 @@ ${bulkText.trim()}`;
     setBulkOpen(true);
   };
 
-  // ── Transcrição por áudio ───────────────────────────────────────────────────
-  const startRecording = useCallback(async () => {
+  // ── Transcrição por áudio (Web Speech API — nativa do Chrome) ───────────────
+  const startRecording = useCallback(() => {
     setAiError('');
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      // Detecta mimeType suportado pelo navegador
-      const mimeType = [
-        'audio/webm;codecs=opus',
-        'audio/webm',
-        'audio/ogg;codecs=opus',
-        'audio/ogg',
-        'audio/mp4',
-      ].find(t => MediaRecorder.isTypeSupported(t)) || '';
-
-      const mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-      const actualMime = mr.mimeType || mimeType || 'audio/webm';
-
-      audioChunksRef.current = [];
-      mr.ondataavailable = e => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
-      mr.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop());
-        const blob = new Blob(audioChunksRef.current, { type: actualMime });
-        setAudioLoading(true);
-        try {
-          const base64 = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result.split(',')[1]);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-
-          // Normaliza para tipo simples que o Gemini aceita
-          const geminiMime = actualMime.startsWith('audio/webm') ? 'audio/webm'
-                           : actualMime.startsWith('audio/ogg')  ? 'audio/ogg'
-                           : actualMime.startsWith('audio/mp4')  ? 'audio/mp4'
-                           : 'audio/webm';
-
-          const res = await api.post('/ai/chat', {
-            history: [{
-              role: 'user',
-              text: 'Transcreva este áudio fielmente em texto para uma nota de evolução clínica em português. Retorne apenas o texto transcrito, sem comentários adicionais.',
-              audio: { data: base64, mimeType: geminiMime },
-            }]
-          });
-          const transcribed = res.data?.message || res.data?.text || res.data?.response || '';
-          if (transcribed) {
-            setForm(p => ({ ...p, note: p.note ? p.note + '\n\n' + transcribed : transcribed }));
-          } else {
-            setAiError('A IA não retornou transcrição. Tente novamente.');
-          }
-        } catch (err) {
-          console.error('[Audio transcription error]', err);
-          if (err.response?.status === 403) {
-            setAiError('Permissão de IA não habilitada para este usuário.');
-          } else {
-            setAiError('Erro ao transcrever: ' + (err.response?.data?.error || err.message));
-          }
-        } finally {
-          setAudioLoading(false);
-        }
-      };
-      mr.start();
-      mediaRecorderRef.current = mr;
-      setRecording(true);
-    } catch (err) {
-      console.error('[Mic error]', err);
-      setAiError('Não foi possível acessar o microfone. Verifique as permissões do navegador.');
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setAiError('Transcrição por voz requer Google Chrome. Tente pelo Chrome.');
+      return;
     }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'pt-BR';
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map(r => r[0].transcript)
+        .join(' ')
+        .trim();
+      if (transcript) {
+        setForm(p => ({ ...p, note: p.note ? p.note + '\n\n' + transcript : transcript }));
+      }
+    };
+
+    recognition.onerror = (event) => {
+      if (event.error !== 'aborted') {
+        setAiError('Erro na transcrição: ' + event.error);
+      }
+      setRecording(false);
+    };
+
+    recognition.onend = () => setRecording(false);
+
+    recognition.start();
+    speechRef.current = recognition;
+    setRecording(true);
   }, []);
 
   const stopRecording = useCallback(() => {
-    mediaRecorderRef.current?.stop();
+    speechRef.current?.stop();
     setRecording(false);
   }, []);
 
