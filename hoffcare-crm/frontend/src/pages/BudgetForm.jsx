@@ -93,7 +93,7 @@ export default function BudgetForm() {
           setItems((b.items || []).map(i => ({
             procedure_id: i.procedure_id,
             procedure_name: i.procedure_name,
-            qty: i.qty || 1,
+            quantity: i.quantity || 1,
             unit_value: i.unit_value || 0,
           })));
           setSavedId(b.id);
@@ -125,13 +125,13 @@ export default function BudgetForm() {
     .slice(0, 15);
 
   // Items total
-  const total = items.reduce((s, i) => s + (parseFloat(i.qty || 0) * parseFloat(i.unit_value || 0)), 0);
+  const total = items.reduce((s, i) => s + (parseFloat(i.quantity || 0) * parseFloat(i.unit_value || 0)), 0);
 
   const addProcedure = (proc) => {
     setItems(prev => [...prev, {
       procedure_id: proc.id,
       procedure_name: proc.name,
-      qty: 1,
+      quantity: 1,
       unit_value: parseFloat(proc.value || proc.price || 0),
     }]);
     setProcSearch('');
@@ -139,7 +139,7 @@ export default function BudgetForm() {
   };
 
   const addManualItem = () => {
-    setItems(prev => [...prev, { procedure_id: null, procedure_name: '', qty: 1, unit_value: 0 }]);
+    setItems(prev => [...prev, { procedure_id: null, procedure_name: '', quantity: 1, unit_value: 0 }]);
   };
 
   const updateItem = (idx, field, value) => {
@@ -419,7 +419,7 @@ export default function BudgetForm() {
                 </thead>
                 <tbody>
                   {items.map((item, idx) => {
-                    const lineTotal = parseFloat(item.qty || 0) * parseFloat(item.unit_value || 0);
+                    const lineTotal = parseFloat(item.quantity || 0) * parseFloat(item.unit_value || 0);
                     return (
                       <tr key={idx}>
                         <td>
@@ -442,8 +442,8 @@ export default function BudgetForm() {
                             min="1"
                             step="1"
                             style={{ padding: '4px 8px', fontSize: 13 }}
-                            value={item.qty}
-                            onChange={e => updateItem(idx, 'qty', e.target.value)}
+                            value={item.quantity}
+                            onChange={e => updateItem(idx, 'quantity', e.target.value)}
                           />
                         </td>
                         <td>
