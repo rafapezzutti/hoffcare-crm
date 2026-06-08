@@ -134,7 +134,7 @@ export default function Evolution() {
     try {
       const prompt = `Você é um assistente médico. Receba a seguinte anotação clínica bruta e reescreva como uma nota clínica estruturada profissional em português. Use seções como: Queixa Principal, Histórico, Exame Clínico, Hipótese Diagnóstica e Conduta/Plano — incluindo apenas as seções relevantes ao conteúdo fornecido. Preserve todas as informações originais sem adicionar dados inventados. Anotação bruta:\n\n${form.note.trim()}`;
       const res = await api.post('/ai/chat', { history: [{ role: 'user', text: prompt }] });
-      const structured = res.data?.text || res.data?.response || '';
+      const structured = res.data?.message || res.data?.text || res.data?.response || '';
       if (structured) setForm(p => ({ ...p, note: structured }));
     } catch (err) {
       if (err.response?.status === 403) {
@@ -164,7 +164,7 @@ Texto com as evoluções:
 
 ${bulkText.trim()}`;
       const res = await api.post('/ai/chat', { history: [{ role: 'user', text: prompt }] });
-      const raw = res.data?.text || res.data?.response || '[]';
+      const raw = res.data?.message || res.data?.text || res.data?.response || '[]';
       // Extrai JSON mesmo se vier com ```json
       const jsonStr = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       const parsed = JSON.parse(jsonStr);
@@ -246,10 +246,10 @@ ${bulkText.trim()}`;
             history: [{
               role: 'user',
               text: 'Transcreva este áudio fielmente em texto para uma nota de evolução clínica em português. Retorne apenas o texto transcrito, sem comentários adicionais.',
-              audio: { base64, mimeType },
+              audio: { data: base64, mimeType },
             }]
           });
-          const transcribed = res.data?.text || res.data?.response || '';
+          const transcribed = res.data?.message || res.data?.text || res.data?.response || '';
           if (transcribed) {
             setForm(p => ({ ...p, note: p.note ? p.note + '\n\n' + transcribed : transcribed }));
           }
