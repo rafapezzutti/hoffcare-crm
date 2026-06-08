@@ -17,6 +17,15 @@ export default function Evolution() {
   const [deleting,   setDeleting]   = useState(null);
   const [aiLoading,  setAiLoading]  = useState(false);
   const [aiError,    setAiError]    = useState('');
+
+  // ── Bulk AI import ───────────────────────────────────────────────────────────
+  const [bulkOpen,    setBulkOpen]    = useState(false);
+  const [bulkText,    setBulkText]    = useState('');
+  const [bulkEntries, setBulkEntries] = useState([]); // [{date, note, professional_name}]
+  const [bulkStep,    setBulkStep]    = useState('input'); // 'input' | 'review'
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkSaving,  setBulkSaving]  = useState(false);
+  const [bulkError,   setBulkError]   = useState('');
   const [lightbox,   setLightbox]   = useState(null); // { src }
   const fileRef = useRef();
 
@@ -128,6 +137,81 @@ export default function Evolution() {
     }
   };
 
+  // ── Bulk AI: processar texto com múltiplas evoluções ────────────────────────
+  const handleBulkAi = async () => {
+    if (!bulkText.trim()) return;
+    setBulkLoading(true);
+    setBulkError('');
+    try {
+      const prompt = `Você é um assistente médico. Analise o texto abaixo que contém anotações clínicas de múltiplas consultas/evoluções passadas. Separe cada entrada individual e retorne um JSON válido — apenas o JSON, sem markdown — com um array de objetos, cada um com:
+- "date": data no formato YYYY-MM-DD (use a data encontrada no texto; se não houver, use "${dayjs().format('YYYY-MM-DD')}")
+- "note": o texto da evolução clínica estruturada (mantenha todas as informações originais)
+- "professional_name": nome do profissional se mencionado, senão string vazia
+
+Retorne SOMENTE o array JSON, sem nenhum texto extra.
+
+Texto com as evoluções:
+
+${bulkText.trim()}`;
+      const res = await api.post('/ai/chat', { history: [{ role: 'user', text: prompt }] });
+      const raw = res.data?.text || res.data?.response || '[]';
+      // Extrai JSON mesmo se vier com ```json
+      const jsonStr = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const parsed = JSON.parse(jsonStr);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setBulkEntries(parsed.map(e => ({
+          date: e.date || dayjs().format('YYYY-MM-DD'),
+          note: e.note || '',
+          professional_name: e.professional_name || '',
+        })));
+        setBulkStep('review');
+      } else {
+        setBulkError('A IA não conseguiu identificar evoluções no texto. Tente formatar melhor o conteúdo.');
+      }
+    } catch (err) {
+      if (err.response?.status === 403) {
+        setBulkError('Permissão de IA não habilitada para este usuário.');
+      } else {
+        setBulkError('Erro ao processar. Verifique se o JSON retornado é válido e tente novamente.');
+      }
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleBulkSave = async () => {
+    const valid = bulkEntries.filter(e => e.note.trim());
+    if (!valid.length) return;
+    setBulkSaving(true);
+    try {
+      for (const entry of valid) {
+        const fd = new FormData();
+        fd.append('patient_id', patientId);
+        fd.append('note', entry.note.trim());
+        fd.append('evolution_date', entry.date);
+        fd.append('professional_name', entry.professional_name.trim());
+        await api.post('/evolution', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      }
+      setBulkOpen(false);
+      setBulkText('');
+      setBulkEntries([]);
+      setBulkStep('input');
+      load();
+    } catch (err) {
+      setBulkError('Erro ao salvar algumas evoluções.');
+    } finally {
+      setBulkSaving(false);
+    }
+  };
+
+  const openBulk = () => {
+    setBulkText('');
+    setBulkEntries([]);
+    setBulkStep('input');
+    setBulkError('');
+    setBulkOpen(true);
+  };
+
   // ── Excluir ──────────────────────────────────────────────────────────────────
   const handleDelete = async (id) => {
     if (!confirm('Excluir este registro de evolução?')) return;
@@ -165,9 +249,16 @@ export default function Evolution() {
             <p className="page-subtitle">{patient.name}</p>
           </div>
         </div>
-        <button className="btn btn-primary" onClick={openNew}>
-          <i className="fas fa-plus" /> Nova Evolução
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-outline" onClick={openBulk}
+            style={{ border: '1px solid #8b5cf6', color: '#7c3aed', background: '#faf5ff' }}>
+            <i className="fas fa-wand-magic-sparkles" style={{ marginRight: 6 }} />
+            Estruturar com IA
+          </button>
+          <button className="btn btn-primary" onClick={openNew}>
+            <i className="fas fa-plus" /> Nova Evolução
+          </button>
+        </div>
       </div>
 
       {/* Timeline */}
@@ -290,34 +381,14 @@ export default function Evolution() {
               </div>
 
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-600)', margin: 0 }}>
-                    Anotação clínica <span style={{ color: '#dc2626' }}>*</span>
-                  </label>
-                  <button type="button"
-                    onClick={handleAiStructure}
-                    disabled={aiLoading || !form.note.trim()}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 5,
-                      padding: '4px 10px', border: '1px solid #8b5cf6', borderRadius: 6,
-                      background: aiLoading ? '#f5f3ff' : '#fff', color: '#7c3aed',
-                      fontSize: 11, fontWeight: 600, cursor: aiLoading || !form.note.trim() ? 'not-allowed' : 'pointer',
-                      opacity: !form.note.trim() ? 0.5 : 1,
-                    }}>
-                    <i className={`fas ${aiLoading ? 'fa-spinner fa-spin' : 'fa-wand-magic-sparkles'}`} />
-                    {aiLoading ? 'Estruturando...' : 'Estruturar com IA'}
-                  </button>
-                </div>
-                {aiError && (
-                  <div style={{ padding: '6px 10px', borderRadius: 6, background: '#fef2f2', border: '1px solid #fca5a5', color: '#991b1b', fontSize: 12, marginBottom: 6 }}>
-                    {aiError}
-                  </div>
-                )}
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-600)', display: 'block', marginBottom: 4 }}>
+                  Anotação clínica <span style={{ color: '#dc2626' }}>*</span>
+                </label>
                 <textarea className="form-control"
-                  rows={6}
+                  rows={7}
                   placeholder="Descreva a evolução do tratamento, observações clínicas, procedimentos realizados..."
                   value={form.note}
-                  onChange={e => { setForm(p => ({ ...p, note: e.target.value })); setAiError(''); }}
+                  onChange={e => setForm(p => ({ ...p, note: e.target.value }))}
                   required
                   style={{ resize: 'vertical' }}
                 />
@@ -382,6 +453,107 @@ export default function Evolution() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Bulk AI Import ─────────────────────────────────────────────── */}
+      {bulkOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 720, maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}>
+
+            {/* Header */}
+            <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--gray-100)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontWeight: 700, fontSize: 16 }}>
+                <i className="fas fa-wand-magic-sparkles" style={{ marginRight: 8, color: '#7c3aed' }} />
+                Importar evoluções com IA
+              </span>
+              <button onClick={() => setBulkOpen(false)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--gray-400)' }}>×</button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+              {bulkStep === 'input' ? (
+                <>
+                  <p style={{ fontSize: 13, color: 'var(--gray-600)', margin: 0 }}>
+                    Cole abaixo as evoluções clínicas passadas (em qualquer formato). A IA vai identificar cada consulta separadamente, extrair datas e organizar o texto.
+                  </p>
+                  {bulkError && (
+                    <div style={{ padding: '8px 12px', borderRadius: 6, background: '#fef2f2', border: '1px solid #fca5a5', color: '#991b1b', fontSize: 13 }}>
+                      {bulkError}
+                    </div>
+                  )}
+                  <textarea className="form-control"
+                    rows={14}
+                    placeholder="Ex:&#10;15/03/2024 - Paciente queixa de dor lombar há 3 dias...&#10;&#10;22/03/2024 - Retorno. Melhora parcial após fisioterapia...&#10;&#10;Abril 2024 - Paciente assintomático, alta medicamentosa..."
+                    value={bulkText}
+                    onChange={e => { setBulkText(e.target.value); setBulkError(''); }}
+                    style={{ resize: 'vertical', fontFamily: 'inherit', fontSize: 13 }}
+                  />
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <button type="button" className="btn btn-outline" onClick={() => setBulkOpen(false)}>Cancelar</button>
+                    <button type="button"
+                      onClick={handleBulkAi}
+                      disabled={bulkLoading || !bulkText.trim()}
+                      className="btn btn-primary"
+                      style={{ background: '#7c3aed', borderColor: '#7c3aed' }}>
+                      <i className={`fas ${bulkLoading ? 'fa-spinner fa-spin' : 'fa-wand-magic-sparkles'}`} style={{ marginRight: 6 }} />
+                      {bulkLoading ? 'Processando...' : 'Processar com IA'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <p style={{ fontSize: 13, color: 'var(--gray-600)', margin: 0 }}>
+                      A IA identificou <strong>{bulkEntries.length} evoluções</strong>. Revise e edite antes de salvar.
+                    </p>
+                    <button type="button" className="btn btn-outline btn-sm" onClick={() => { setBulkStep('input'); setBulkError(''); }}>
+                      ← Voltar
+                    </button>
+                  </div>
+                  {bulkError && (
+                    <div style={{ padding: '8px 12px', borderRadius: 6, background: '#fef2f2', border: '1px solid #fca5a5', color: '#991b1b', fontSize: 13 }}>
+                      {bulkError}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {bulkEntries.map((entry, i) => (
+                      <div key={i} style={{ border: '1px solid var(--gray-200)', borderRadius: 10, padding: '14px 16px', background: '#faf5ff', position: 'relative' }}>
+                        <div style={{ display: 'flex', gap: 10, marginBottom: 10, alignItems: 'center' }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', minWidth: 24 }}>#{i + 1}</span>
+                          <input type="date" className="form-control" style={{ maxWidth: 160, fontSize: 12 }}
+                            value={entry.date}
+                            onChange={e => setBulkEntries(prev => prev.map((en, idx) => idx === i ? { ...en, date: e.target.value } : en))} />
+                          <input type="text" className="form-control" style={{ fontSize: 12 }}
+                            placeholder="Profissional (opcional)"
+                            value={entry.professional_name}
+                            onChange={e => setBulkEntries(prev => prev.map((en, idx) => idx === i ? { ...en, professional_name: e.target.value } : en))} />
+                          <button type="button"
+                            onClick={() => setBulkEntries(prev => prev.filter((_, idx) => idx !== i))}
+                            style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 18, padding: '0 4px', flexShrink: 0 }}>×</button>
+                        </div>
+                        <textarea className="form-control" rows={4}
+                          style={{ fontSize: 12, resize: 'vertical' }}
+                          value={entry.note}
+                          onChange={e => setBulkEntries(prev => prev.map((en, idx) => idx === i ? { ...en, note: e.target.value } : en))} />
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 8, borderTop: '1px solid var(--gray-100)' }}>
+                    <button type="button" className="btn btn-outline" onClick={() => setBulkOpen(false)}>Cancelar</button>
+                    <button type="button"
+                      onClick={handleBulkSave}
+                      disabled={bulkSaving || !bulkEntries.some(e => e.note.trim())}
+                      className="btn btn-primary"
+                      style={{ background: '#7c3aed', borderColor: '#7c3aed' }}>
+                      <i className={`fas ${bulkSaving ? 'fa-spinner fa-spin' : 'fa-check'}`} style={{ marginRight: 6 }} />
+                      {bulkSaving ? 'Salvando...' : `Salvar ${bulkEntries.filter(e => e.note.trim()).length} evoluções`}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
