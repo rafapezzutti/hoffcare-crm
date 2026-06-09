@@ -116,12 +116,13 @@ export default function BudgetPrint() {
             <div style={{
               width: 160, height: 50, background: 'linear-gradient(135deg, #1a2a3a, #2a4a6a)',
               borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'white', fontWeight: 800, fontSize: 18, letterSpacing: 1,
+              flexDirection: 'column',
               marginBottom: 6,
             }}>
-              HoffCare
+              <span style={{ color: '#4DB8E8', fontWeight: 800, fontSize: 16, letterSpacing: 0.5 }}>P. Saúde</span>
+              <span style={{ color: '#E8841A', fontWeight: 600, fontSize: 10, letterSpacing: 1 }}>CRM Clínico</span>
             </div>
-            <div style={{ fontSize: 11, color: '#888' }}>CRM Saúde</div>
+            <div style={{ fontSize: 11, color: '#888' }}>Sistema de Gestão Clínica</div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 24, fontWeight: 800, color: '#1a2a3a', letterSpacing: 1 }}>
@@ -242,7 +243,7 @@ export default function BudgetPrint() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
             <div style={{ fontSize: 11, color: '#aaa' }}>
               <div>Este orçamento é válido até {fmtDate(budget.valid_until)}.</div>
-              <div>Emitido em {fmtDate(budget.created_at)} via HoffCare CRM.</div>
+              <div>Emitido em {fmtDate(budget.created_at)} via P. Saúde CRM.</div>
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ borderTop: '1px solid #ccc', paddingTop: 8, marginTop: 24, display: 'inline-block', minWidth: 200 }}>

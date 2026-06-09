@@ -100,7 +100,7 @@ export default function Layout() {
           <i className="fas fa-bars" />
         </button>
         <span style={{ fontWeight: 700, fontSize: 15, color: '#1a2535' }}>
-          {selectedClinic?.name || 'HoffCare'}
+          {selectedClinic?.name || 'P. Saúde'}
         </span>
         <span style={{ fontSize: 13, color: '#666' }}>{user?.name?.split(' ')[0]}</span>
       </div>

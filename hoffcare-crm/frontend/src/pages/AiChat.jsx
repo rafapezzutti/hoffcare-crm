@@ -338,7 +338,7 @@ export default function AiChat() {
             </div>
             <div>
               <div style={{ fontWeight: 700, fontSize: 15 }}>Talk to Me</div>
-              <div style={{ fontSize: 11, color: 'var(--gray-500)' }}>Assistente IA — HoffCare</div>
+              <div style={{ fontSize: 11, color: 'var(--gray-500)' }}>Assistente IA — P. Saúde</div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
