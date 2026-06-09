@@ -243,6 +243,7 @@ export default function Layout() {
           <Section sectionKey="financeiro" label={t('nav.financial')} icon="fa-dollar-sign">
             <NavItem to="/cash-flow" icon="fa-chart-line" label="Fluxo de Caixa" />
             <NavItem to="/receivables" icon="fa-hand-holding-dollar" label="Contas a Receber" />
+            <NavItem to="/receipts" icon="fa-receipt" label="Recibos" />
             <NavItem to="/expenses" icon="fa-file-invoice-dollar" label="Despesas" />
             <NavItem to="/rentals" icon="fa-key" label={t('nav.rentals')} />
             <NavItem to="/settlements" icon="fa-handshake" label={t('nav.settlements')} />

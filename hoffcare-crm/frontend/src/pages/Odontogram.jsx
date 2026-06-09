@@ -268,6 +268,77 @@ export default function Odontogram() {
     }
   };
 
+  // ── Imprimir plano de tratamento ─────────────────────────────────────────────
+  const handlePrintPlan = () => {
+    const rows = treatmentPlan.map(([tooth, data]) => {
+      const st = getStatus(data.status);
+      const ts = getTreatmentStatus(data.treatment_status);
+      const ps = getPaymentStatus(data.payment_status);
+      return `
+        <tr>
+          <td>${tooth}</td>
+          <td>${st.label || '—'}</td>
+          <td>${data.procedure_name || '—'}</td>
+          <td>${ts.label}</td>
+          <td>${data.treatment_date ? dayjs(data.treatment_date).format('DD/MM/YYYY') : '—'}</td>
+          <td>R$ ${data.procedure_value ? parseFloat(data.procedure_value).toFixed(2) : '0,00'}</td>
+          <td>${ps.label}</td>
+        </tr>`;
+    }).join('');
+
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+      <title>Plano de Tratamento — ${patient.name}</title>
+      <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; font-size: 13px; color: #1a1a1a; padding: 32px; }
+        h1  { font-size: 20px; color: #1a2535; margin-bottom: 4px; }
+        .subtitle { color: #6c757d; font-size: 13px; margin-bottom: 24px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 32px; }
+        th { background: #1a2535; color: #fff; padding: 10px 8px; text-align: left; font-size: 12px; }
+        td { padding: 9px 8px; border-bottom: 1px solid #e5e7eb; font-size: 12px; }
+        tr:nth-child(even) td { background: #f9fafb; }
+        .totals { display: flex; gap: 24px; margin-bottom: 40px; }
+        .total-box { border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 20px; min-width: 140px; }
+        .total-label { font-size: 10px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .total-val { font-size: 18px; font-weight: 800; }
+        .signature { border-top: 1px dashed #adb5bd; padding-top: 12px; margin-top: 48px; display: flex; justify-content: space-between; }
+        .sig-line { text-align: center; width: 46%; }
+        .sig-line div { border-top: 1px solid #1a2535; padding-top: 6px; margin-top: 48px; font-size: 12px; color: #6c757d; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1a2535; padding-bottom: 16px; margin-bottom: 20px; }
+        .logo { font-size: 18px; font-weight: 800; color: #4DB8E8; }
+        .logo span { color: #E8841A; font-size: 12px; display: block; }
+        @media print { body { padding: 16px; } }
+      </style>
+    </head><body>
+      <div class="header">
+        <div><div class="logo">P. Soluções<span>para Saúde</span></div></div>
+        <div style="text-align:right;font-size:12px;color:#6c757d">
+          Emitido em ${dayjs().format('DD/MM/YYYY')}<br/>
+          Válido mediante assinatura do paciente
+        </div>
+      </div>
+      <h1>Plano de Tratamento</h1>
+      <div class="subtitle">Paciente: <strong>${patient.name}</strong>${patient.cpf ? ` · CPF: ${patient.cpf}` : ''}</div>
+      <div class="totals">
+        <div class="total-box"><div class="total-label">Total do plano</div><div class="total-val" style="color:#1a2535">R$ ${totalPlano.toFixed(2)}</div></div>
+        <div class="total-box"><div class="total-label">Pago</div><div class="total-val" style="color:#16a34a">R$ ${totalPago.toFixed(2)}</div></div>
+        <div class="total-box"><div class="total-label">Pendente</div><div class="total-val" style="color:#ea580c">R$ ${totalPendente.toFixed(2)}</div></div>
+      </div>
+      <table>
+        <thead><tr><th>Dente</th><th>Situação</th><th>Procedimento</th><th>Status</th><th>Data</th><th>Valor</th><th>Pagamento</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr style="background:#f1f5f9"><td colspan="5" style="font-weight:700;padding:10px 8px">Total</td><td colspan="2" style="font-weight:800;font-size:14px;padding:10px 8px">R$ ${totalPlano.toFixed(2)}</td></tr></tfoot>
+      </table>
+      <div class="signature">
+        <div class="sig-line"><div>Assinatura do Paciente</div></div>
+        <div class="sig-line"><div>Assinatura do Profissional / Data</div></div>
+      </div>
+    </body></html>`);
+    w.document.close();
+    setTimeout(() => { w.focus(); w.print(); }, 400);
+  };
+
   // ── Plano de tratamento + resumo financeiro ──────────────────────────────────
   const treatmentPlan = Object.entries(teeth)
     .filter(([, t]) => t.procedure_name)
@@ -341,6 +412,11 @@ export default function Odontogram() {
             <p className="page-subtitle">{patient.name}</p>
           </div>
         </div>
+        {treatmentPlan.length > 0 && (
+          <button className="btn btn-outline" onClick={handlePrintPlan}>
+            <i className="fas fa-print" style={{ marginRight: 6 }} />Imprimir Plano
+          </button>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 24, alignItems: 'start' }}>

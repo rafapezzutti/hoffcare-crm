@@ -171,6 +171,9 @@ export default function PatientDetail() {
             <div className="card">
               <div className="card-header">
                 <span className="card-title"><i className="fas fa-user" style={{ color: 'var(--blue)', marginRight: 8 }} />Dados Pessoais</span>
+                <button className="btn btn-outline btn-sm" onClick={() => setEditOpen(true)}>
+                  <i className="fas fa-pen" style={{ marginRight: 4 }} />Editar dados
+                </button>
               </div>
               <InfoRow label="CPF"               value={formatCPF(patient.cpf)} />
               <InfoRow label="Data de Nascimento" value={patient.birthdate ? dayjs(patient.birthdate).format('DD/MM/YYYY') : '-'} />

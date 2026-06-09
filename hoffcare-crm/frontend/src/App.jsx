@@ -46,6 +46,7 @@ import CashFlow from './pages/CashFlow';
 import Employees from './pages/Employees';
 import AuditLog from './pages/AuditLog';
 import Receivables from './pages/Receivables';
+import Receipts from './pages/Receipts';
 
 function ProtectedRoute({ children, adminOnly }) {
   const { user } = useAuth();
@@ -105,6 +106,7 @@ export default function App() {
             <Route path="employees" element={<Employees />} />
             <Route path="audit" element={<AuditLog />} />
             <Route path="receivables" element={<Receivables />} />
+            <Route path="receipts" element={<Receipts />} />
           </Route>
           <Route path="/budgets/:id/print" element={<BudgetPrint />} />
         </Routes>

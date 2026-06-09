@@ -63,6 +63,7 @@ app.use('/api/cash-flow',   require('./routes/cash-flow'));
 app.use('/api/employees',  require('./routes/employees'));
 app.use('/api/audit',      require('./routes/audit'));
 app.use('/api/receivables', require('./routes/receivables'));
+app.use('/api/receipts',   require('./routes/receipts'));
 app.use('/uploads/before_after', express.static(path.join(__dirname, '../uploads/before_after')));
 app.use('/uploads/evolution',    express.static(path.join(__dirname, '../uploads/evolution')));
 
