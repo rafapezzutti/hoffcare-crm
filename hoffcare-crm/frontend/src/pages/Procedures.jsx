@@ -4,9 +4,9 @@ import api from '../services/api';
 import Modal from '../components/Modal';
 import { PROF_TYPES, getProfType } from '../config/professionalTypes';
 
+// Clínica odontológica — apenas procedimentos dentais
 const PROC_TYPES = [
   { value: 'odontologico', label: 'Odontológico', emoji: '🦷' },
-  ...PROF_TYPES.filter(pt => pt.value !== 'dentista').map(pt => ({ value: pt.value, label: pt.label, emoji: pt.emoji }))
 ];
 
 const empty = { type: 'odontologico', code: '', name: '', cho: '' };

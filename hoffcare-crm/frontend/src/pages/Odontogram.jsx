@@ -115,6 +115,26 @@ function toothWidth(n) {
   return 34;                         // molares
 }
 
+// ── Extrai faces da sigla do procedimento (ex: "Res. MOD" → {M,O,D}) ─────────
+// Reconhece: M=Mesial, D=Distal, O=Oclusal, V=Vestibular, L=Lingual, I→O, P→L
+function facesFromName(name) {
+  const faces = {};
+  // Busca blocos de letras maiúsculas (sigla) após espaço, hífen ou ponto
+  const matches = name.match(/[MDIVOLP]{2,}/g) || [];
+  matches.forEach(block => {
+    for (const ch of block) {
+      if (ch === 'M') faces.M = 'cariado';
+      else if (ch === 'D') faces.D = 'cariado';
+      else if (ch === 'O') faces.O = 'cariado';
+      else if (ch === 'I') faces.O = 'cariado'; // incisal → oclusal
+      else if (ch === 'V') faces.V = 'cariado';
+      else if (ch === 'L') faces.L = 'cariado';
+      else if (ch === 'P') faces.L = 'cariado'; // palatina → lingual
+    }
+  });
+  return faces;
+}
+
 export default function Odontogram() {
   const { id: patientId } = useParams();
   const navigate = useNavigate();
@@ -126,36 +146,50 @@ export default function Odontogram() {
   const [saving,   setSaving]   = useState(false);
   const [dirty,    setDirty]    = useState(false);
 
+  // ── Procedimentos cadastrados (autocomplete) ───────────────────────────────────
+  const [procedures,  setProcedures]  = useState([]); // lista de procedimentos dentais
+
   // ── Faces ─────────────────────────────────────────────────────────────────────
-  // allFaces: { '11': { V: 'cariado', M: '', ... }, '21': {...}, ... }
   const [allFaces,      setAllFaces]      = useState({});
-  const [selectedFace,  setSelectedFace]  = useState(null); // face key clicked
+  const [selectedFace,  setSelectedFace]  = useState(null);
   const [savingFaces,   setSavingFaces]   = useState(false);
-  const [pendingFaces,  setPendingFaces]  = useState({}); // local edits before save
+  const [pendingFaces,  setPendingFaces]  = useState({});
 
   // ── Histórico por dente ───────────────────────────────────────────────────────
-  const [history,       setHistory]       = useState([]); // entries for selected tooth
+  const [history,       setHistory]       = useState([]);
   const [historyForm,   setHistoryForm]   = useState({ procedure_name: '', procedure_date: dayjs().format('YYYY-MM-DD'), professional_name: '', notes: '' });
   const [addingHistory, setAddingHistory] = useState(false);
   const [savingHistory, setSavingHistory] = useState(false);
 
+  // ── Dados para impressão ───────────────────────────────────────────────────────
+  const [clinic,        setClinic]        = useState(null);
+  const [professionals, setProfessionals] = useState([]);
+
   const load = async () => {
-    const [p, t, f] = await Promise.all([
+    const [p, t, f, procs, clinics, profs] = await Promise.all([
       api.get(`/patients/${patientId}`),
       api.get(`/odontogram?patient_id=${patientId}`),
       api.get(`/odontogram/${patientId}/faces`).catch(() => ({ data: [] })),
+      api.get('/procedures').catch(() => ({ data: [] })),
+      api.get('/clinics').catch(() => ({ data: [] })),
+      api.get('/professionals').catch(() => ({ data: [] })),
     ]);
     setPatient(p.data);
     const map = {};
     t.data.forEach(row => { map[row.tooth_number] = row; });
     setTeeth(map);
-    // organiza faces por dente
     const fmap = {};
     f.data.forEach(row => {
       if (!fmap[row.tooth_number]) fmap[row.tooth_number] = {};
       fmap[row.tooth_number][row.face] = row.status;
     });
     setAllFaces(fmap);
+    // Apenas procedimentos odontológicos
+    setProcedures((procs.data || []).filter(pr => pr.type === 'odontologico' || pr.type === 'dentista'));
+    // Primeira clínica disponível
+    if (clinics.data?.length) setClinic(clinics.data[0]);
+    // Dentistas
+    setProfessionals((profs.data || []).filter(pr => pr.type === 'dentista' || pr.type === 'odontologico'));
   };
 
   useEffect(() => { load(); }, [patientId]);
@@ -276,7 +310,7 @@ export default function Odontogram() {
       const ps = getPaymentStatus(data.payment_status);
       return `
         <tr>
-          <td>${tooth}</td>
+          <td style="font-weight:700">${tooth}</td>
           <td>${st.label || '—'}</td>
           <td>${data.procedure_name || '—'}</td>
           <td>${ts.label}</td>
@@ -285,6 +319,21 @@ export default function Odontogram() {
           <td>${ps.label}</td>
         </tr>`;
     }).join('');
+
+    // ── Dados do consultório e dentista ──
+    const clinicName    = clinic?.name || '';
+    const clinicAddr    = [clinic?.street, clinic?.number, clinic?.complement].filter(Boolean).join(', ');
+    const clinicPhone   = clinic?.phone || '';
+    const clinicLogoUrl = clinic?.logo_url || '';
+    // Primeiro dentista cadastrado (ou o dentista responsável)
+    const dentist = professionals[0];
+    const dentistName = dentist?.name || '';
+    const dentistCRO  = dentist?.crm_cro ? `CRO ${dentist.crm_cro}` : '';
+    const sigLine2    = [dentistName, dentistCRO].filter(Boolean).join(' — ') || 'Assinatura do Profissional';
+
+    const logoHtml = clinicLogoUrl
+      ? `<img src="${clinicLogoUrl}" alt="Logo" style="height:56px;max-width:180px;object-fit:contain" />`
+      : `<div style="font-size:20px;font-weight:800;color:#4DB8E8">${clinicName || 'Consultório'}</div>`;
 
     const w = window.open('', '_blank');
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
@@ -306,20 +355,26 @@ export default function Odontogram() {
         .sig-line { text-align: center; width: 46%; }
         .sig-line div { border-top: 1px solid #1a2535; padding-top: 6px; margin-top: 48px; font-size: 12px; color: #6c757d; }
         .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1a2535; padding-bottom: 16px; margin-bottom: 20px; }
-        .logo { font-size: 18px; font-weight: 800; color: #4DB8E8; }
-        .logo span { color: #E8841A; font-size: 12px; display: block; }
+        .clinic-info { font-size: 11px; color: #6c757d; margin-top: 4px; line-height: 1.5; }
         @media print { body { padding: 16px; } }
       </style>
     </head><body>
       <div class="header">
-        <div><div class="logo">P. Soluções<span>para Saúde</span></div></div>
+        <div>
+          ${logoHtml}
+          <div class="clinic-info">
+            ${clinicName ? `<strong>${clinicName}</strong><br/>` : ''}
+            ${clinicAddr ? `${clinicAddr}<br/>` : ''}
+            ${clinicPhone ? `Tel: ${clinicPhone}` : ''}
+          </div>
+        </div>
         <div style="text-align:right;font-size:12px;color:#6c757d">
           Emitido em ${dayjs().format('DD/MM/YYYY')}<br/>
-          Válido mediante assinatura do paciente
+          ${dentistName ? `<strong>${dentistName}</strong>${dentistCRO ? `<br/>${dentistCRO}` : ''}` : ''}
         </div>
       </div>
       <h1>Plano de Tratamento</h1>
-      <div class="subtitle">Paciente: <strong>${patient.name}</strong>${patient.cpf ? ` · CPF: ${patient.cpf}` : ''}</div>
+      <div class="subtitle">Paciente: <strong>${patient.name}</strong>${patient.cpf ? ` &nbsp;·&nbsp; CPF: ${patient.cpf}` : ''}${patient.birthdate ? ` &nbsp;·&nbsp; Nasc.: ${dayjs(patient.birthdate).format('DD/MM/YYYY')}` : ''}</div>
       <div class="totals">
         <div class="total-box"><div class="total-label">Total do plano</div><div class="total-val" style="color:#1a2535">R$ ${totalPlano.toFixed(2)}</div></div>
         <div class="total-box"><div class="total-label">Pago</div><div class="total-val" style="color:#16a34a">R$ ${totalPago.toFixed(2)}</div></div>
@@ -332,7 +387,7 @@ export default function Odontogram() {
       </table>
       <div class="signature">
         <div class="sig-line"><div>Assinatura do Paciente</div></div>
-        <div class="sig-line"><div>Assinatura do Profissional / Data</div></div>
+        <div class="sig-line"><div>${sigLine2}</div></div>
       </div>
     </body></html>`);
     w.document.close();
@@ -633,16 +688,49 @@ export default function Odontogram() {
                 </div>
               </div>
 
-              {/* Procedimento */}
+              {/* Procedimento — com autocomplete e reconhecimento de faces */}
               <div style={{ marginBottom: 12 }}>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-600)', display: 'block', marginBottom: 4 }}>
                   Procedimento planejado
                 </label>
-                <input type="text" className="form-control"
-                  placeholder="Ex: Restauração, Canal, Extração..."
+                <input
+                  type="text"
+                  className="form-control"
+                  list="proc-autocomplete"
+                  placeholder="Digite ou selecione... Ex: Restauração MOD"
                   value={form.procedure_name}
-                  onChange={e => { setForm(p => ({ ...p, procedure_name: e.target.value })); setDirty(true); }}
+                  onChange={e => {
+                    const val = e.target.value;
+                    // Detecta faces automaticamente pela sigla no nome
+                    const detectedFaces = facesFromName(val);
+                    if (Object.keys(detectedFaces).length > 0) {
+                      setPendingFaces(prev => {
+                        // Mescla com faces já existentes (não sobrescreve status que o usuário editou)
+                        const merged = { ...prev };
+                        Object.entries(detectedFaces).forEach(([face, status]) => {
+                          if (!merged[face]) merged[face] = status;
+                        });
+                        return merged;
+                      });
+                    }
+                    setForm(p => ({ ...p, procedure_name: val }));
+                    setDirty(true);
+                  }}
                 />
+                <datalist id="proc-autocomplete">
+                  {procedures.map(p => (
+                    <option key={p.id} value={p.name}>
+                      {p.code ? `[${p.code}] ` : ''}{p.name}
+                    </option>
+                  ))}
+                </datalist>
+                {form.procedure_name && Object.keys(facesFromName(form.procedure_name)).length > 0 && (
+                  <div style={{ fontSize: 11, color: '#6366f1', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <i className="fas fa-magic" />
+                    Faces detectadas automaticamente: <strong>{Object.keys(facesFromName(form.procedure_name)).join(', ')}</strong>
+                    <span style={{ color: 'var(--gray-400)' }}> — salve faces para confirmar</span>
+                  </div>
+                )}
               </div>
 
               {/* Valor */}

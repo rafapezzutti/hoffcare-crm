@@ -44,16 +44,16 @@ router.get('/:id', auth, async (req, res) => {
 
 router.post('/', auth, adminOnly, async (req, res) => {
   const { name, responsible_name, responsible_cpf, cep, street, number, complement, phone, email,
-          email_confirmations, email_reminders, email_recall } = req.body;
+          email_confirmations, email_reminders, email_recall, logo_url } = req.body;
   if (!name) return res.status(400).json({ error: 'Nome do consultório é obrigatório' });
 
   try {
     const result = await pool.query(
       `INSERT INTO clinics (name, responsible_name, responsible_cpf, cep, street, number, complement,
-        phone, email, email_confirmations, email_reminders, email_recall)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+        phone, email, email_confirmations, email_reminders, email_recall, logo_url)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
       [name, responsible_name, responsible_cpf, cep, street, number, complement, phone, email,
-       !!email_confirmations, !!email_reminders, !!email_recall]
+       !!email_confirmations, !!email_reminders, !!email_recall, logo_url || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -65,7 +65,7 @@ router.put('/:id', auth, adminOnly, async (req, res) => {
   const { name, responsible_name, responsible_cpf, cep, street, number, complement, phone, email,
           email_confirmations, email_reminders, email_recall,
           whatsapp_enabled, whatsapp_confirm, whatsapp_reminder, whatsapp_cancel,
-          whatsapp_reminder_hours, timezone } = req.body;
+          whatsapp_reminder_hours, timezone, logo_url } = req.body;
   try {
     const result = await pool.query(
       `UPDATE clinics SET
@@ -74,13 +74,14 @@ router.put('/:id', auth, adminOnly, async (req, res) => {
          email_confirmations=$10, email_reminders=$11, email_recall=$12,
          whatsapp_enabled=$13, whatsapp_confirm=$14, whatsapp_reminder=$15,
          whatsapp_cancel=$16, whatsapp_reminder_hours=$17,
-         timezone=$18
-       WHERE id=$19 RETURNING *`,
+         timezone=$18, logo_url=$19
+       WHERE id=$20 RETURNING *`,
       [name, responsible_name, responsible_cpf, cep, street, number, complement, phone, email,
        !!email_confirmations, !!email_reminders, !!email_recall,
        !!whatsapp_enabled, !!whatsapp_confirm, !!whatsapp_reminder, !!whatsapp_cancel,
        whatsapp_reminder_hours || 24,
        timezone || 'America/Sao_Paulo',
+       logo_url || null,
        req.params.id]
     );
     if (!result.rows[0]) return res.status(404).json({ error: 'Consultório não encontrado' });

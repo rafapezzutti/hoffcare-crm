@@ -6,7 +6,7 @@ import { PROF_TYPES, getProfType } from '../config/professionalTypes';
 import { useAuth } from '../context/AuthContext';
 import { formatPhone, formatCPF } from '../utils/format';
 
-const empty = { type: 'medico', name: '', cpf: '', crm_cro: '', birthdate: '', email: '', phone: '', repasse_percentual: '', repasse_type: 'percent', repasse_fixed: '' };
+const empty = { type: 'dentista', name: '', cpf: '', crm_cro: '', birthdate: '', email: '', phone: '', repasse_percentual: '', repasse_type: 'percent', repasse_fixed: '' };
 
 export default function Professionals() {
   const { t } = useTranslation();

@@ -8,14 +8,14 @@ import { TIMEZONES } from '../utils/timezone';
 
 const emptyClinic = {
   name: '', responsible_name: '', responsible_cpf: '', cep: '', street: '',
-  number: '', complement: '', phone: '', email: '',
+  number: '', complement: '', phone: '', email: '', logo_url: '',
   email_confirmations: false, email_reminders: false, email_recall: false,
   whatsapp_enabled: false, whatsapp_confirm: false, whatsapp_reminder: false,
   whatsapp_cancel: false, whatsapp_reminder_hours: 24,
   timezone: 'America/Sao_Paulo',
   // autônomo
   is_autonomous: false,
-  prof_type: 'medico', nationality: 'brasileiro',
+  prof_type: 'dentista', nationality: 'brasileiro',
   prof_cpf: '', crm_cro: '', birthdate: '', prof_phone: '',
   password: '',
 };
@@ -321,6 +321,21 @@ export default function Clinics() {
               <div className="form-group"><label className="form-label">{t('clinics.complement')}</label><input className="form-control" {...f('complement')} /></div>
             </>
           )}
+
+          {/* ── Logo do consultório ── */}
+          <div className="form-group">
+            <label className="form-label">
+              <i className="fas fa-image" style={{ marginRight: 6, color: '#4DB8E8' }} />
+              Logo do consultório (URL da imagem)
+            </label>
+            <input className="form-control" {...f('logo_url')} placeholder="https://... (link da imagem)" />
+            {form.logo_url && (
+              <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <img src={form.logo_url} alt="Logo" style={{ height: 48, maxWidth: 160, objectFit: 'contain', border: '1px solid var(--gray-200)', borderRadius: 6, background: '#f8f9fa', padding: 4 }} onError={e => { e.target.style.display = 'none'; }} />
+                <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>Pré-visualização</span>
+              </div>
+            )}
+          </div>
 
           {/* ── Contato (ambos) ── */}
           <div className="form-grid form-grid-2">
